@@ -162,3 +162,6 @@ def test_roy_2d_homogeneous_initial_state_stays_homogeneous_short_run():
     assert result.diagnostics.var_u < 1.0e-12
     assert result.diagnostics.var_v < 1.0e-12
     assert result.diagnostics.var_w < 1.0e-12
+    assert len(result.t) == len(result.mean_w_time)
+    assert len(result.t) == len(result.var_u_time)
+    assert np.all(np.isfinite(result.min_z_time))

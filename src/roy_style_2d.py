@@ -29,6 +29,7 @@ class Roy2DConfig:
     perturbation_amplitude: float = 1.0e-5
     seed: int = 1
     clip_negative: bool = False
+    record_fourier: bool = False
 
 
 @dataclass(frozen=True)
@@ -51,7 +52,15 @@ class Roy2DDiagnostics:
 @dataclass(frozen=True)
 class Roy2DResult:
     t: np.ndarray
+    mean_u_time: np.ndarray
+    mean_v_time: np.ndarray
     mean_w_time: np.ndarray
+    var_u_time: np.ndarray
+    var_v_time: np.ndarray
+    var_w_time: np.ndarray
+    min_z_time: np.ndarray
+    dominant_wavelength_time: np.ndarray
+    dominant_power_time: np.ndarray
     x: np.ndarray
     y: np.ndarray
     u: np.ndarray
@@ -184,6 +193,31 @@ def compute_diagnostics(u: np.ndarray, v: np.ndarray, w: np.ndarray, params: Roy
     )
 
 
+def snapshot_diagnostics(
+    u: np.ndarray,
+    v: np.ndarray,
+    w: np.ndarray,
+    params: RoyParams,
+    config: Roy2DConfig,
+) -> tuple[float, float, float, float, float, float, float, float, float]:
+    z = free_space(u, v, w, params)
+    wavelength = float("nan")
+    power = float("nan")
+    if config.record_fourier:
+        _, wavelength, power, _, _ = dominant_fourier_mode(u, config.L_x, config.L_y)
+    return (
+        spatial_mean(u),
+        spatial_mean(v),
+        spatial_mean(w),
+        float(np.var(u)),
+        float(np.var(v)),
+        float(np.var(w)),
+        float(np.min(z)),
+        wavelength,
+        power,
+    )
+
+
 def simulate_pde_2d(
     params: RoyParams,
     config: Roy2DConfig,
@@ -206,7 +240,29 @@ def simulate_pde_2d(
     n_steps = int(np.ceil(config.T / config.dt))
     record_every = max(1, config.record_every)
     times: list[float] = [0.0]
-    mean_w: list[float] = [spatial_mean(w)]
+    mean_u: list[float] = []
+    mean_v: list[float] = []
+    mean_w: list[float] = []
+    var_u: list[float] = []
+    var_v: list[float] = []
+    var_w: list[float] = []
+    min_z: list[float] = []
+    dominant_wavelength: list[float] = []
+    dominant_power: list[float] = []
+
+    def record() -> None:
+        values = snapshot_diagnostics(u, v, w, stressed, config)
+        mean_u.append(values[0])
+        mean_v.append(values[1])
+        mean_w.append(values[2])
+        var_u.append(values[3])
+        var_v.append(values[4])
+        var_w.append(values[5])
+        min_z.append(values[6])
+        dominant_wavelength.append(values[7])
+        dominant_power.append(values[8])
+
+    record()
 
     for step in range(1, n_steps + 1):
         reactions = reaction_part(u, v, w, stressed)
@@ -220,12 +276,20 @@ def simulate_pde_2d(
         u, v, w = u_next, v_next, w_next
         if step % record_every == 0 or step == n_steps:
             times.append(min(step * config.dt, config.T))
-            mean_w.append(spatial_mean(w))
+            record()
 
     diagnostics = compute_diagnostics(u, v, w, stressed, config)
     return Roy2DResult(
         t=np.asarray(times, dtype=float),
+        mean_u_time=np.asarray(mean_u, dtype=float),
+        mean_v_time=np.asarray(mean_v, dtype=float),
         mean_w_time=np.asarray(mean_w, dtype=float),
+        var_u_time=np.asarray(var_u, dtype=float),
+        var_v_time=np.asarray(var_v, dtype=float),
+        var_w_time=np.asarray(var_w, dtype=float),
+        min_z_time=np.asarray(min_z, dtype=float),
+        dominant_wavelength_time=np.asarray(dominant_wavelength, dtype=float),
+        dominant_power_time=np.asarray(dominant_power, dtype=float),
         x=x,
         y=y,
         u=u,
