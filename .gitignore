@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# LaTeX build products
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+
+# Local environments
+.venv/
+venv/
+

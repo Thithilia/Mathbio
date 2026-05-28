@@ -1,0 +1,883 @@
+\documentclass[12pt,letterpaper]{article}
+
+\usepackage[letterpaper,left=1.18in,right=1.18in,top=1.0in,bottom=0.9in,footskip=0.35in]{geometry}
+\usepackage{amsmath,amssymb,mathtools,bm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue,linktocpage=true]{hyperref}
+
+\setlength{\parindent}{1.2em}
+\setlength{\parskip}{0pt}
+\linespread{1.05}
+
+\numberwithin{equation}{section}
+
+\captionsetup{
+    labelfont=normalfont,
+    textfont=normalfont,
+    labelsep=period,
+    justification=centering
+}
+
+\titleformat{\section}
+    {\normalfont\Large\bfseries}
+    {\thesection}
+    {1.15em}
+    {}
+\titleformat{\subsection}
+    {\normalfont\large\bfseries}
+    {\thesubsection}
+    {1.0em}
+    {}
+\titleformat{\subsubsection}
+    {\normalfont\normalsize\bfseries}
+    {\thesubsubsection}
+    {0.9em}
+    {}
+\titlespacing*{\section}{0pt}{2.6ex plus 0.5ex minus 0.2ex}{1.8ex plus 0.2ex}
+\titlespacing*{\subsection}{0pt}{2.2ex plus 0.4ex minus 0.2ex}{1.0ex plus 0.2ex}
+\titlespacing*{\subsubsection}{0pt}{1.8ex plus 0.3ex minus 0.2ex}{0.8ex plus 0.1ex}
+
+\makeatletter
+\def\ps@plain{%
+    \let\@mkboth\@gobbletwo
+    \let\@oddhead\@empty
+    \let\@evenhead\@empty
+    \def\@oddfoot{\hfil-- \thepage\ --\hfil}%
+    \let\@evenfoot\@oddfoot
+}
+\pagestyle{plain}
+
+\renewcommand{\tableofcontents}{%
+    \section*{\contentsname}%
+    \@starttoc{toc}%
+}
+\renewcommand{\l@section}[2]{%
+    \ifnum \c@tocdepth >\z@
+        \addpenalty\@secpenalty
+        \vskip 0.8em \@plus\p@
+        \setlength\@tempdima{1.65em}%
+        \begingroup
+            \parindent \z@
+            \rightskip \@pnumwidth
+            \parfillskip -\@pnumwidth
+            \leavevmode
+            \bfseries
+            \advance\leftskip\@tempdima
+            \hskip -\leftskip
+            #1\nobreak\hfil \nobreak\hb@xt@\@pnumwidth{\hss #2}\par
+        \endgroup
+    \fi}
+\renewcommand{\l@subsection}{\@dottedtocline{2}{1.65em}{2.7em}}
+\renewcommand{\l@subsubsection}{\@dottedtocline{3}{4.35em}{3.4em}}
+\renewcommand{\@dotsep}{10000}
+\makeatother
+
+\newcommand{\notestitle}{Testing Pattern-Mediated\\Indirect Evolutionary Rescue}
+\newcommand{\notessubtitle}{A predator--prey reaction--diffusion research report}
+\newcommand{\notesauthor}{Quoc Trong Do}
+
+\newenvironment{lecturequote}[1]
+{\def\lecturequoteauthor{#1}\begin{quote}\itshape}
+{\par\medskip\hfill \lecturequoteauthor\end{quote}}
+
+\begin{document}
+
+\hypersetup{pageanchor=false}
+
+\pagenumbering{roman}
+\begin{center}
+{\sffamily\bfseries\LARGE \notestitle\par}
+\vspace{0.18in}
+{\sffamily\bfseries\large \notessubtitle\par}
+\vspace{0.15in}
+{\bfseries \notesauthor\par}
+\end{center}
+\vspace{0.15in}
+\noindent\rule{\linewidth}{0.5pt}
+\vspace{0.2in}
+
+\hypersetup{pageanchor=true}
+\tableofcontents
+\clearpage
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\section{Introduction}
+
+\begin{lecturequote}{Philip Anderson}
+This process of model building is the art of discarding all but the essentials and
+focusing on a model simple enough to do the job, but not too hard to see all the way
+through.
+\end{lecturequote}
+
+\subsection{Basic Biological Concepts}
+
+We begin by fixing the biological language. A \emph{population} is a group of
+individuals of the same type or species. In mathematical models, its abundance may be
+tracked as a function of time, such as $X(t)$, or as a density in space and time, such
+as $X(x,t)$.
+
+A \emph{prey} population is a population that can be consumed by another population.
+A \emph{predator} population feeds on prey, and the interaction in which predators
+consume prey is called \emph{predation}. Predation has opposite immediate effects on
+the two populations: it decreases prey abundance but can increase predator abundance by
+providing energy for survival and reproduction.
+
+A \emph{trait} is a biological property of individuals that affects growth, survival,
+movement, or interactions with other species. In this report, the key prey trait is
+defence against predation. We distinguish between two prey types:
+\begin{equation}
+    U=\text{undefended prey},
+    \qquad
+    D=\text{defended prey}.
+\end{equation}
+Undefended prey are easier for predators to consume, but they are assumed to grow or
+compete better. Defended prey are harder to consume, but defence is costly. This is the
+defence--growth trade-off that motivates the extended model.
+
+An \emph{eco-evolutionary} model is one in which ecological variables, such as
+population density, interact with evolutionary variables, such as trait composition.
+In our setting, the predator may be rescued not because it evolves, but because the prey
+community shifts toward a more edible composition.
+
+Finally, a \emph{spatial} model tracks where populations are located. This matters
+because predator persistence depends not only on how much edible prey exists, but also
+on whether predators and edible prey overlap in space. A \emph{Turing pattern} is a
+spatial pattern generated by reaction--diffusion dynamics when diffusion destabilizes
+an otherwise stable homogeneous state \cite{turing1952}. The central question of this
+report is whether such spatial patterns can change the threshold for predator rescue.
+
+\subsection{Literature Positioning and Research Gap}
+
+The starting point is the broader problem of \emph{evolutionary rescue}: a population
+under environmental stress may avoid extinction if evolutionary change raises its mean
+fitness fast enough \cite{gomulkiewicz1995}. Most evolutionary-rescue theory focuses
+on the threatened population itself. In multispecies communities, however, a focal
+species can also be rescued indirectly by evolutionary change in an interacting species.
+Yamamichi and Miner introduced this mechanism as \emph{indirect evolutionary rescue}:
+prey evolution can prevent predator extinction when the prey community shifts toward a
+more edible composition \cite{yamamichi2015}. Hermann and Becks later tested this idea
+experimentally in a rotifer--alga system, showing that changes in prey genotype
+frequency can rescue a predator from extinction \cite{hermann2022}.
+
+This report builds on that predator--prey setting but focuses on a spatial question.
+Defended and undefended prey are a natural way to represent the key trait axis because
+defence typically reduces predation risk but carries a growth or competitive cost.
+Experiments with rotifer--algal systems show that the form of this trade-off can
+strongly alter eco-evolutionary dynamics \cite{kasada2014}, and recent work shows that
+the range of prey trait variation affects the evolutionary contribution to predator
+growth rates \cite{hermann2024}. These studies motivate treating prey composition as a
+dynamic variable rather than as a fixed ecological background.
+
+The closest spatial precedent is the reaction--diffusion model of Roy et al., who
+studied defended and undefended prey, eco-evolutionary feedback, coexistence,
+persistence, extinction, and Turing pattern formation in a spatial predator--prey system
+\cite{roy2026}. Their work shows that spatio-temporal patterns can arise from the
+interaction between ecological and evolutionary components. The present report adds a
+more targeted threshold question: instead of asking only when patterns occur or which
+states persist, we ask whether spatial pattern formation changes the maximum predator
+mortality compatible with indirect rescue. The quantity
+$\Delta m_c=m_c^{\mathrm{PDE}}-m_c^{\mathrm{ODE}}$ is therefore the operational
+comparison that distinguishes this report from the broader Roy et al. pattern analysis.
+Thus ``pattern-mediated indirect evolutionary rescue'' is used here as a proposed
+mechanism to test, not as an established subfield.
+
+The classical Lotka--Volterra model provides the baseline language for this question.
+It is not realistic enough for the final problem, but it clearly displays the
+predator--prey feedback that all later models retain: prey support predators, while
+predators suppress prey. We therefore begin with that baseline, identify its
+limitations, and then extend it to include prey heterogeneity, predator stress, spatial
+movement, and a rescue-threshold comparison.
+
+\subsection{Core Mathematical Problem}
+
+The study is not merely about finding Turing patterns. Turing instability is a
+mechanism that can create spatial structure, but the central mathematical problem is to
+determine whether such structure changes the predator mortality threshold for indirect
+evolutionary rescue.
+
+The mathematical object of interest is the difference between the predator persistence
+threshold in the well-mixed system and the corresponding threshold in the spatial
+reaction--diffusion system. Let $m_c^{\mathrm{ODE}}$ denote the largest predator
+mortality for which the non-spatial model maintains predator persistence, and let
+$m_c^{\mathrm{PDE}}$ denote the corresponding threshold for the spatial model. The
+central quantity is
+\begin{equation}
+    \Delta m_c=m_c^{\mathrm{PDE}}-m_c^{\mathrm{ODE}}.
+\end{equation}
+If $\Delta m_c>0$, spatial patterning promotes indirect evolutionary rescue. If
+$\Delta m_c<0$, spatial patterning inhibits rescue. If $\Delta m_c$ changes sign
+across parameter regimes, then the effect of pattern formation is conditional.
+
+\begin{center}
+\emph{Do Turing-type spatial patterns in defended and undefended prey expand or shrink
+the mortality range over which predators persist?}
+\end{center}
+
+\section{Predator--Prey Dynamics}
+
+\subsection{The Basic Ecological Problem}
+
+A predator--prey system is the simplest setting in which the growth rate of one
+population depends directly on the abundance of another. Let $X(t)$ denote prey
+density and $Y(t)$ predator density. If prey are abundant, predators have more
+opportunities to feed and reproduce. If predators are abundant, prey suffer more
+mortality. This creates the feedback loop
+\[
+    \text{more prey} \longrightarrow \text{more predator growth}
+    \longrightarrow \text{more prey mortality}.
+\]
+After prey decline, predators may also decline because their food supply has been
+reduced. Predator decline then releases prey from predation pressure. The classical
+predator--prey problem is to turn this verbal feedback into a dynamical system.
+
+\subsection{Historical and Empirical Motivation}
+
+The equations are named after Alfred J. Lotka and Vito Volterra, who arrived at the
+same mathematical structure from different directions. Lotka introduced related
+equations in the context of chemical reactions and later used them in population
+dynamics. Volterra developed the predator--prey version after discussions with the
+marine biologist Umberto D'Ancona, who had studied fish catches in the Adriatic Sea.
+During the First World War, fishing effort was greatly reduced, yet the proportion of
+predatory fish in the catch increased. Volterra's model gave a simple mathematical
+mechanism for why reduced fishing could increase the average abundance of predators
+relative to prey \cite{murray2002,kot2001}.
+
+The model is also associated with the famous hare--lynx records of the Hudson's Bay
+Company. The recorded numbers of snowshoe hare and lynx pelts show repeated
+oscillations that resemble predator--prey cycles. These data are not a clean laboratory
+experiment: pelt records are affected by hunting effort, climate, food availability,
+disease, and many other variables. Still, they remain a useful empirical picture of the
+kind of delayed predator--prey oscillation that the model tries to capture. Cleaner
+cyclic behaviour can be observed in controlled systems, such as laboratory
+rotifer--algae predator--prey experiments, where environmental conditions and species
+composition are more tightly constrained \cite{kot2001,edelstein2005}.
+
+These examples should not be taken as proof that the Lotka--Volterra equations are a
+complete model of real ecosystems. Rather, they explain why the model became central:
+it is simple enough to analyze, but rich enough to produce a recognizable ecological
+story.
+
+\subsection{Classical Lotka--Volterra Baseline}
+
+The Lotka--Volterra model is the standard first mathematical answer to the
+predator--prey problem \cite{murray2002,kot2001,edelstein2005}. It is built from
+four assumptions:
+
+\begin{enumerate}[leftmargin=2.2em]
+    \item The system is well mixed, so predator--prey encounters are proportional to
+    the product $XY$.
+    \item In the absence of predators, prey grow exponentially.
+    \item In the absence of prey, predators decline exponentially.
+    \item The environment is constant, and there is no trait change, adaptation, age
+    structure, space, or stochastic extinction.
+\end{enumerate}
+
+These assumptions are strong, but they give the cleanest possible expression of
+predator--prey feedback. Combining exponential prey growth, predator mortality, and
+mass-action predation gives
+\begin{equation}
+\boxed{
+\begin{aligned}
+    \frac{dX}{dt} &= \alpha X-\beta XY,\\
+    \frac{dY}{dt} &= \delta XY-\gamma Y.
+\end{aligned}}
+\label{eq:lotka-volterra}
+\end{equation}
+Here $\alpha$ is the prey growth rate, $\beta$ is the attack coefficient on prey,
+$\delta$ converts prey consumption into predator growth, and $\gamma$ is predator
+mortality.
+
+The per capita form is
+\begin{equation}
+    \frac{1}{X}\frac{dX}{dt}=\alpha-\beta Y,
+    \qquad
+    \frac{1}{Y}\frac{dY}{dt}=\delta X-\gamma.
+\end{equation}
+This form shows two thresholds. Prey increase when predator density is below
+$\alpha/\beta$, and predators increase when prey density is above $\gamma/\delta$.
+Equivalently, the non-trivial nullclines are
+\begin{equation}
+    \dot X=0 \Longleftrightarrow Y=\frac{\alpha}{\beta},
+    \qquad
+    \dot Y=0 \Longleftrightarrow X=\frac{\gamma}{\delta}.
+\end{equation}
+They intersect at the coexistence equilibrium
+\begin{equation}
+    (X^*,Y^*)=\left(\frac{\gamma}{\delta},\frac{\alpha}{\beta}\right),
+\end{equation}
+besides the extinction equilibrium $(0,0)$.
+
+The coexistence equilibrium is a center in the classical model, leading to neutral
+closed cycles in the positive quadrant. This cyclic behaviour is the famous qualitative
+prediction: prey increase, predators respond, prey are suppressed, predators decline,
+and prey recover. The result is mathematically elegant, but fragile. Once the model is
+perturbed, for example by adding density-dependent prey growth, neutral cycling
+generally disappears \cite{murray2002,kot2001}.
+
+\subsection{Why the Classical Model Is Not Enough}
+
+The Lotka--Volterra model is valuable because it is transparent. Every term has a
+clear biological meaning, and the predator--prey feedback is easy to identify.
+However, it is too simple for the problem we ultimately want to study.
+
+First, prey grow exponentially when predators are absent. This means the model has no
+resource limitation and no carrying capacity. A natural correction is logistic prey
+growth, where reproduction slows as prey density approaches an ecological ceiling.
+This correction is not a cosmetic detail: in the standard logistic predator--prey
+extension, the coexistence state becomes an attracting equilibrium rather than a
+neutrally stable center.
+
+Second, the closed orbits imply that populations can recover from arbitrarily small
+positive densities. This is a deterministic feature of the equations, not a robust
+ecological fact. In real populations, very low abundance can mean demographic
+stochasticity, Allee effects, genetic loss, or local extinction.
+
+Third, all prey are identical. There is no defended prey type and no undefended prey
+type. Therefore the model cannot represent a defense--growth trade-off, prey trait
+composition, or evolutionary sorting.
+
+Fourth, the system is well mixed. The variables $X(t)$ and $Y(t)$ describe total
+population densities, not spatial distributions. The model cannot ask whether
+predators and edible prey overlap in space, or whether diffusion-driven patterns help
+or harm predator persistence.
+
+Fifth, there is no explicit rescue threshold. The predator either persists in the
+closed-orbit dynamics or is absent from the model. To study indirect evolutionary
+rescue, we need a parameter such as predator mortality and a criterion for whether the
+predator population avoids extinction.
+
+These limitations are not failures of the Lotka--Volterra model. They tell us what
+must be added. The rest of this report keeps the same modelling discipline, but adds
+the ingredients required for the research question: prey heterogeneity, predator
+stress, spatial movement, and a comparison between non-spatial and spatial persistence
+thresholds.
+
+\section{The Extended Lotka--Volterra Model}
+
+\subsection{From One Prey Type to Two}
+
+The Lotka--Volterra system has one prey population and one predator population. Our
+problem requires one additional biological layer: prey are not all equivalent. We split
+the prey into two types:
+\begin{equation}
+    U(t)=\text{undefended prey}, \qquad
+    D(t)=\text{defended prey},
+\end{equation}
+and keep
+\begin{equation}
+    P(t)=\text{predator}.
+\end{equation}
+The total prey density is
+\begin{equation}
+    N(t)=U(t)+D(t).
+\end{equation}
+
+The distinction between $U$ and $D$ is defined by a trade-off. Undefended prey are
+more edible but grow faster. Defended prey are less edible but pay a growth or
+competitive cost. We write this as
+\begin{equation}
+    r_U>r_D,
+    \qquad
+    a_U>a_D.
+\end{equation}
+Here $r_U$ and $r_D$ are prey growth rates, while $a_U$ and $a_D$ are predator attack
+rates on undefended and defended prey respectively. This two-type reduction is a
+minimal representation of the defence--growth trade-off observed in rotifer--algal
+systems and related eco-evolutionary experiments \cite{kasada2014,hermann2024}.
+
+The model will be used in two stages. First, the ODE model defines the well-mixed
+baseline and the threshold $m_c^{\mathrm{ODE}}$. Second, the PDE model adds diffusion
+and defines $m_c^{\mathrm{PDE}}$. The spatial model is therefore evaluated relative to
+the non-spatial baseline, not as an isolated pattern-forming system.
+
+\subsection{A Non-Spatial Baseline}
+
+The first extension of Lotka--Volterra is to replace unlimited prey growth by logistic
+growth and to let the predator consume two prey types. A minimal non-spatial model is
+\begin{equation}
+\boxed{
+\begin{aligned}
+    \frac{dU}{dt}
+    &= r_U U\left(1-\frac{U+D}{K}\right)-a_U U P,\\
+    \frac{dD}{dt}
+    &= r_D D\left(1-\frac{U+D}{K}\right)-a_D D P,\\
+    \frac{dP}{dt}
+    &= e(a_U U+a_D D)P-mP.
+\end{aligned}}
+\label{eq:two-prey-sorting}
+\end{equation}
+This is the direct analogue of Lotka--Volterra for our setting. The prey equations
+contain logistic growth and predation loss. The predator equation says that predators
+increase by converting consumed prey into predator biomass or offspring, and decrease
+at mortality rate $m$.
+
+The parameter $m$ is important because it will become the environmental stress
+parameter. Increasing $m$ makes predator persistence harder. In a rescue problem, the
+central question is not merely whether the equations oscillate or equilibrate, but
+whether the predator avoids extinction when $m$ is high.
+
+\subsection{Evolutionary Sorting}
+
+Although \eqref{eq:two-prey-sorting} contains no explicit mutation term, it still
+contains an evolutionary component if $U$ and $D$ represent heritable prey types
+already present in the population. The evolutionary variable is the prey composition:
+\begin{equation}
+    q_U=\frac{U}{U+D},
+    \qquad
+    q_D=\frac{D}{U+D}.
+\end{equation}
+In this minimal model, evolution is represented at the level of prey-type frequency
+dynamics rather than allele-level population genetics.
+To see how selection acts, compare the per capita growth rates of the two prey types.
+For positive $U$ and $D$,
+\begin{align}
+    \frac{d}{dt}\log\left(\frac{U}{D}\right)
+    &=
+    \frac{1}{U}\frac{dU}{dt}
+    -
+    \frac{1}{D}\frac{dD}{dt} \notag\\
+    &=
+    (r_U-r_D)\left(1-\frac{U+D}{K}\right)
+    -
+    (a_U-a_D)P.
+\end{align}
+This equation is the simplest expression of the rescue mechanism. When predator
+density is high, the second term is large and defended prey are favoured. When predator
+density falls, selection against undefended prey weakens, and the faster growth of
+undefended prey can increase the edible component of the prey community. Predator
+recovery can then occur indirectly through prey compositional change
+\cite{yamamichi2015}.
+
+\subsection{A Coexistence Caveat}
+
+There is a mathematical point that matters for the rest of the project. In the pure
+sorting model \eqref{eq:two-prey-sorting}, a positive equilibrium with
+$U^*>0$, $D^*>0$, and $P^*>0$ is not generic. If all three populations are positive at
+equilibrium, then the first two equations imply
+\begin{equation}
+    r_U\left(1-\frac{U^*+D^*}{K}\right)=a_U P^*,
+    \qquad
+    r_D\left(1-\frac{U^*+D^*}{K}\right)=a_D P^*.
+\end{equation}
+Therefore a coexistence equilibrium with both prey types requires
+\begin{equation}
+    \frac{r_U}{a_U}=\frac{r_D}{a_D}.
+\end{equation}
+This is a fine-tuning condition, not a robust biological assumption. Thus
+\eqref{eq:two-prey-sorting} is useful for studying transient sorting and rescue, but it
+is not the safest baseline for a Turing analysis around a homogeneous coexistence
+state.
+
+For this reason, the working model includes a small conversion term between prey
+types. This is a phenomenological modelling device: it keeps both prey states present
+so that a homogeneous coexistence equilibrium can be used for local stability and
+Turing analysis. Biologically, such terms could be motivated by mutation, reversible
+phenotypic switching, inducible defence, or unresolved standing variation, but those
+mechanisms are not equivalent and are not distinguished in this minimal model. Let
+$\mu_{UD}$ be the rate from undefended to defended prey, and $\mu_{DU}$ the rate from
+defended to undefended prey. The non-spatial working model is
+\begin{equation}
+\boxed{
+\begin{aligned}
+    \frac{dU}{dt}
+    &= r_U U\left(1-\frac{U+D}{K}\right)-a_U U P
+    +\mu_{DU}D-\mu_{UD}U,\\
+    \frac{dD}{dt}
+    &= r_D D\left(1-\frac{U+D}{K}\right)-a_D D P
+    +\mu_{UD}U-\mu_{DU}D,\\
+    \frac{dP}{dt}
+    &= e(a_U U+a_D D)P-mP.
+\end{aligned}}
+\label{eq:two-prey-switching}
+\end{equation}
+When $\mu_{UD}=\mu_{DU}=0$, this reduces to the pure sorting model. When one prey type
+is removed and the carrying capacity is sent formally to infinity, the structure
+reduces to the classical Lotka--Volterra predator--prey feedback.
+
+\subsection{Spatial Extension}
+
+The research question is spatial: we want to know whether pattern formation changes
+the predator rescue threshold. Roy et al. provide the closest spatial precursor by
+studying defended and undefended prey in a reaction--diffusion eco-evolutionary model
+with Turing analysis \cite{roy2026}. The present model is deliberately simpler: it
+keeps the defended--undefended prey structure but focuses on comparing predator
+persistence thresholds between the ODE and PDE systems. We therefore allow each
+population to move randomly in space. Let $U(x,t)$, $D(x,t)$, and $P(x,t)$ be densities on a habitat
+$\Omega\subset\mathbb{R}^n$. The reaction--diffusion version of
+\eqref{eq:two-prey-switching} is
+\begin{equation}
+\boxed{
+\begin{aligned}
+    \frac{\partial U}{\partial t}
+    &= \delta_U\Delta U
+    + r_U U\left(1-\frac{U+D}{K}\right)-a_U U P
+    +\mu_{DU}D-\mu_{UD}U,\\
+    \frac{\partial D}{\partial t}
+    &= \delta_D\Delta D
+    + r_D D\left(1-\frac{U+D}{K}\right)-a_D D P
+    +\mu_{UD}U-\mu_{DU}D,\\
+    \frac{\partial P}{\partial t}
+    &= \delta_P\Delta P
+    + e(a_U U+a_D D)P-mP.
+\end{aligned}}
+\label{eq:spatial-working-model}
+\end{equation}
+Here $\delta_U$, $\delta_D$, and $\delta_P$ are diffusion coefficients. We use the
+letter $\delta$ for diffusion to avoid confusing diffusion parameters with the defended
+prey variable $D$.
+A closed habitat is represented by no-flux boundary conditions,
+\begin{equation}
+    \nabla U\cdot\mathbf{n}
+    =
+    \nabla D\cdot\mathbf{n}
+    =
+    \nabla P\cdot\mathbf{n}
+    =0
+    \qquad \text{on } \partial\Omega.
+\end{equation}
+
+The model \eqref{eq:spatial-working-model} is the extended Lotka--Volterra model for
+this study. It keeps the predator--prey feedback of the classical equations, but adds
+the four ingredients needed to test the proposed pattern-mediated rescue mechanism:
+logistic resource limitation, defended and undefended prey, predator mortality stress,
+and spatial movement.
+
+\subsection{Predator Rescue Threshold}
+
+The predator per capita growth rate in the non-spatial model is
+\begin{equation}
+    \frac{1}{P}\frac{dP}{dt}
+    =
+    e(a_U U+a_D D)-m.
+\end{equation}
+Thus predator persistence depends not only on total prey density, but also on prey
+composition. For fixed total prey density, a community dominated by undefended prey
+supports higher predator growth than a community dominated by defended prey.
+
+This motivates the central comparison of the project. Let $m_c^{\mathrm{ODE}}$ be the
+largest predator mortality for which the non-spatial system maintains predators above
+an extinction threshold, and let $m_c^{\mathrm{PDE}}$ be the corresponding threshold in
+the spatial system. The proposed pattern-mediated effect is measured by
+\begin{equation}
+    \Delta m_c=m_c^{\mathrm{PDE}}-m_c^{\mathrm{ODE}}.
+\end{equation}
+If $\Delta m_c>0$, spatial patterning promotes indirect rescue. If
+$\Delta m_c<0$, spatial patterning inhibits rescue.
+
+\subsection{Operational Definition of Persistence}
+
+In deterministic ODE and PDE models, extinction is not always represented by an exact
+finite-time crossing to zero. For numerical work, predator persistence must therefore
+be defined operationally. For a final time $T$ and a small extinction threshold
+$\varepsilon>0$, predators are considered persistent in the ODE model if
+\begin{equation}
+    P(T)>\varepsilon.
+\end{equation}
+In the PDE model, predators are considered persistent if the total predator biomass
+satisfies
+\begin{equation}
+    \int_{\Omega}P(x,T)\,dx>\varepsilon.
+\end{equation}
+The thresholds $m_c^{\mathrm{ODE}}$ and $m_c^{\mathrm{PDE}}$ should be computed using
+this criterion, and sensitivity to $T$ and $\varepsilon$ should be checked.
+
+\section{Turing Pattern Formation}
+
+\subsection{Why Diffusion Can Create Patterns}
+
+Diffusion is usually thought of as a smoothing process. If one population is high in
+one place and low in another, random movement tends to reduce the difference. This
+makes Turing pattern formation initially surprising: under suitable conditions,
+diffusion can destabilize a homogeneous state that would otherwise be stable
+\cite{turing1952,murray2002}. The outcome is not uniform spreading, but the emergence of a
+spatial pattern with a characteristic wavelength.
+
+The key point is that diffusion acts on a system with several interacting variables. A
+single diffusing population with stable local dynamics will not generate a Turing
+pattern. But if one component locally amplifies a perturbation while another suppresses
+it, and if the two components move at sufficiently different rates, diffusion can turn a
+stable local balance into a spatially patterned state.
+
+\subsection{The Two-Variable Calculation}
+
+The cleanest derivation uses two variables. Consider
+\begin{align}
+    \frac{\partial u}{\partial t}
+    &= f(u,v)+D_1\Delta u,\\
+    \frac{\partial v}{\partial t}
+    &= g(u,v)+D_2\Delta v.
+\end{align}
+Suppose the non-spatial system has a homogeneous equilibrium
+$(u^*,v^*)$ satisfying
+\begin{equation}
+    f(u^*,v^*)=0,
+    \qquad
+    g(u^*,v^*)=0.
+\end{equation}
+Let
+\begin{equation}
+    J=
+    \begin{pmatrix}
+        f_u & f_v\\
+        g_u & g_v
+    \end{pmatrix}_{(u^*,v^*)}
+\end{equation}
+be the Jacobian of the reaction terms at the equilibrium. The equilibrium is stable in
+the well-mixed ODE if
+\begin{equation}
+    \operatorname{tr}J=f_u+g_v<0,
+    \qquad
+    \det J=f_ug_v-f_vg_u>0.
+\end{equation}
+
+Now perturb the equilibrium by a spatial Fourier mode:
+\begin{equation}
+    u(x,t)=u^*+\widehat u(t)e^{i k\cdot x},
+    \qquad
+    v(x,t)=v^*+\widehat v(t)e^{i k\cdot x}.
+\end{equation}
+After linearization, this mode evolves according to the modified Jacobian
+\begin{equation}
+    J_k=
+    \begin{pmatrix}
+        f_u-D_1k^2 & f_v\\
+        g_u & g_v-D_2k^2
+    \end{pmatrix}.
+\end{equation}
+The trace becomes more negative:
+\begin{equation}
+    \operatorname{tr}J_k=\operatorname{tr}J-(D_1+D_2)k^2.
+\end{equation}
+The determinant, however, is
+\begin{equation}
+    \det J_k
+    =
+    \det J
+    -
+    k^2(D_1g_v+D_2f_u)
+    +
+    D_1D_2k^4.
+\end{equation}
+Thus diffusion can destabilize the equilibrium if $\det J_k<0$ for some nonzero
+wavenumber $k$. Equivalently, the quadratic in $k^2$ must dip below zero. A standard
+form of the Turing condition is
+\begin{equation}
+    D_1g_v+D_2f_u>0,
+    \qquad
+    (D_1g_v+D_2f_u)^2>4D_1D_2\det J.
+\end{equation}
+These inequalities say that the equilibrium is stable to homogeneous perturbations
+but unstable to some spatially heterogeneous perturbations.
+
+\subsection{Different Diffusion Rates}
+
+The instability requires sufficiently different diffusion rates. If $D_1=D_2=D$, then
+\begin{equation}
+    J_k=J-Dk^2I.
+\end{equation}
+The eigenvalues are simply shifted by $-Dk^2$, so diffusion only makes the stable
+equilibrium more stable. Turing instability needs differential movement. In the
+standard activator--inhibitor interpretation, one component locally amplifies a
+perturbation, while another component suppresses it and diffuses faster. Local
+activation combined with long-range inhibition can produce spatial structure.
+
+\subsection{Pattern Wavelength and Boundaries}
+
+The linear calculation identifies which spatial modes grow. The fastest-growing mode
+has wavenumber $k_{\max}$ and gives an expected pattern length scale
+\begin{equation}
+    \ell_*\approx \frac{2\pi}{k_{\max}}.
+\end{equation}
+This does not by itself determine the final pattern. Spots, stripes, labyrinths, or
+patchy structures depend on the nonlinear dynamics after the instability grows.
+
+On a finite domain with no-flux boundary conditions, the allowed values of $k^2$ are
+not continuous. They are eigenvalues of the Laplacian on the habitat. A pattern appears
+only if one or more allowed modes lie in the unstable window. This matters for
+ecology: habitat size and shape can determine whether a spatial instability is visible,
+and whether the resulting pattern resembles stripes, spots, or isolated patches.
+
+\subsection{How This Enters the Rescue Problem}
+
+The two-variable calculation is useful because it shows the mechanism clearly. Our
+working model has three interacting variables, so the Turing conditions no longer
+reduce to the simple trace--determinant inequalities above. In practice, the stability
+test is spectral: for each admissible spatial mode, inspect the eigenvalues of the
+diffusion-modified Jacobian.
+
+For our model, define
+\begin{equation}
+    \mathbf{w}=(U,D,P)^T
+\end{equation}
+and let $\mathbf{F}(\mathbf{w})$ be the reaction part of
+\eqref{eq:spatial-working-model}.
+At a homogeneous equilibrium $\mathbf{w}^*$, the Jacobian of the reaction terms is
+\begin{equation}
+    J=\left.\frac{\partial\mathbf{F}}{\partial\mathbf{w}}\right|_{\mathbf{w}^*}.
+\end{equation}
+A spatial perturbation of wavenumber $k$ satisfies
+\begin{equation}
+    \lambda\mathbf{q}
+    =
+    \left[
+    J-k^2\operatorname{diag}(\delta_U,\delta_D,\delta_P)
+    \right]\mathbf{q},
+\end{equation}
+or equivalently
+\begin{equation}
+    \det\left(
+    J-k^2\operatorname{diag}(\delta_U,\delta_D,\delta_P)-\lambda I
+    \right)=0.
+\end{equation}
+A Turing instability occurs when all eigenvalues of $J$ have negative real parts, but
+there exists some $k>0$ for which
+$J-k^2\operatorname{diag}(\delta_U,\delta_D,\delta_P)$ has an eigenvalue with positive
+real part.
+
+This is the mathematical bridge to the biological question. Spatial patterning may
+create local patches where predators and undefended prey overlap, raising predator
+growth. It may also separate predators from edible prey, lowering predator growth.
+Turing analysis is therefore not the final result. It identifies whether spatial
+patterns can arise; the rescue question is answered only after comparing
+$m_c^{\mathrm{PDE}}$ with $m_c^{\mathrm{ODE}}$.
+
+\section{Planned Analysis}
+
+\begin{enumerate}[leftmargin=2.2em]
+    \item \textbf{Non-spatial baseline.} Set
+    $\delta_U=\delta_D=\delta_P=0$. Find homogeneous equilibria and determine the
+    predator persistence threshold $m_c^{\mathrm{ODE}}$.
+
+    \item \textbf{Local stability.} Linearize the reaction terms around a positive
+    homogeneous equilibrium and compute the Jacobian $J$.
+
+    \item \textbf{Turing instability.} Add diffusion and scan the eigenvalues of
+    \begin{equation}
+        J-k^2\operatorname{diag}(\delta_U,\delta_D,\delta_P)
+    \end{equation}
+    over admissible spatial modes $k$. Identify parameter regions where the ODE
+    equilibrium is stable but spatial modes are unstable.
+
+    \item \textbf{Spatial threshold.} Simulate the PDE model with no-flux boundary
+    conditions and compute $m_c^{\mathrm{PDE}}$.
+
+    \item \textbf{Threshold comparison.} Evaluate
+    \begin{equation}
+        \Delta m_c=m_c^{\mathrm{PDE}}-m_c^{\mathrm{ODE}}.
+    \end{equation}
+    Use this to classify whether spatial patterning promotes rescue, inhibits rescue,
+    or has a parameter-dependent effect.
+
+    \item \textbf{Mechanistic diagnostics.} Measure total predator biomass, spatial
+    overlap between predators and undefended prey, and mean edible-prey availability
+    \begin{equation}
+        \langle a_UU+a_DD\rangle.
+    \end{equation}
+    These diagnostics should explain why $\Delta m_c$ is positive or negative.
+
+    \item \textbf{Robustness checks.} Vary initial prey composition, extinction
+    threshold, final time $T$, domain size, diffusion ratios, conversion rates, and at
+    least one saturating functional response such as Holling type II predation.
+\end{enumerate}
+
+\section{Expected Contributions and Limitations}
+
+The expected contribution is a focused threshold comparison. Rather than claiming that
+pattern-mediated indirect evolutionary rescue is already established, the study tests
+whether a spatially patterned predator--prey system can support predators at mortality
+levels that would cause loss in the corresponding non-spatial model.
+The main scientific outcome is not the existence of a spatial pattern itself, but
+whether that pattern changes the predator persistence threshold relative to the
+well-mixed system.
+
+There are three possible outcomes. If $\Delta m_c>0$, spatial patterning expands the
+predator persistence window and acts as a rescue-promoting mechanism. If
+$\Delta m_c<0$, patterning separates predators from edible prey or otherwise lowers
+effective predator growth, so spatial structure inhibits rescue. If $\Delta m_c$
+changes sign across parameter regimes, the main result is conditional: pattern
+formation can either help or harm predator persistence depending on diffusion rates,
+prey defence costs, and spatial overlap.
+
+The main limitation is that the conversion terms between $U$ and $D$ are
+phenomenological. They make coexistence and Turing analysis mathematically well posed,
+but they do not by themselves identify whether the biological source is mutation,
+plastic switching, inducible defence, or persistent standing variation. A later model
+could separate these mechanisms once the minimal threshold question is understood.
+Similarly, the baseline model uses mass-action predation; robustness checks with a
+saturating functional response are needed before treating the threshold shift as a
+general ecological prediction.
+
+\begin{thebibliography}{99}
+
+\bibitem{turing1952}
+Turing, A. M. (1952).
+The chemical basis of morphogenesis.
+\emph{Philosophical Transactions of the Royal Society of London. Series B, Biological
+Sciences}, 237(641), 37--72.
+\url{https://doi.org/10.1098/rstb.1952.0012}.
+
+\bibitem{gomulkiewicz1995}
+Gomulkiewicz, R., and Holt, R. D. (1995).
+When does evolution by natural selection prevent extinction?
+\emph{Evolution}, 49(1), 201--207.
+
+\bibitem{yamamichi2015}
+Yamamichi, M., and Miner, B. E. (2015).
+Indirect evolutionary rescue: prey adapts, predator avoids extinction.
+\emph{Evolutionary Applications}, 8(8), 787--795.
+
+\bibitem{hermann2022}
+Hermann, R. J., and Becks, L. (2022).
+Change in prey genotype frequency rescues predator from extinction.
+\emph{Royal Society Open Science}, 9, 220211.
+\url{https://doi.org/10.1098/rsos.220211}.
+
+\bibitem{kasada2014}
+Kasada, M., Yamamichi, M., and Yoshida, T. (2014).
+Form of an evolutionary tradeoff affects eco-evolutionary dynamics in a predator--prey
+system.
+\emph{Proceedings of the National Academy of Sciences}, 111(45), 16035--16040.
+\url{https://doi.org/10.1073/pnas.1406357111}.
+
+\bibitem{hermann2024}
+Hermann, R. J., Pantel, J. H., R{\'e}veillon, T., and Becks, L. (2024).
+Range of trait variation in prey determines evolutionary contributions to predator
+growth rates.
+\emph{Journal of Evolutionary Biology}, 37, 693--703.
+\url{https://doi.org/10.1093/jeb/voae062}.
+
+\bibitem{roy2026}
+Roy, S., Byrne, H. M., Banerjee, J., Sasmal, S. K., Dutta, S., and Ghosh, D. (2026).
+Spatio-temporal eco-evolutionary dynamics of prey-predator systems with defended and
+undefended prey.
+\emph{Communications Physics}, 9, 4.
+\url{https://doi.org/10.1038/s42005-025-02434-1}.
+
+\bibitem{murray2002}
+Murray, J. D. (2002).
+\emph{Mathematical Biology I: An Introduction}.
+Third edition. Interdisciplinary Applied Mathematics, Vol. 17. Springer.
+\url{https://doi.org/10.1007/b98868}.
+
+\bibitem{kot2001}
+Kot, M. (2001).
+\emph{Elements of Mathematical Ecology}.
+Cambridge University Press.
+\url{https://doi.org/10.1017/CBO9780511608520}.
+
+\bibitem{edelstein2005}
+Edelstein-Keshet, L. (2005).
+\emph{Mathematical Models in Biology}.
+Classics in Applied Mathematics. SIAM.
+\url{https://doi.org/10.1137/1.9780898719147}.
+
+\end{thebibliography}
+
+\end{document}
