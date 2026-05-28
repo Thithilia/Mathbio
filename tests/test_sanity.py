@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.simulate_pde_1d import pack_state, simulate_ode, simulate_pde, unpack_state
+from src.simulate_pde_1d import compute_diagnostics, grid_1d, pack_state, simulate_ode, simulate_pde, unpack_state
 from src.turing_rescue_model import (
     RescueParams,
     prey_only_equilibrium,
@@ -40,6 +40,22 @@ def test_homogeneous_initial_condition_remains_homogeneous_with_equal_diffusion(
     assert pde.diagnostics.var_P < 1.0e-12
 
 
+def test_density_normalized_persistence_is_separate_from_total_biomass():
+    params = RescueParams(n_x=11, L=10.0)
+    x = grid_1d(params)
+    U = np.full(params.n_x, 0.2)
+    D = np.full(params.n_x, 0.3)
+    P = np.full(params.n_x, 5.0e-5)
+
+    diagnostics = compute_diagnostics(x, U, D, P, params, epsilon=1.0e-4)
+
+    assert np.isclose(diagnostics.B_P, 5.0e-4)
+    assert np.isclose(diagnostics.mean_P, 5.0e-5)
+    assert diagnostics.persistent_total
+    assert not diagnostics.persistent_mean
+    assert diagnostics.persistent == diagnostics.persistent_total
+
+
 def test_prey_only_invasion_threshold_matches_direct_ode_invasion():
     params = RescueParams()
     m_inv = prey_only_invasion_threshold(params)
@@ -59,4 +75,3 @@ def test_turing_flag_requires_ode_stability_and_spatial_instability():
     scan = turing_scan(params, eq, n_max=20)
 
     assert scan.turing_unstable == (scan.ode_stable and scan.has_unstable_spatial_mode)
-

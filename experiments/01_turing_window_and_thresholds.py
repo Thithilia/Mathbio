@@ -110,7 +110,7 @@ def plot_phase_diagram(m_grid: np.ndarray, ratio_grid: np.ndarray, persistent: n
     ax.set_xscale("log")
     ax.set_xlabel(r"diffusion ratio $\delta_P/\delta_U$")
     ax.set_ylabel("predator mortality m")
-    ax.set_title("PDE predator persistence at final time")
+    ax.set_title("PDE mean-density predator persistence at final time")
     cbar = fig.colorbar(im, ax=ax, ticks=[0, 1])
     cbar.ax.set_yticklabels(["lost", "persistent"])
     fig.tight_layout()
@@ -165,7 +165,7 @@ def main() -> None:
         tol_m=1.0e-2,
         max_iter=10,
     )
-    pde_threshold = compute_mc_pde(
+    pde_threshold_total = compute_mc_pde(
         params,
         m_low=m_low,
         m_high=m_high,
@@ -177,8 +177,24 @@ def main() -> None:
         rtol=1.0e-5,
         atol=1.0e-7,
         n_time=120,
+        persistence_criterion="total",
     )
-    delta_mc = pde_threshold.threshold - ode_threshold.threshold
+    pde_threshold_mean = compute_mc_pde(
+        params,
+        m_low=m_low,
+        m_high=m_high,
+        epsilon=epsilon,
+        T=T,
+        initial_state=initial_profile,
+        tol_m=1.0e-2,
+        max_iter=10,
+        rtol=1.0e-5,
+        atol=1.0e-7,
+        n_time=120,
+        persistence_criterion="mean",
+    )
+    delta_mc_total = pde_threshold_total.threshold - ode_threshold.threshold
+    delta_mc_mean = pde_threshold_mean.threshold - ode_threshold.threshold
 
     m_grid = np.linspace(0.45, 0.75, 5)
     ratio_grid = np.array([1.0, 10.0, 100.0, 500.0, 1000.0])
@@ -196,7 +212,7 @@ def main() -> None:
                 atol=1.0e-7,
                 n_time=80,
             )
-            persistent[i, j] = result.diagnostics.persistent
+            persistent[i, j] = result.diagnostics.persistent_mean
             phase_var_p[i, j] = result.diagnostics.var_P
 
     final_profiles_path = FIG_DIR / "01_final_profiles.png"
@@ -248,21 +264,25 @@ This run uses the defended/undefended prey reaction-diffusion model from the rep
 ## Nonlinear threshold results
 
 - `m_c^ODE = {ode_threshold.threshold:.6f}`
-- `m_c^PDE = {pde_threshold.threshold:.6f}`
-- `Delta m_c = {delta_mc:.6f}`
-- threshold sign classification: `{classify_delta(delta_mc, tol=1.0e-2)}`
+- `m_c^PDE` using total predator biomass = {pde_threshold_total.threshold:.6f}
+- `m_c^PDE` using mean predator density = {pde_threshold_mean.threshold:.6f}
+- `Delta m_c` using total predator biomass = {delta_mc_total:.6f}
+- `Delta m_c` using mean predator density = {delta_mc_mean:.6f}
+- total-biomass threshold sign classification: `{classify_delta(delta_mc_total, tol=1.0e-2)}`
+- mean-density threshold sign classification: `{classify_delta(delta_mc_mean, tol=1.0e-2)}`
 
-Important interpretation: {pattern_note} The sign of `Delta m_c` in this first run is therefore a threshold diagnostic for this parameter set and persistence criterion, not yet a demonstrated pattern-mediated rescue mechanism. A biological classification as pattern-promoted or pattern-inhibited rescue should require a Turing window or measurable spatial pattern strength.
+Important interpretation: {pattern_note} The sign of `Delta m_c` in this first run is therefore a threshold diagnostic for this parameter set and persistence criterion, not yet a demonstrated pattern-mediated rescue mechanism. A biological classification as pattern-promoted or pattern-inhibited rescue should require a Turing window, measurable spatial pattern strength, and a positive density-normalized threshold difference.
 
 ## PDE diagnostics for sampled mortality values
 
-| m | persistent | B_P(T) | B_U(T) | B_D(T) | O_PU | mean edible | var(P) | negative values |
-|---:|:---:|---:|---:|---:|---:|---:|---:|:---:|
+| m | persistent total | persistent mean | B_P(T) | mean P(T) | B_U(T) | B_D(T) | O_PU | mean edible | var(P) | negative values |
+|---:|:---:|:---:|---:|---:|---:|---:|---:|---:|---:|:---:|
 """
     for m_value, result in pde_results.items():
         d = result.diagnostics
         md += (
-            f"| {m_value:.3f} | {d.persistent} | {d.B_P:.6e} | {d.B_U:.6e} | "
+            f"| {m_value:.3f} | {d.persistent_total} | {d.persistent_mean} | "
+            f"{d.B_P:.6e} | {d.mean_P:.6e} | {d.B_U:.6e} | "
             f"{d.B_D:.6e} | {d.O_PU:.6e} | {d.mean_edible:.6e} | "
             f"{d.var_P:.6e} | {d.negative_detected} |\n"
         )
@@ -276,7 +296,7 @@ Important interpretation: {pattern_note} The sign of `Delta m_c` in this first r
 
 ## Next scan
 
-The first parameter set did not show a Turing window. The next scan should broaden reaction parameters and diffusion ratios, then require both conditions before claiming pattern-mediated rescue: a locally stable ODE coexistence state and at least one unstable spatial mode. A density-normalized persistence threshold should also be considered as a control for the fact that the PDE criterion uses total predator biomass over a finite domain.
+The first parameter set did not show a Turing window. The next scan should broaden reaction parameters and diffusion ratios, then require all conditions before claiming pattern-mediated rescue: a locally stable ODE coexistence state, at least one unstable spatial mode, measurable nonlinear patterning, and a positive density-normalized threshold difference.
 """
 
     RESULTS_MD.write_text(md, encoding="utf-8")

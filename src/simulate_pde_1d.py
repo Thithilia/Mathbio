@@ -23,11 +23,14 @@ class Diagnostics:
     B_P: float
     B_U: float
     B_D: float
+    mean_P: float
     O_PU: float
     mean_edible: float
     var_U: float
     var_D: float
     var_P: float
+    persistent_total: bool
+    persistent_mean: bool
     persistent: bool
     min_value: float
     negative_detected: bool
@@ -66,6 +69,7 @@ class ThresholdResult:
     history: list[tuple[float, bool, float]]
     epsilon: float
     T: float
+    criterion: str = "total"
 
 
 def grid_1d(params: RescueParams) -> np.ndarray:
@@ -170,20 +174,26 @@ def compute_diagnostics(
     B_U = float(np.trapezoid(U, x))
     B_D = float(np.trapezoid(D, x))
     B_P = float(np.trapezoid(P, x))
+    mean_P = B_P / params.L
     denom = B_P * B_U
     O_PU = float(np.trapezoid(P * U, x) / denom) if denom > 0.0 else float("nan")
     mean_edible = float(np.trapezoid(params.a_U * U + params.a_D * D, x) / params.L)
     min_value = float(np.min([np.min(U), np.min(D), np.min(P), min_seen if min_seen is not None else np.inf]))
+    persistent_total = bool(B_P > epsilon)
+    persistent_mean = bool(mean_P > epsilon)
     return Diagnostics(
         B_P=B_P,
         B_U=B_U,
         B_D=B_D,
+        mean_P=mean_P,
         O_PU=O_PU,
         mean_edible=mean_edible,
         var_U=float(np.var(U)),
         var_D=float(np.var(D)),
         var_P=float(np.var(P)),
-        persistent=bool(B_P > epsilon),
+        persistent_total=persistent_total,
+        persistent_mean=persistent_mean,
+        persistent=persistent_total,
         min_value=min_value,
         negative_detected=bool(min_value < negative_tol),
     )
@@ -362,8 +372,11 @@ def compute_mc_pde(
     rtol: float = 1.0e-5,
     atol: float = 1.0e-7,
     n_time: int = 120,
+    persistence_criterion: str = "total",
 ) -> ThresholdResult:
     """Compute nonlinear PDE persistence threshold by bisection."""
+    if persistence_criterion not in {"total", "mean"}:
+        raise ValueError("persistence_criterion must be 'total' or 'mean'.")
     if initial_state is None:
         _, initial_state = default_threshold_initial_state(params, m_low, perturbation_amplitude, seed)
 
@@ -380,7 +393,9 @@ def compute_mc_pde(
         )
         if not result.success:
             return False, float("nan")
-        return result.diagnostics.persistent, result.diagnostics.B_P
+        if persistence_criterion == "total":
+            return result.diagnostics.persistent_total, result.diagnostics.B_P
+        return result.diagnostics.persistent_mean, result.diagnostics.mean_P
 
     low_persistent, low_measure = classify(m_low)
     high_persistent, high_measure = classify(m_high)
@@ -412,6 +427,7 @@ def compute_mc_pde(
         history=history,
         epsilon=epsilon,
         T=T,
+        criterion=persistence_criterion,
     )
 
 

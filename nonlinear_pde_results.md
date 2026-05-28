@@ -28,19 +28,22 @@ This run uses the defended/undefended prey reaction-diffusion model from the rep
 ## Nonlinear threshold results
 
 - `m_c^ODE = 0.531250`
-- `m_c^PDE = 0.578125`
-- `Delta m_c = 0.046875`
-- threshold sign classification: `m_c^PDE > m_c^ODE`
+- `m_c^PDE` using total predator biomass = 0.578125
+- `m_c^PDE` using mean predator density = 0.531250
+- `Delta m_c` using total predator biomass = 0.046875
+- `Delta m_c` using mean predator density = 0.000000
+- total-biomass threshold sign classification: `m_c^PDE > m_c^ODE`
+- mean-density threshold sign classification: `no resolvable threshold difference at this tolerance`
 
-Important interpretation: The final predator variance was small in the first PDE runs, so this run should not be interpreted as evidence of pattern-mediated rescue. The sign of `Delta m_c` in this first run is therefore a threshold diagnostic for this parameter set and persistence criterion, not yet a demonstrated pattern-mediated rescue mechanism. A biological classification as pattern-promoted or pattern-inhibited rescue should require a Turing window or measurable spatial pattern strength.
+Important interpretation: The final predator variance was small in the first PDE runs, so this run should not be interpreted as evidence of pattern-mediated rescue. The sign of `Delta m_c` in this first run is therefore a threshold diagnostic for this parameter set and persistence criterion, not yet a demonstrated pattern-mediated rescue mechanism. A biological classification as pattern-promoted or pattern-inhibited rescue should require a Turing window, measurable spatial pattern strength, and a positive density-normalized threshold difference.
 
 ## PDE diagnostics for sampled mortality values
 
-| m | persistent | B_P(T) | B_U(T) | B_D(T) | O_PU | mean edible | var(P) | negative values |
-|---:|:---:|---:|---:|---:|---:|---:|---:|:---:|
-| 0.300 | True | 3.373307e+00 | 4.654118e+00 | 1.253915e+01 | 5.000000e-02 | 5.452233e-01 | 1.089633e-16 | False |
-| 0.500 | True | 2.876448e-02 | 9.908965e+00 | 1.006243e+01 | 5.000000e-02 | 8.697202e-01 | 5.153858e-16 | False |
-| 0.600 | False | 2.186870e-05 | 9.983468e+00 | 1.001651e+01 | 5.000000e-02 | 8.741316e-01 | 3.563784e-22 | False |
+| m | persistent total | persistent mean | B_P(T) | mean P(T) | B_U(T) | B_D(T) | O_PU | mean edible | var(P) | negative values |
+|---:|:---:|:---:|---:|---:|---:|---:|---:|---:|---:|:---:|
+| 0.300 | True | True | 3.373307e+00 | 1.686653e-01 | 4.654118e+00 | 1.253915e+01 | 5.000000e-02 | 5.452233e-01 | 1.089633e-16 | False |
+| 0.500 | True | True | 2.876448e-02 | 1.438224e-03 | 9.908965e+00 | 1.006243e+01 | 5.000000e-02 | 8.697202e-01 | 5.153858e-16 | False |
+| 0.600 | False | False | 2.186870e-05 | 1.093435e-06 | 9.983468e+00 | 1.001651e+01 | 5.000000e-02 | 8.741316e-01 | 3.563784e-22 | False |
 
 ## Saved figures
 
@@ -50,4 +53,4 @@ Important interpretation: The final predator variance was small in the first PDE
 
 ## Next scan
 
-The first parameter set did not show a Turing window. The next scan should broaden reaction parameters and diffusion ratios, then require both conditions before claiming pattern-mediated rescue: a locally stable ODE coexistence state and at least one unstable spatial mode. A density-normalized persistence threshold should also be considered as a control for the fact that the PDE criterion uses total predator biomass over a finite domain.
+The first parameter set did not show a Turing window. The next scan should broaden reaction parameters and diffusion ratios, then require all conditions before claiming pattern-mediated rescue: a locally stable ODE coexistence state, at least one unstable spatial mode, measurable nonlinear patterning, and a positive density-normalized threshold difference.
