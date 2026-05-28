@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Callable
 
 import numpy as np
 from scipy.integrate import solve_ivp
@@ -88,6 +89,61 @@ class StressThreshold:
     history: list[tuple[float, bool, float]]
     epsilon: float
     T: float
+
+
+def tail_metrics(t: np.ndarray, y: np.ndarray, tail_fraction: float = 0.25) -> dict[str, float]:
+    """Return summary metrics over the final fraction of a time series."""
+    t_arr = np.asarray(t, dtype=float)
+    y_arr = np.asarray(y, dtype=float)
+    if t_arr.ndim != 1 or y_arr.ndim != 1 or len(t_arr) != len(y_arr):
+        raise ValueError("t and y must be one-dimensional arrays with matching lengths.")
+    if len(t_arr) < 2:
+        raise ValueError("At least two time points are required.")
+    if not 0.0 < tail_fraction <= 1.0:
+        raise ValueError("tail_fraction must satisfy 0 < tail_fraction <= 1.")
+
+    tail_start_target = t_arr[-1] - tail_fraction * (t_arr[-1] - t_arr[0])
+    mask = t_arr >= tail_start_target
+    if np.count_nonzero(mask) < 2:
+        mask = np.zeros_like(t_arr, dtype=bool)
+        mask[-2:] = True
+    tail_t = t_arr[mask]
+    tail_y = y_arr[mask]
+    centered_t = tail_t - float(np.mean(tail_t))
+    denom = float(np.dot(centered_t, centered_t))
+    slope = 0.0 if denom <= 0.0 else float(np.dot(centered_t, tail_y - float(np.mean(tail_y))) / denom)
+    return {
+        "tail_mean": float(np.mean(tail_y)),
+        "tail_min": float(np.min(tail_y)),
+        "tail_start": float(tail_t[0]),
+        "tail_end": float(tail_t[-1]),
+        "tail_slope": slope,
+        "tail_duration": float(max(tail_t[-1] - tail_t[0], 0.0)),
+    }
+
+
+def is_persistent_tail(
+    t: np.ndarray,
+    y: np.ndarray,
+    epsilon: float,
+    tail_fraction: float = 0.25,
+) -> tuple[bool, dict[str, float]]:
+    """Classify persistence from tail behavior rather than a final value.
+
+    A trajectory is persistent when the final-tail mean exceeds ``epsilon``,
+    the tail minimum remains above one quarter of ``epsilon``, and the fitted
+    tail slope is not negative enough to indicate transient survival.
+    """
+    metrics = tail_metrics(t, y, tail_fraction=tail_fraction)
+    tail_duration = max(metrics["tail_duration"], 1.0e-12)
+    slope_floor = -max(epsilon, 0.25 * metrics["tail_mean"]) / tail_duration
+    persistent = (
+        metrics["tail_mean"] > epsilon
+        and metrics["tail_min"] > 0.25 * epsilon
+        and metrics["tail_slope"] >= slope_floor
+    )
+    metrics["tail_slope_floor"] = float(slope_floor)
+    return bool(persistent), metrics
 
 
 def with_stress(params: RoyParams, stress: float) -> RoyParams:
@@ -321,7 +377,109 @@ def simulate_ode_stress(
         atol=1.0e-10,
     )
     final_w = float(sol.y[2, -1]) if sol.y.size else float("nan")
-    return RoyODEResult(sol.t, sol.y, bool(sol.success), sol.message, final_w, bool(final_w > epsilon))
+    if sol.success and sol.y.size:
+        persistent, _ = is_persistent_tail(sol.t, sol.y[2], epsilon)
+    else:
+        persistent = False
+    return RoyODEResult(sol.t, sol.y, bool(sol.success), sol.message, final_w, bool(persistent))
+
+
+def _threshold_search(
+    classify: Callable[[float], tuple[bool, float, dict[str, float]]],
+    s_low: float,
+    s_high: float,
+    max_iter: int,
+) -> dict[str, object]:
+    low_persistent, low_measure, low_metrics = classify(s_low)
+    high_persistent, high_measure, high_metrics = classify(s_high)
+    history: list[dict[str, object]] = [
+        {"stress": float(s_low), "persistent": low_persistent, "measure": low_measure, **low_metrics},
+        {"stress": float(s_high), "persistent": high_persistent, "measure": high_measure, **high_metrics},
+    ]
+    if not low_persistent or high_persistent:
+        return {
+            "threshold": float("nan"),
+            "s_low": float(s_low),
+            "s_high": float(s_high),
+            "iterations": 0,
+            "persistent_low": bool(low_persistent),
+            "persistent_high": bool(high_persistent),
+            "history": history,
+            "status": "invalid_bracket",
+        }
+
+    lo = float(s_low)
+    hi = float(s_high)
+    iterations = 0
+    for iterations in range(1, max_iter + 1):
+        mid = 0.5 * (lo + hi)
+        persistent, measure, metrics = classify(mid)
+        history.append({"stress": mid, "persistent": persistent, "measure": measure, **metrics})
+        if persistent:
+            lo = mid
+        else:
+            hi = mid
+    return {
+        "threshold": lo,
+        "s_low": lo,
+        "s_high": hi,
+        "iterations": iterations,
+        "persistent_low": True,
+        "persistent_high": False,
+        "history": history,
+        "status": "ok",
+    }
+
+
+def find_ode_threshold(
+    params: RoyParams,
+    s_low: float,
+    s_high: float,
+    T: float,
+    epsilon: float,
+    max_iter: int = 16,
+) -> dict[str, object]:
+    """Find the well-mixed predator-mortality stress threshold by bisection."""
+    eq = require_positive_equilibrium(params)
+    y0 = np.array([eq.u, eq.v, eq.w], dtype=float)
+
+    def classify(stress: float) -> tuple[bool, float, dict[str, float]]:
+        result = simulate_ode_stress(params, stress, T, epsilon, y0=y0)
+        if result.success and result.y.size:
+            persistent, metrics = is_persistent_tail(result.t, result.y[2], epsilon)
+        else:
+            metrics = {
+                "tail_mean": float("nan"),
+                "tail_min": float("nan"),
+                "tail_start": float("nan"),
+                "tail_end": float("nan"),
+                "tail_slope": float("nan"),
+                "tail_duration": float("nan"),
+                "tail_slope_floor": float("nan"),
+            }
+            persistent = False
+        return bool(result.success and persistent), float(metrics["tail_mean"]), metrics
+
+    return _threshold_search(classify, s_low, s_high, max_iter=max_iter)
+
+
+def find_pde_threshold(
+    params: RoyParams,
+    config: Roy2DConfig,
+    s_low: float,
+    s_high: float,
+    epsilon: float,
+    max_iter: int = 12,
+) -> dict[str, object]:
+    """Find the 2D PDE predator-mortality stress threshold by bisection."""
+    eq = require_positive_equilibrium(params)
+
+    def classify(stress: float) -> tuple[bool, float, dict[str, float]]:
+        result = simulate_pde_2d(params, config, stress=stress, equilibrium=eq)
+        persistent, metrics = is_persistent_tail(result.t, result.mean_w_time, epsilon)
+        return bool(persistent), float(metrics["tail_mean"]), metrics
+
+    return _threshold_search(classify, s_low, s_high, max_iter=max_iter)
 
 
 def compute_stress_threshold_ode(
@@ -333,35 +491,25 @@ def compute_stress_threshold_ode(
     tol_s: float = 1.0e-3,
     max_iter: int = 20,
 ) -> StressThreshold:
-    eq = require_positive_equilibrium(params)
-    y0 = np.array([eq.u, eq.v, eq.w], dtype=float)
-
-    def classify(stress: float) -> tuple[bool, float]:
-        result = simulate_ode_stress(params, stress, T, epsilon, y0=y0)
-        return result.persistent and result.success, result.final_w
-
-    low_persistent, low_measure = classify(s_low)
-    high_persistent, high_measure = classify(s_high)
-    if not low_persistent or high_persistent:
+    threshold = find_ode_threshold(params, s_low, s_high, T, epsilon, max_iter=max_iter)
+    if threshold["status"] != "ok":
         raise ValueError(
             "ODE stress bracket must satisfy persistent(s_low)=True and persistent(s_high)=False. "
-            f"Got low={low_persistent} ({low_measure:.3e}), high={high_persistent} ({high_measure:.3e})."
+            f"Got low={threshold['persistent_low']}, high={threshold['persistent_high']}."
         )
-
-    history = [(s_low, low_persistent, low_measure), (s_high, high_persistent, high_measure)]
-    lo, hi = float(s_low), float(s_high)
-    iteration = 0
-    for iteration in range(1, max_iter + 1):
-        mid = 0.5 * (lo + hi)
-        persistent, measure = classify(mid)
-        history.append((mid, persistent, measure))
-        if persistent:
-            lo = mid
-        else:
-            hi = mid
-        if hi - lo <= tol_s:
-            break
-    return StressThreshold(lo, s_low, s_high, iteration, history, epsilon, T)
+    history = [
+        (float(item["stress"]), bool(item["persistent"]), float(item["measure"]))
+        for item in threshold["history"]
+    ]
+    return StressThreshold(
+        float(threshold["threshold"]),
+        float(threshold["s_low"]),
+        float(threshold["s_high"]),
+        int(threshold["iterations"]),
+        history,
+        epsilon,
+        T,
+    )
 
 
 def compute_stress_threshold_pde(
@@ -373,33 +521,22 @@ def compute_stress_threshold_pde(
     tol_s: float = 1.0e-3,
     max_iter: int = 14,
 ) -> StressThreshold:
-    eq = require_positive_equilibrium(params)
-    initial = perturbed_equilibrium_2d(eq, config)
-
-    def classify(stress: float) -> tuple[bool, float]:
-        result = simulate_pde_2d(params, config, stress=stress, equilibrium=eq, initial_state=initial)
-        mean_w = result.diagnostics.mean_w
-        return bool(mean_w > epsilon), mean_w
-
-    low_persistent, low_measure = classify(s_low)
-    high_persistent, high_measure = classify(s_high)
-    if not low_persistent or high_persistent:
+    threshold = find_pde_threshold(params, config, s_low, s_high, epsilon, max_iter=max_iter)
+    if threshold["status"] != "ok":
         raise ValueError(
             "PDE stress bracket must satisfy persistent(s_low)=True and persistent(s_high)=False. "
-            f"Got low={low_persistent} ({low_measure:.3e}), high={high_persistent} ({high_measure:.3e})."
+            f"Got low={threshold['persistent_low']}, high={threshold['persistent_high']}."
         )
-
-    history = [(s_low, low_persistent, low_measure), (s_high, high_persistent, high_measure)]
-    lo, hi = float(s_low), float(s_high)
-    iteration = 0
-    for iteration in range(1, max_iter + 1):
-        mid = 0.5 * (lo + hi)
-        persistent, measure = classify(mid)
-        history.append((mid, persistent, measure))
-        if persistent:
-            lo = mid
-        else:
-            hi = mid
-        if hi - lo <= tol_s:
-            break
-    return StressThreshold(lo, s_low, s_high, iteration, history, epsilon, config.T)
+    history = [
+        (float(item["stress"]), bool(item["persistent"]), float(item["measure"]))
+        for item in threshold["history"]
+    ]
+    return StressThreshold(
+        float(threshold["threshold"]),
+        float(threshold["s_low"]),
+        float(threshold["s_high"]),
+        int(threshold["iterations"]),
+        history,
+        epsilon,
+        config.T,
+    )

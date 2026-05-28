@@ -8,7 +8,14 @@ from src.roy_style_model import (
     reaction_part as roy_reaction_part,
     require_positive_equilibrium as roy_require_positive_equilibrium,
 )
-from src.roy_style_2d import Roy2DConfig, laplacian_neumann_2d, simulate_pde_2d
+from src.roy_style_2d import (
+    Roy2DConfig,
+    _threshold_search,
+    is_persistent_tail,
+    laplacian_neumann_2d,
+    simulate_pde_2d,
+    tail_metrics,
+)
 from src.turing_rescue_holling2 import HollingIIParams, continuous_turing_scan_holling2, solve_coexistence_equilibria_holling2
 from src.turing_rescue_model import (
     RescueParams,
@@ -164,4 +171,66 @@ def test_roy_2d_homogeneous_initial_state_stays_homogeneous_short_run():
     assert result.diagnostics.var_w < 1.0e-12
     assert len(result.t) == len(result.mean_w_time)
     assert len(result.t) == len(result.var_u_time)
+    assert len(result.t) == len(result.mean_u_time)
+    assert len(result.t) == len(result.mean_v_time)
+    assert len(result.t) == len(result.var_v_time)
+    assert len(result.t) == len(result.var_w_time)
+    assert len(result.t) == len(result.min_z_time)
+    assert len(result.t) == len(result.dominant_wavelength_time)
+    assert len(result.t) == len(result.dominant_power_time)
     assert np.all(np.isfinite(result.min_z_time))
+
+
+def test_tail_metrics_constant_positive_series_is_persistent():
+    t = np.linspace(0.0, 10.0, 21)
+    y = np.full_like(t, 2.0e-3)
+
+    metrics = tail_metrics(t, y)
+    persistent, persistent_metrics = is_persistent_tail(t, y, epsilon=1.0e-4)
+
+    assert np.isclose(metrics["tail_mean"], 2.0e-3)
+    assert np.isclose(metrics["tail_slope"], 0.0)
+    assert persistent
+    assert persistent_metrics["tail_min"] > 1.0e-4
+
+
+def test_tail_metrics_decaying_series_has_negative_slope():
+    t = np.linspace(0.0, 10.0, 51)
+    y = 1.0 - 0.05 * t
+
+    metrics = tail_metrics(t, y)
+
+    assert metrics["tail_slope"] < 0.0
+    assert np.isclose(metrics["tail_slope"], -0.05)
+
+
+def test_tail_persistence_rejects_declining_transient_survivor():
+    t = np.linspace(0.0, 10.0, 101)
+    y = np.linspace(1.0e-3, 1.1e-4, len(t))
+
+    persistent, metrics = is_persistent_tail(t, y, epsilon=1.0e-4)
+
+    assert y[-1] > 1.0e-4
+    assert metrics["tail_mean"] > 1.0e-4
+    assert metrics["tail_slope"] < metrics["tail_slope_floor"]
+    assert not persistent
+
+
+def test_threshold_search_synthetic_monotonic_classifier():
+    def classify(stress: float):
+        persistent = stress <= 0.42
+        metrics = {
+            "tail_mean": 1.0 - stress,
+            "tail_min": 1.0 - stress,
+            "tail_start": 0.0,
+            "tail_end": 1.0,
+            "tail_slope": 0.0,
+            "tail_duration": 1.0,
+        }
+        return persistent, 1.0 - stress, metrics
+
+    result = _threshold_search(classify, 0.0, 1.0, max_iter=12)
+
+    assert result["status"] == "ok"
+    assert result["threshold"] <= 0.42
+    assert result["s_high"] - result["s_low"] <= 1.0 / 2.0**12
