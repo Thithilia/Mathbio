@@ -9,11 +9,17 @@ from src.roy_style_model import (
     require_positive_equilibrium as roy_require_positive_equilibrium,
 )
 from src.roy_style_2d import (
+    Roy2DDiagnostics,
+    Roy2DResult,
     Roy2DConfig,
     _threshold_search,
+    ensure_valid_threshold_bracket,
     is_persistent_tail,
     laplacian_neumann_2d,
+    make_refined_stress_bracket,
+    pde_tail_persistence,
     simulate_pde_2d,
+    summarize_delta_group,
     tail_metrics,
 )
 from src.turing_rescue_holling2 import HollingIIParams, continuous_turing_scan_holling2, solve_coexistence_equilibria_holling2
@@ -216,6 +222,61 @@ def test_tail_persistence_rejects_declining_transient_survivor():
     assert not persistent
 
 
+def test_tail_persistence_rejects_nonfinite_series():
+    t = np.linspace(0.0, 10.0, 11)
+    y = np.full_like(t, 1.0e-3)
+    y[-2] = np.nan
+
+    persistent, metrics = is_persistent_tail(t, y, epsilon=1.0e-4)
+
+    assert not persistent
+    assert np.isnan(metrics["tail_mean"])
+
+
+def test_pde_tail_persistence_rejects_nonphysical_result():
+    t = np.linspace(0.0, 1.0, 5)
+    series = np.full_like(t, 1.0e-3)
+    field = np.full((3, 3), 1.0e-3)
+    diagnostics = Roy2DDiagnostics(
+        mean_u=1.0e-3,
+        mean_v=1.0e-3,
+        mean_w=1.0e-3,
+        var_u=0.0,
+        var_v=0.0,
+        var_w=0.0,
+        min_value=-1.0e-6,
+        min_z=1.0,
+        negative_detected=True,
+        z_negative_detected=False,
+        dominant_k=0.0,
+        dominant_wavelength=np.inf,
+        dominant_power=0.0,
+    )
+    result = Roy2DResult(
+        t=t,
+        mean_u_time=series,
+        mean_v_time=series,
+        mean_w_time=series,
+        var_u_time=np.zeros_like(t),
+        var_v_time=np.zeros_like(t),
+        var_w_time=np.zeros_like(t),
+        min_z_time=np.ones_like(t),
+        dominant_wavelength_time=np.full_like(t, np.nan),
+        dominant_power_time=np.full_like(t, np.nan),
+        x=np.arange(3),
+        y=np.arange(3),
+        u=field,
+        v=field,
+        w=field,
+        diagnostics=diagnostics,
+    )
+
+    persistent, metrics = pde_tail_persistence(result, epsilon=1.0e-4)
+
+    assert not persistent
+    assert np.isnan(metrics["tail_mean"])
+
+
 def test_threshold_search_synthetic_monotonic_classifier():
     def classify(stress: float):
         persistent = stress <= 0.42
@@ -234,3 +295,25 @@ def test_threshold_search_synthetic_monotonic_classifier():
     assert result["status"] == "ok"
     assert result["threshold"] <= 0.42
     assert result["s_high"] - result["s_low"] <= 1.0 / 2.0**12
+
+
+def test_threshold_bracket_helpers_validate_and_reject_invalid_brackets():
+    assert np.allclose(make_refined_stress_bracket(0.40, 0.45, margin=0.05), (0.35, 0.5))
+
+    valid = ensure_valid_threshold_bracket(lambda stress: stress < 0.5, 0.4, 0.6)
+    invalid_low = ensure_valid_threshold_bracket(lambda _stress: False, 0.4, 0.6, max_expansions=1)
+    invalid_high = ensure_valid_threshold_bracket(lambda _stress: True, 0.4, 0.6, max_expansions=1)
+
+    assert valid[2] == "ok"
+    assert invalid_low[2] == "invalid_bracket_low_not_persistent"
+    assert invalid_high[2] == "invalid_bracket_high_persistent"
+
+
+def test_group_summary_conclusion_rule():
+    rescue = summarize_delta_group(np.array([0.0020, 0.0018, 0.0022]), np.array([0.0005, 0.0005, 0.0005]))
+    inhibition = summarize_delta_group(np.array([-0.0020, -0.0018, -0.0022]), np.array([0.0005, 0.0005, 0.0005]))
+    none = summarize_delta_group(np.array([0.0002, -0.0001, 0.0003]), np.array([0.0005, 0.0005, 0.0005]))
+
+    assert rescue["conclusion"] == "rescue_supported"
+    assert inhibition["conclusion"] == "inhibition_supported"
+    assert none["conclusion"] == "no_measurable_effect"

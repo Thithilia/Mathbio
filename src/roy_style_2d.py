@@ -99,6 +99,8 @@ def tail_metrics(t: np.ndarray, y: np.ndarray, tail_fraction: float = 0.25) -> d
         raise ValueError("t and y must be one-dimensional arrays with matching lengths.")
     if len(t_arr) < 2:
         raise ValueError("At least two time points are required.")
+    if not np.all(np.isfinite(t_arr)) or not np.all(np.isfinite(y_arr)):
+        raise ValueError("t and y must contain only finite values.")
     if not 0.0 < tail_fraction <= 1.0:
         raise ValueError("tail_fraction must satisfy 0 < tail_fraction <= 1.")
 
@@ -122,6 +124,18 @@ def tail_metrics(t: np.ndarray, y: np.ndarray, tail_fraction: float = 0.25) -> d
     }
 
 
+def _invalid_tail_metrics() -> dict[str, float]:
+    return {
+        "tail_mean": float("nan"),
+        "tail_min": float("nan"),
+        "tail_start": float("nan"),
+        "tail_end": float("nan"),
+        "tail_slope": float("nan"),
+        "tail_duration": float("nan"),
+        "tail_slope_floor": float("nan"),
+    }
+
+
 def is_persistent_tail(
     t: np.ndarray,
     y: np.ndarray,
@@ -134,7 +148,10 @@ def is_persistent_tail(
     the tail minimum remains above one quarter of ``epsilon``, and the fitted
     tail slope is not negative enough to indicate transient survival.
     """
-    metrics = tail_metrics(t, y, tail_fraction=tail_fraction)
+    try:
+        metrics = tail_metrics(t, y, tail_fraction=tail_fraction)
+    except ValueError:
+        return False, _invalid_tail_metrics()
     tail_duration = max(metrics["tail_duration"], 1.0e-12)
     slope_floor = -max(epsilon, 0.25 * metrics["tail_mean"]) / tail_duration
     persistent = (
@@ -144,6 +161,159 @@ def is_persistent_tail(
     )
     metrics["tail_slope_floor"] = float(slope_floor)
     return bool(persistent), metrics
+
+
+def ode_tail_persistence(result: RoyODEResult, epsilon: float, tail_fraction: float = 0.25) -> tuple[bool, dict[str, float]]:
+    """Classify ODE persistence, rejecting failed or nonfinite integrations."""
+    if not result.success or result.y.size == 0:
+        return False, _invalid_tail_metrics()
+    if result.y.ndim != 2 or result.y.shape[0] < 3:
+        return False, _invalid_tail_metrics()
+    if not np.all(np.isfinite(result.t)) or not np.all(np.isfinite(result.y)):
+        return False, _invalid_tail_metrics()
+    return is_persistent_tail(result.t, result.y[2], epsilon, tail_fraction=tail_fraction)
+
+
+def pde_tail_persistence(result: Roy2DResult, epsilon: float, tail_fraction: float = 0.25) -> tuple[bool, dict[str, float]]:
+    """Classify PDE persistence, rejecting nonphysical or nonfinite trajectories."""
+    arrays = (
+        result.t,
+        result.mean_u_time,
+        result.mean_v_time,
+        result.mean_w_time,
+        result.var_u_time,
+        result.var_v_time,
+        result.var_w_time,
+        result.min_z_time,
+        result.u,
+        result.v,
+        result.w,
+    )
+    if result.diagnostics.negative_detected or result.diagnostics.z_negative_detected:
+        return False, _invalid_tail_metrics()
+    if any(not np.all(np.isfinite(arr)) for arr in arrays):
+        return False, _invalid_tail_metrics()
+    return is_persistent_tail(result.t, result.mean_w_time, epsilon, tail_fraction=tail_fraction)
+
+
+def make_refined_stress_bracket(
+    ode_threshold: float,
+    pde_threshold: float,
+    margin: float = 0.04,
+    lower_bound: float = 0.0,
+    upper_bound: float = 1.0,
+) -> tuple[float, float]:
+    """Build a bracket centered on prior ODE/PDE threshold estimates."""
+    if not np.isfinite(ode_threshold) or not np.isfinite(pde_threshold):
+        return lower_bound, upper_bound
+    low = max(lower_bound, min(ode_threshold, pde_threshold) - margin)
+    high = min(upper_bound, max(ode_threshold, pde_threshold) + margin)
+    if low >= high:
+        return lower_bound, upper_bound
+    return float(low), float(high)
+
+
+def _classifier_bool(value: object) -> bool:
+    if isinstance(value, tuple):
+        return bool(value[0])
+    return bool(value)
+
+
+def ensure_valid_threshold_bracket(
+    classify_fn: Callable[[float], object],
+    low: float,
+    high: float,
+    lower_bound: float = 0.0,
+    upper_bound: float = 1.0,
+    expansion: float = 0.03,
+    max_expansions: int = 10,
+) -> tuple[float, float, str]:
+    """Expand a stress bracket until low persists and high is extinct."""
+    lo = float(max(lower_bound, low))
+    hi = float(min(upper_bound, high))
+    if lo >= hi:
+        return lo, hi, "invalid_bracket_order"
+
+    status = "invalid_bracket"
+    for _ in range(max_expansions + 1):
+        low_persistent = _classifier_bool(classify_fn(lo))
+        high_persistent = _classifier_bool(classify_fn(hi))
+        if low_persistent and not high_persistent:
+            return lo, hi, "ok"
+
+        moved = False
+        if not low_persistent and lo > lower_bound:
+            new_lo = max(lower_bound, lo - expansion)
+            moved = moved or new_lo != lo
+            lo = new_lo
+        if high_persistent and hi < upper_bound:
+            new_hi = min(upper_bound, hi + expansion)
+            moved = moved or new_hi != hi
+            hi = new_hi
+        if not moved:
+            if not low_persistent and high_persistent:
+                status = "invalid_bracket_low_not_persistent_high_persistent"
+            elif not low_persistent:
+                status = "invalid_bracket_low_not_persistent"
+            else:
+                status = "invalid_bracket_high_persistent"
+            break
+    else:
+        low_persistent = _classifier_bool(classify_fn(lo))
+        high_persistent = _classifier_bool(classify_fn(hi))
+        if not low_persistent and high_persistent:
+            status = "invalid_bracket_low_not_persistent_high_persistent"
+        elif not low_persistent:
+            status = "invalid_bracket_low_not_persistent"
+        elif high_persistent:
+            status = "invalid_bracket_high_persistent"
+    return lo, hi, status
+
+
+def summarize_delta_group(deltas: np.ndarray, tolerances: np.ndarray) -> dict[str, float | str]:
+    """Summarize seed-level Delta m_c intervals for a validation group."""
+    delta_arr = np.asarray(deltas, dtype=float)
+    tol_arr = np.asarray(tolerances, dtype=float)
+    if delta_arr.ndim != 1 or tol_arr.ndim != 1 or len(delta_arr) != len(tol_arr) or len(delta_arr) == 0:
+        return {
+            "delta_min": float("nan"),
+            "delta_max": float("nan"),
+            "delta_mean": float("nan"),
+            "delta_std": float("nan"),
+            "interval_low": float("nan"),
+            "interval_high": float("nan"),
+            "conclusion": "invalid",
+        }
+    if not np.all(np.isfinite(delta_arr)) or not np.all(np.isfinite(tol_arr)):
+        return {
+            "delta_min": float("nan"),
+            "delta_max": float("nan"),
+            "delta_mean": float("nan"),
+            "delta_std": float("nan"),
+            "interval_low": float("nan"),
+            "interval_high": float("nan"),
+            "conclusion": "invalid",
+        }
+
+    lows = delta_arr - tol_arr
+    highs = delta_arr + tol_arr
+    interval_low = float(np.min(lows))
+    interval_high = float(np.max(highs))
+    if interval_low > 0.0:
+        conclusion = "rescue_supported"
+    elif interval_high < 0.0:
+        conclusion = "inhibition_supported"
+    else:
+        conclusion = "no_measurable_effect"
+    return {
+        "delta_min": float(np.min(delta_arr)),
+        "delta_max": float(np.max(delta_arr)),
+        "delta_mean": float(np.mean(delta_arr)),
+        "delta_std": float(np.std(delta_arr)),
+        "interval_low": interval_low,
+        "interval_high": interval_high,
+        "conclusion": conclusion,
+    }
 
 
 def with_stress(params: RoyParams, stress: float) -> RoyParams:
@@ -377,10 +547,8 @@ def simulate_ode_stress(
         atol=1.0e-10,
     )
     final_w = float(sol.y[2, -1]) if sol.y.size else float("nan")
-    if sol.success and sol.y.size:
-        persistent, _ = is_persistent_tail(sol.t, sol.y[2], epsilon)
-    else:
-        persistent = False
+    result = RoyODEResult(sol.t, sol.y, bool(sol.success), sol.message, final_w, False)
+    persistent, _ = ode_tail_persistence(result, epsilon)
     return RoyODEResult(sol.t, sol.y, bool(sol.success), sol.message, final_w, bool(persistent))
 
 
@@ -442,25 +610,41 @@ def find_ode_threshold(
     """Find the well-mixed predator-mortality stress threshold by bisection."""
     eq = require_positive_equilibrium(params)
     y0 = np.array([eq.u, eq.v, eq.w], dtype=float)
+    cache: dict[float, tuple[bool, float, dict[str, float]]] = {}
 
     def classify(stress: float) -> tuple[bool, float, dict[str, float]]:
+        key = float(stress)
+        if key in cache:
+            return cache[key]
         result = simulate_ode_stress(params, stress, T, epsilon, y0=y0)
-        if result.success and result.y.size:
-            persistent, metrics = is_persistent_tail(result.t, result.y[2], epsilon)
-        else:
-            metrics = {
-                "tail_mean": float("nan"),
-                "tail_min": float("nan"),
-                "tail_start": float("nan"),
-                "tail_end": float("nan"),
-                "tail_slope": float("nan"),
-                "tail_duration": float("nan"),
-                "tail_slope_floor": float("nan"),
-            }
-            persistent = False
-        return bool(result.success and persistent), float(metrics["tail_mean"]), metrics
+        persistent, metrics = ode_tail_persistence(result, epsilon)
+        value = (bool(result.success and persistent), float(metrics["tail_mean"]), metrics)
+        cache[key] = value
+        return value
 
-    return _threshold_search(classify, s_low, s_high, max_iter=max_iter)
+    bracket_low, bracket_high, bracket_status = ensure_valid_threshold_bracket(
+        lambda stress: classify(stress)[0],
+        s_low,
+        s_high,
+    )
+    if bracket_status != "ok":
+        low_persistent, low_measure, low_metrics = classify(bracket_low)
+        high_persistent, high_measure, high_metrics = classify(bracket_high)
+        return {
+            "threshold": float("nan"),
+            "s_low": float(bracket_low),
+            "s_high": float(bracket_high),
+            "iterations": 0,
+            "persistent_low": bool(low_persistent),
+            "persistent_high": bool(high_persistent),
+            "history": [
+                {"stress": float(bracket_low), "persistent": low_persistent, "measure": low_measure, **low_metrics},
+                {"stress": float(bracket_high), "persistent": high_persistent, "measure": high_measure, **high_metrics},
+            ],
+            "status": bracket_status,
+        }
+
+    return _threshold_search(classify, bracket_low, bracket_high, max_iter=max_iter)
 
 
 def find_pde_threshold(
@@ -473,13 +657,41 @@ def find_pde_threshold(
 ) -> dict[str, object]:
     """Find the 2D PDE predator-mortality stress threshold by bisection."""
     eq = require_positive_equilibrium(params)
+    cache: dict[float, tuple[bool, float, dict[str, float]]] = {}
 
     def classify(stress: float) -> tuple[bool, float, dict[str, float]]:
+        key = float(stress)
+        if key in cache:
+            return cache[key]
         result = simulate_pde_2d(params, config, stress=stress, equilibrium=eq)
-        persistent, metrics = is_persistent_tail(result.t, result.mean_w_time, epsilon)
-        return bool(persistent), float(metrics["tail_mean"]), metrics
+        persistent, metrics = pde_tail_persistence(result, epsilon)
+        value = (bool(persistent), float(metrics["tail_mean"]), metrics)
+        cache[key] = value
+        return value
 
-    return _threshold_search(classify, s_low, s_high, max_iter=max_iter)
+    bracket_low, bracket_high, bracket_status = ensure_valid_threshold_bracket(
+        lambda stress: classify(stress)[0],
+        s_low,
+        s_high,
+    )
+    if bracket_status != "ok":
+        low_persistent, low_measure, low_metrics = classify(bracket_low)
+        high_persistent, high_measure, high_metrics = classify(bracket_high)
+        return {
+            "threshold": float("nan"),
+            "s_low": float(bracket_low),
+            "s_high": float(bracket_high),
+            "iterations": 0,
+            "persistent_low": bool(low_persistent),
+            "persistent_high": bool(high_persistent),
+            "history": [
+                {"stress": float(bracket_low), "persistent": low_persistent, "measure": low_measure, **low_metrics},
+                {"stress": float(bracket_high), "persistent": high_persistent, "measure": high_measure, **high_metrics},
+            ],
+            "status": bracket_status,
+        }
+
+    return _threshold_search(classify, bracket_low, bracket_high, max_iter=max_iter)
 
 
 def compute_stress_threshold_ode(

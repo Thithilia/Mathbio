@@ -1,91 +1,57 @@
 # Nonlinear PDE Results 07
 
-This revision makes the predator-mortality threshold comparison the primary scientific output. Pattern morphology remains exploratory and is not used as the rescue criterion.
+**Final conclusion: inconclusive candidate, not claimed.** A threshold-shift candidate appeared, but it did not survive the full validation/escalation rule; no rescue or inhibition claim is made.
 
-Persistence is classified from the final 25% of the predator-density time series. A trajectory is persistent when the tail mean is above `epsilon`, the tail minimum stays above `0.25 epsilon`, and the least-squares tail slope is not strongly negative:
+## Core Criterion
 
-`tail_slope >= -max(epsilon, 0.25 tail_mean) / tail_duration`.
+The decisive quantity is `Delta m_c = m_c_PDE - m_c_ODE`, where `m_c_ODE` is the mortality-stress threshold for predator persistence in the well-mixed ODE and `m_c_PDE` is the corresponding threshold in the spatial PDE.
 
-## Core Threshold Question
+- `Delta m_c > 0`: spatial structure expands the predator-persistence / indirect-rescue range.
+- `Delta m_c < 0`: spatial structure shrinks that range.
+- values within the row tolerance are treated as no measurable threshold effect.
 
-The decisive quantity is
+## Persistence Rule
 
-`Delta m_c = m_c_PDE - m_c_ODE`.
+Persistence is evaluated on the final 25% of the predator-density trajectory. A trajectory is persistent only if all three conditions hold:
 
-Positive values indicate that spatial structure expands the predator-persistence range under mortality stress; negative values indicate that spatial structure shrinks it; values within tolerance are treated as no measurable threshold effect.
+- `tail_mean > epsilon`
+- `tail_min > 0.25 * epsilon`
+- `tail_slope >= -max(epsilon, 0.25 * tail_mean) / max(tail_duration, 1e-12)`
 
-## Baseline Regime
+PDE runs are also rejected as nonpersistent if negative state values, negative free space `z`, or nonfinite diagnostic time series are detected. ODE runs are rejected if integration fails or produces nonfinite output.
 
-Baseline parameters use `mu=0.85` and `D_w/D_u=100`.
+## Stage A Results
 
-Quick Stage A estimate:
+- Stage A rows: `13`
+- positive candidates: `12`
+- negative candidates: `0`
+- largest positive Stage A `Delta m_c`: `0.00842285`
+- largest negative Stage A `Delta m_c`: `nan`
+- closest-to-zero row: `mu=0.6|DwDu=100|eta=0.005|gamma=3.73|beta1=0.5` with `Delta m_c = -0.00012207`
 
-- `m_c^ODE = 0.389893`
-- `m_c^PDE = 0.392578`
-- `Delta m_c = 0.00268555`
-- tolerance used for this row: `0.001`
-- row status: `ok`
+Stage A is candidate discovery only; it is not used as evidence for rescue or inhibition.
 
-Validated `T=200`, `64x64` estimate from the first baseline seed:
+## Stage B/C Validation
 
-- `m_c^ODE = 0.395752`
-- `m_c^PDE = 0.394531`
-- `Delta m_c = -0.0012207`
-- tolerance used for this row: `0.00390625`
-- row status: `ok`
+- Stage B precision-screen rows: `13`
+- Stage C seed-validation rows: `6`
+- Stage D grid-escalation rows: `1`
 
-## Stage A: Quick Threshold Finder
+| group_id | mu | D_w/D_u | eta | Stage C seeds | mean Delta | Delta range | interval range | group conclusion | Stage D result | final conclusion |
+|---|---:|---:|---:|---:|---:|---:|---:|---|---|---|
+| mu=0.85\|DwDu=100\|eta=0.005\|gamma=3.73\|beta1=0.5 | 0.85 | 100 | 0.005 | 3 | -0.000153068 | [-0.000153068, -0.000153068] | [-0.000653068, 0.000346932] | no_measurable_effect | nan (not_required) | no_measurable_effect |
+| mu=0.85\|DwDu=150\|eta=0.005\|gamma=3.73\|beta1=0.5 | 0.85 | 150 | 0.005 | 3 | 0.000724594 | [0.000724594, 0.000724594] | [0.000224594, 0.00122459] | rescue_supported | 0.000244583 (ok) | inconclusive_candidate |
 
-- completed threshold rows: `13`
-- candidate spatial-rescue rows: `10`
-- candidate spatial-inhibition rows: `0`
-- scanned axes: `mu`, `D_w/D_u`, and a small exploratory `eta` axis.
-- Stage A is a candidate finder only; its positive rows are not interpreted as rescue without Stage B validation.
+## Final Conclusion
 
-## Closest Regime To A Rescue Candidate
+**Final conclusion: inconclusive candidate, not claimed.** The final classification is based on the group summary intervals in `results/roy_2d_threshold_group_summary.csv`, not on pattern morphology or sparse stress classification counts.
 
-- closest Stage A regime: `mu` with `mu=0.6`
-- `m_c^ODE = 0.4375`
-- `m_c^PDE = 0.4375`
-- `Delta m_c = 0`
-- tolerance used for this row: `0.001`
-- row status: `ok`
+## Secondary Diagnostics
 
-## Stage B: Validation
-
-Stage A produced `10` positive `Delta m_c` candidate rows at the quick `T=70`, `36x36` setting. Stage B therefore validated the baseline and the first positive candidate regimes using longer `T=200`, `64x64` grids, and three perturbation seeds.
-
-- validated positive-threshold rows after Stage B: `0`
-
-- `B_001`: axis `baseline`, seed `20260621`, T `200`, grid `64x64`, Delta `-0.0012207`, status `ok`
-- `B_002`: axis `baseline`, seed `20260622`, T `200`, grid `64x64`, Delta `-0.0012207`, status `ok`
-- `B_003`: axis `baseline`, seed `20260623`, T `200`, grid `64x64`, Delta `-0.0012207`, status `ok`
-- `B_004`: axis `mu`, seed `20260621`, T `200`, grid `64x64`, Delta `-0.000732422`, status `ok`
-- `B_005`: axis `mu`, seed `20260622`, T `200`, grid `64x64`, Delta `-0.000732422`, status `ok`
-- `B_006`: axis `mu`, seed `20260623`, T `200`, grid `64x64`, Delta `-0.000732422`, status `ok`
-- `B_007`: axis `mu`, seed `20260621`, T `200`, grid `64x64`, Delta `-0.0012207`, status `ok`
-- `B_008`: axis `mu`, seed `20260622`, T `200`, grid `64x64`, Delta `-0.0012207`, status `ok`
-- `B_009`: axis `mu`, seed `20260623`, T `200`, grid `64x64`, Delta `-0.0012207`, status `ok`
-
-## Interpretation
-
-no measurable spatial-rescue effect was found; threshold differences are within tolerance or negative.
-
-Spatial rescue is not claimed unless a positive threshold difference survives validation. In this run, the conclusion is framed entirely around the sign and robustness of `Delta m_c`, not around the mere existence of spatial patterning.
-
-## Secondary Pattern Diagnostics
-
-- representative long-time rows: `8`
-- representative fine-stress rows: `24`
-- dominant wavelength and Fourier power remain exploratory diagnostics only.
+Pattern morphology, Fourier power, and dominant wavelength remain exploratory diagnostics. They are not part of the rescue criterion in this PR.
 
 Outputs:
 
 - `results\roy_2d_threshold_comparison.csv`
-- `results\roy_2d_longtime_pattern_scan.csv`
-- `results\roy_2d_fine_threshold_scan.csv`
-- `results\roy_2d_pattern_timeseries.csv`
+- `results\roy_2d_threshold_group_summary.csv`
 - `figures\roy_2d_longtime\07_threshold_delta.png`
-- `figures\roy_2d_longtime\07_longtime_pattern_strength.png`
-- `figures\roy_2d_longtime\07_fine_phase_stress_mu.png`
-- `figures\roy_2d_longtime\07_fine_phase_stress_diffusion_ratio.png`

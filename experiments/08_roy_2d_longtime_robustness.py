@@ -1,4 +1,11 @@
-"""Threshold-focused robustness checks for Roy-style 2D predator persistence."""
+"""Final Roy-style 2D threshold pipeline for spatial-rescue testing.
+
+The primary output is the predator-mortality threshold difference
+
+    Delta m_c = m_c_PDE - m_c_ODE.
+
+Pattern morphology diagnostics are intentionally secondary in this script.
+"""
 
 from __future__ import annotations
 
@@ -17,115 +24,39 @@ matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.colors import ListedColormap
-from matplotlib.patches import Patch
 
 from src.roy_style_2d import (
     Roy2DConfig,
     find_ode_threshold,
     find_pde_threshold,
-    is_persistent_tail,
-    simulate_ode_stress,
-    simulate_pde_2d,
+    make_refined_stress_bracket,
+    summarize_delta_group,
 )
 from src.roy_style_model import RoyParams, continuous_turing_scan, require_positive_equilibrium
 
 
 RESULTS_DIR = ROOT / "results"
 FIG_DIR = ROOT / "figures" / "roy_2d_longtime"
-LONGTIME_CSV = RESULTS_DIR / "roy_2d_longtime_pattern_scan.csv"
-FINE_CSV = RESULTS_DIR / "roy_2d_fine_threshold_scan.csv"
-TIMESERIES_CSV = RESULTS_DIR / "roy_2d_pattern_timeseries.csv"
 THRESHOLD_CSV = RESULTS_DIR / "roy_2d_threshold_comparison.csv"
+GROUP_SUMMARY_CSV = RESULTS_DIR / "roy_2d_threshold_group_summary.csv"
 SUMMARY_MD = ROOT / "nonlinear_pde_results_07.md"
+THRESHOLD_FIG = FIG_DIR / "07_threshold_delta.png"
 
 
-PATTERN_TOL = 1.0e-5
 EPSILON = 1.0e-4
-FIXED_THRESHOLD_TOLERANCE = 1.0e-3
+STAGE_A_FIXED_THRESHOLD_TOLERANCE = 1.0e-3
+VALIDATION_FIXED_THRESHOLD_TOLERANCE = 5.0e-4
+STAGE_D_FIXED_THRESHOLD_TOLERANCE = 7.5e-4
 
 
-CLASS_TO_INT = {
-    "ODE persistent, PDE persistent": 0,
-    "ODE extinct, PDE persistent": 1,
-    "ODE persistent, PDE extinct": 2,
-    "ODE extinct, PDE extinct": 3,
-    "failed": 4,
-}
-CLASS_COLORS = ["#1f77b4", "#2ca02c", "#9467bd", "#7f7f7f", "#d62728"]
 EQ_CACHE: dict[tuple[float, ...], object] = {}
 TURING_CACHE: dict[tuple[float, ...], tuple[bool, float]] = {}
-
-
-SCAN_FIELDNAMES = [
-    "run_id",
-    "scan",
-    "axis",
-    "mu",
-    "D_w_over_D_u",
-    "stress",
-    "T",
-    "n_x",
-    "n_y",
-    "dt",
-    "seed",
-    "epsilon",
-    "baseline_turing_unstable",
-    "baseline_growth",
-    "ode_persistent",
-    "pde_persistent",
-    "classification",
-    "mean_w_ode",
-    "mean_w_pde",
-    "ode_tail_mean_w",
-    "ode_tail_min_w",
-    "ode_tail_slope_w",
-    "pde_tail_mean_w",
-    "pde_tail_min_w",
-    "pde_tail_slope_w",
-    "var_u_final",
-    "var_v_final",
-    "var_w_final",
-    "final_pattern_strength",
-    "final_pattern_measurable",
-    "final_quarter_mean_pattern_strength",
-    "persistent_pattern_measurable",
-    "dominant_wavelength_final",
-    "dominant_power_final",
-    "min_z_final",
-    "negative_detected",
-    "z_negative_detected",
-    "status",
-]
-
-
-TIMESERIES_FIELDNAMES = [
-    "run_id",
-    "scan",
-    "axis",
-    "mu",
-    "D_w_over_D_u",
-    "stress",
-    "T",
-    "n_x",
-    "n_y",
-    "dt",
-    "seed",
-    "time",
-    "mean_w",
-    "var_u",
-    "var_v",
-    "var_w",
-    "pattern_strength",
-    "dominant_wavelength",
-    "dominant_power",
-    "min_z",
-]
 
 
 THRESHOLD_FIELDNAMES = [
     "run_id",
     "stage",
+    "group_id",
     "axis",
     "varied_parameter",
     "varied_value",
@@ -147,6 +78,9 @@ THRESHOLD_FIELDNAMES = [
     "delta_threshold",
     "threshold_gap_width",
     "threshold_tolerance",
+    "delta_interval_low",
+    "delta_interval_high",
+    "threshold_precision_ok",
     "candidate_spatial_rescue",
     "candidate_spatial_inhibition",
     "validated",
@@ -160,6 +94,29 @@ THRESHOLD_FIELDNAMES = [
     "pde_s_low",
     "pde_s_high",
     "status",
+]
+
+
+GROUP_FIELDNAMES = [
+    "group_id",
+    "mu",
+    "D_w_over_D_u",
+    "eta",
+    "gamma",
+    "beta1",
+    "stage_c_seed_count",
+    "stage_c_delta_min",
+    "stage_c_delta_max",
+    "stage_c_delta_mean",
+    "stage_c_delta_std",
+    "stage_c_interval_low",
+    "stage_c_interval_high",
+    "stage_c_group_conclusion",
+    "stage_d_delta",
+    "stage_d_tolerance",
+    "stage_d_status",
+    "final_group_conclusion",
+    "final_reason",
 ]
 
 
@@ -197,6 +154,14 @@ def param_key(params: RoyParams) -> tuple[float, ...]:
     )
 
 
+def group_id_for(params: RoyParams) -> str:
+    key = param_key(params)
+    return (
+        f"mu={key[7]:.4g}|DwDu={key[10] / key[8]:.4g}|eta={key[4]:.4g}|"
+        f"gamma={key[2]:.4g}|beta1={key[5]:.4g}"
+    )
+
+
 def stable_config_for(params: RoyParams, config: Roy2DConfig) -> Roy2DConfig:
     dx = config.L_x / (config.n_x - 1)
     dy = config.L_y / (config.n_y - 1)
@@ -207,180 +172,20 @@ def stable_config_for(params: RoyParams, config: Roy2DConfig) -> Roy2DConfig:
     return replace(config, dt=0.9 * stable_dt)
 
 
-def classify(ode_persistent: bool, pde_persistent: bool) -> str:
-    if ode_persistent and pde_persistent:
-        return "ODE persistent, PDE persistent"
-    if (not ode_persistent) and pde_persistent:
-        return "ODE extinct, PDE persistent"
-    if ode_persistent and (not pde_persistent):
-        return "ODE persistent, PDE extinct"
-    return "ODE extinct, PDE extinct"
-
-
-def pattern_strength(result) -> np.ndarray:
-    return np.maximum.reduce([result.var_u_time, result.var_v_time, result.var_w_time])
-
-
-def final_quarter_pattern_strength(result) -> float:
-    strength = pattern_strength(result)
-    mask = result.t >= 0.75 * float(result.t[-1])
-    if not np.any(mask):
-        return float(strength[-1])
-    return float(np.mean(strength[mask]))
-
-
 def equilibrium_for(params: RoyParams):
     key = param_key(params)
-    cached = EQ_CACHE.get(key)
-    if cached is not None:
-        return cached
-    eq = require_positive_equilibrium(params)
-    EQ_CACHE[key] = eq
-    return eq
+    if key not in EQ_CACHE:
+        EQ_CACHE[key] = require_positive_equilibrium(params)
+    return EQ_CACHE[key]
 
 
 def baseline_turing_status(params: RoyParams) -> tuple[bool, float]:
     key = param_key(params)
-    cached = TURING_CACHE.get(key)
-    if cached is not None:
-        return cached
-    eq = equilibrium_for(params)
-    scan = continuous_turing_scan(params, eq, k_min=1.0e-4, k_max=12.0, n_k=500, tol=1.0e-8)
-    result = (scan.turing_unstable, scan.max_spatial_growth)
-    TURING_CACHE[key] = result
-    return result
-
-
-def run_point(
-    run_id: str,
-    scan_name: str,
-    axis: str,
-    params: RoyParams,
-    stress: float,
-    config: Roy2DConfig,
-    record_timeseries: bool,
-) -> tuple[dict[str, object], list[dict[str, object]]]:
-    run_config = stable_config_for(params, config)
-    try:
+    if key not in TURING_CACHE:
         eq = equilibrium_for(params)
-        baseline_turing, baseline_growth = baseline_turing_status(params)
-        ode = simulate_ode_stress(params, stress, run_config.T, EPSILON, y0=np.array([eq.u, eq.v, eq.w]))
-        pde = simulate_pde_2d(params, run_config, stress=stress, equilibrium=eq)
-        ode_persistent, ode_tail = is_persistent_tail(ode.t, ode.y[2], EPSILON)
-        pde_persistent, pde_tail = is_persistent_tail(pde.t, pde.mean_w_time, EPSILON)
-        ode_persistent = bool(ode.success and ode_persistent)
-        label = classify(ode_persistent, pde_persistent)
-        strength = pattern_strength(pde)
-        final_strength = float(strength[-1])
-        final_quarter_strength = final_quarter_pattern_strength(pde)
-        row = {
-            "run_id": run_id,
-            "scan": scan_name,
-            "axis": axis,
-            "mu": params.mu,
-            "D_w_over_D_u": params.D_w / params.D_u,
-            "stress": stress,
-            "T": run_config.T,
-            "n_x": run_config.n_x,
-            "n_y": run_config.n_y,
-            "dt": run_config.dt,
-            "seed": run_config.seed,
-            "epsilon": EPSILON,
-            "baseline_turing_unstable": baseline_turing,
-            "baseline_growth": baseline_growth,
-            "ode_persistent": ode_persistent,
-            "pde_persistent": pde_persistent,
-            "classification": label,
-            "mean_w_ode": ode.final_w,
-            "mean_w_pde": pde.diagnostics.mean_w,
-            "ode_tail_mean_w": ode_tail["tail_mean"],
-            "ode_tail_min_w": ode_tail["tail_min"],
-            "ode_tail_slope_w": ode_tail["tail_slope"],
-            "pde_tail_mean_w": pde_tail["tail_mean"],
-            "pde_tail_min_w": pde_tail["tail_min"],
-            "pde_tail_slope_w": pde_tail["tail_slope"],
-            "var_u_final": pde.diagnostics.var_u,
-            "var_v_final": pde.diagnostics.var_v,
-            "var_w_final": pde.diagnostics.var_w,
-            "final_pattern_strength": final_strength,
-            "final_pattern_measurable": bool(final_strength > PATTERN_TOL),
-            "final_quarter_mean_pattern_strength": final_quarter_strength,
-            "persistent_pattern_measurable": bool(final_quarter_strength > PATTERN_TOL),
-            "dominant_wavelength_final": pde.diagnostics.dominant_wavelength,
-            "dominant_power_final": pde.diagnostics.dominant_power,
-            "min_z_final": pde.diagnostics.min_z,
-            "negative_detected": pde.diagnostics.negative_detected,
-            "z_negative_detected": pde.diagnostics.z_negative_detected,
-            "status": "ok",
-        }
-        series: list[dict[str, object]] = []
-        if record_timeseries:
-            for idx, t_value in enumerate(pde.t):
-                series.append(
-                    {
-                        "run_id": run_id,
-                        "scan": scan_name,
-                        "axis": axis,
-                        "mu": params.mu,
-                        "D_w_over_D_u": params.D_w / params.D_u,
-                        "stress": stress,
-                        "T": run_config.T,
-                        "n_x": run_config.n_x,
-                        "n_y": run_config.n_y,
-                        "dt": run_config.dt,
-                        "seed": run_config.seed,
-                        "time": float(t_value),
-                        "mean_w": float(pde.mean_w_time[idx]),
-                        "var_u": float(pde.var_u_time[idx]),
-                        "var_v": float(pde.var_v_time[idx]),
-                        "var_w": float(pde.var_w_time[idx]),
-                        "pattern_strength": float(strength[idx]),
-                        "dominant_wavelength": float(pde.dominant_wavelength_time[idx]),
-                        "dominant_power": float(pde.dominant_power_time[idx]),
-                        "min_z": float(pde.min_z_time[idx]),
-                    }
-                )
-        return row, series
-    except Exception as exc:
-        row = {
-            field: np.nan for field in SCAN_FIELDNAMES
-        }
-        row.update(
-            {
-                "run_id": run_id,
-                "scan": scan_name,
-                "axis": axis,
-                "mu": params.mu,
-                "D_w_over_D_u": params.D_w / params.D_u,
-                "stress": stress,
-                "T": run_config.T,
-                "n_x": run_config.n_x,
-                "n_y": run_config.n_y,
-                "dt": run_config.dt,
-                "seed": run_config.seed,
-                "epsilon": EPSILON,
-                "baseline_turing_unstable": False,
-                "ode_persistent": False,
-                "pde_persistent": False,
-                "classification": "failed",
-                "status": f"failed: {exc}",
-            }
-        )
-        return row, []
-
-
-def write_csv(rows: list[dict[str, object]], path: Path, fieldnames: list[str]) -> None:
-    path.parent.mkdir(exist_ok=True)
-    with path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
-
-
-def truthy(value: object) -> bool:
-    if isinstance(value, bool):
-        return value
-    return str(value).strip().lower() == "true"
+        scan = continuous_turing_scan(params, eq, k_min=1.0e-4, k_max=12.0, n_k=500, tol=1.0e-8)
+        TURING_CACHE[key] = (scan.turing_unstable, scan.max_spatial_growth)
+    return TURING_CACHE[key]
 
 
 def finite_float(value: object) -> float | None:
@@ -391,6 +196,12 @@ def finite_float(value: object) -> float | None:
     return number if np.isfinite(number) else None
 
 
+def truthy(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() == "true"
+
+
 def threshold_gap(result: dict[str, object]) -> float:
     low = finite_float(result.get("s_low"))
     high = finite_float(result.get("s_high"))
@@ -399,20 +210,32 @@ def threshold_gap(result: dict[str, object]) -> float:
     return max(0.0, high - low)
 
 
+def status_for_delta(stage: str, delta: float, tolerance: float) -> str:
+    if stage == "A_quick_threshold":
+        if delta > tolerance:
+            return "stage_a_positive_candidate"
+        if delta < -tolerance:
+            return "stage_a_negative_candidate"
+        return "stage_a_no_measurable_difference"
+    return "ok"
+
+
 def threshold_row(
     run_id: str,
     stage: str,
+    group_id: str,
     axis: str,
     varied_parameter: str,
     varied_value: float,
     params: RoyParams,
     config: Roy2DConfig,
+    fixed_tolerance: float,
     seed_count: int,
     max_iter_ode: int,
     max_iter_pde: int,
     validated: bool,
-    s_low: float = 0.0,
-    s_high: float = 1.0,
+    s_low: float,
+    s_high: float,
 ) -> dict[str, object]:
     run_config = stable_config_for(params, config)
     try:
@@ -424,20 +247,33 @@ def threshold_row(
         ode_gap = threshold_gap(ode_threshold)
         pde_gap = threshold_gap(pde_threshold)
         gap_width = float(np.nanmax([ode_gap, pde_gap]))
-        tolerance = max(FIXED_THRESHOLD_TOLERANCE, gap_width)
-        if ode_threshold["status"] == "ok" and pde_threshold["status"] == "ok" and ode_value is not None and pde_value is not None:
+        tolerance = max(fixed_tolerance, gap_width)
+        precision_ok = bool(np.isfinite(gap_width) and gap_width <= fixed_tolerance)
+        thresholds_ok = (
+            ode_threshold["status"] == "ok"
+            and pde_threshold["status"] == "ok"
+            and ode_value is not None
+            and pde_value is not None
+        )
+        if thresholds_ok:
             delta = pde_value - ode_value
-            rescue = bool(delta > tolerance)
-            inhibition = bool(delta < -tolerance)
-            status = "ok"
+            delta_low = delta - tolerance
+            delta_high = delta + tolerance
+            rescue = bool(precision_ok and delta > tolerance)
+            inhibition = bool(precision_ok and delta < -tolerance)
+            status = status_for_delta(stage, delta, tolerance) if precision_ok else "insufficient_precision"
         else:
             delta = float("nan")
+            delta_low = float("nan")
+            delta_high = float("nan")
             rescue = False
             inhibition = False
+            precision_ok = False
             status = f"threshold_failed: ode={ode_threshold['status']}; pde={pde_threshold['status']}"
         return {
             "run_id": run_id,
             "stage": stage,
+            "group_id": group_id,
             "axis": axis,
             "varied_parameter": varied_parameter,
             "varied_value": varied_value,
@@ -459,6 +295,9 @@ def threshold_row(
             "delta_threshold": delta,
             "threshold_gap_width": gap_width,
             "threshold_tolerance": tolerance,
+            "delta_interval_low": delta_low,
+            "delta_interval_high": delta_high,
+            "threshold_precision_ok": precision_ok,
             "candidate_spatial_rescue": rescue,
             "candidate_spatial_inhibition": inhibition,
             "validated": validated,
@@ -479,6 +318,7 @@ def threshold_row(
             {
                 "run_id": run_id,
                 "stage": stage,
+                "group_id": group_id,
                 "axis": axis,
                 "varied_parameter": varied_parameter,
                 "varied_value": varied_value,
@@ -487,12 +327,13 @@ def threshold_row(
                 "eta": params.eta,
                 "gamma": params.gamma,
                 "beta1": params.beta1,
-                "T": config.T,
-                "n_x": config.n_x,
-                "n_y": config.n_y,
-                "dt": config.dt,
-                "seed": config.seed,
+                "T": run_config.T,
+                "n_x": run_config.n_x,
+                "n_y": run_config.n_y,
+                "dt": run_config.dt,
+                "seed": run_config.seed,
                 "epsilon": EPSILON,
+                "threshold_precision_ok": False,
                 "candidate_spatial_rescue": False,
                 "candidate_spatial_inhibition": False,
                 "validated": validated,
@@ -505,13 +346,13 @@ def threshold_row(
 
 def stage_a_regimes() -> list[tuple[str, str, float, RoyParams]]:
     regimes: list[tuple[str, str, float, RoyParams]] = [
-        ("baseline", "none", 0.0, baseline_params(mu=0.85, D_w_ratio=100.0)),
+        ("baseline", "none", 0.0, baseline_params(mu=0.85, D_w_ratio=100.0, eta=0.005)),
     ]
     for mu in [0.60, 0.72, 0.80, 0.85, 0.89, 0.95]:
-        regimes.append(("mu", "mu", mu, baseline_params(mu=mu, D_w_ratio=100.0)))
+        regimes.append(("mu", "mu", mu, baseline_params(mu=mu, D_w_ratio=100.0, eta=0.005)))
     for ratio in [40.0, 70.0, 100.0, 150.0, 250.0, 400.0]:
-        regimes.append(("diffusion_ratio", "D_w_over_D_u", ratio, baseline_params(mu=0.85, D_w_ratio=ratio)))
-    for eta in [0.0025, 0.0075]:
+        regimes.append(("diffusion_ratio", "D_w_over_D_u", ratio, baseline_params(mu=0.85, D_w_ratio=ratio, eta=0.005)))
+    for eta in [0.0025, 0.005, 0.0075]:
         regimes.append(("eta_exploratory", "eta", eta, baseline_params(mu=0.85, D_w_ratio=100.0, eta=eta)))
 
     unique: list[tuple[str, str, float, RoyParams]] = []
@@ -525,415 +366,444 @@ def stage_a_regimes() -> list[tuple[str, str, float, RoyParams]]:
     return unique
 
 
-def stage_b_regimes(stage_a_rows: list[dict[str, object]]) -> list[tuple[str, str, float, RoyParams]]:
-    ok_rows = [row for row in stage_a_rows if row["status"] == "ok"]
-    positive = [row for row in ok_rows if truthy(row["candidate_spatial_rescue"])]
-    selected = positive[:3]
-    if not selected:
-        baseline = [row for row in ok_rows if row["axis"] == "baseline"]
-        selected.extend(baseline[:1])
-        finite_delta = [
-            row
-            for row in ok_rows
-            if finite_float(row["delta_threshold"]) is not None and row not in selected
-        ]
-        if finite_delta:
-            selected.append(min(finite_delta, key=lambda row: abs(float(row["delta_threshold"]))))
+def row_is_valid_threshold(row: dict[str, object]) -> bool:
+    return str(row["status"]) in {
+        "ok",
+        "stage_a_positive_candidate",
+        "stage_a_negative_candidate",
+        "stage_a_no_measurable_difference",
+    }
 
-    regimes: list[tuple[str, str, float, RoyParams]] = []
-    for row in selected:
-        axis = str(row["axis"])
-        varied_parameter = str(row["varied_parameter"])
-        varied_value = float(row["varied_value"])
-        regimes.append(
-            (
-                axis,
-                varied_parameter,
-                varied_value,
-                baseline_params(
-                    mu=float(row["mu"]),
-                    D_w_ratio=float(row["D_w_over_D_u"]),
-                    eta=float(row["eta"]),
-                    gamma=float(row["gamma"]),
-                    beta1=float(row["beta1"]),
-                ),
-            )
+
+def select_stage_b_rows(stage_a_rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    valid = [row for row in stage_a_rows if row_is_valid_threshold(row)]
+    selected: list[dict[str, object]] = []
+    selected.extend(row for row in valid if row["axis"] == "baseline")
+    selected.extend(row for row in valid if truthy(row["candidate_spatial_rescue"]))
+    selected.extend(row for row in valid if truthy(row["candidate_spatial_inhibition"]))
+    finite = [row for row in valid if finite_float(row["delta_threshold"]) is not None]
+    if finite:
+        selected.append(min(finite, key=lambda row: abs(float(row["delta_threshold"]))))
+    return dedupe_rows_by_group(selected)
+
+
+def select_stage_c_rows(stage_b_rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    valid = [row for row in stage_b_rows if row["status"] == "ok"]
+    selected: list[dict[str, object]] = []
+    selected.extend(row for row in valid if row["axis"] == "baseline")
+    selected.extend(row for row in valid if truthy(row["candidate_spatial_rescue"]))
+    selected.extend(row for row in valid if truthy(row["candidate_spatial_inhibition"]))
+    if not any(truthy(row["candidate_spatial_rescue"]) or truthy(row["candidate_spatial_inhibition"]) for row in valid):
+        finite = [row for row in valid if finite_float(row["delta_threshold"]) is not None]
+        if finite:
+            selected.append(min(finite, key=lambda row: abs(float(row["delta_threshold"]))))
+    return dedupe_rows_by_group(selected)
+
+
+def dedupe_rows_by_group(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    selected: list[dict[str, object]] = []
+    seen: set[str] = set()
+    for row in rows:
+        group_id = str(row["group_id"])
+        if group_id in seen:
+            continue
+        seen.add(group_id)
+        selected.append(row)
+    return selected
+
+
+def params_from_row(row: dict[str, object]) -> RoyParams:
+    return baseline_params(
+        mu=float(row["mu"]),
+        D_w_ratio=float(row["D_w_over_D_u"]),
+        eta=float(row["eta"]),
+        gamma=float(row["gamma"]),
+        beta1=float(row["beta1"]),
+    )
+
+
+def write_csv(rows: list[dict[str, object]], path: Path, fieldnames: list[str]) -> None:
+    path.parent.mkdir(exist_ok=True)
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def build_group_summaries(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    stage_c_rows = [row for row in rows if row["stage"] == "C_seed_validation"]
+    group_ids = sorted({str(row["group_id"]) for row in stage_c_rows})
+    summaries: list[dict[str, object]] = []
+    for group_id in group_ids:
+        group_rows = [row for row in stage_c_rows if row["group_id"] == group_id]
+        valid_rows = [row for row in group_rows if row["status"] == "ok" and truthy(row["threshold_precision_ok"])]
+        representative = group_rows[0]
+        if len(valid_rows) >= 3:
+            deltas = np.array([float(row["delta_threshold"]) for row in valid_rows], dtype=float)
+            tolerances = np.array([float(row["threshold_tolerance"]) for row in valid_rows], dtype=float)
+            summary = summarize_delta_group(deltas, tolerances)
+            stage_c_conclusion = str(summary["conclusion"])
+        else:
+            summary = summarize_delta_group(np.array([], dtype=float), np.array([], dtype=float))
+            stage_c_conclusion = "invalid"
+
+        stage_d_rows = [row for row in rows if row["stage"] == "D_grid_escalation" and row["group_id"] == group_id]
+        stage_d = stage_d_rows[0] if stage_d_rows else None
+        stage_d_delta = finite_float(stage_d["delta_threshold"]) if stage_d is not None else None
+        stage_d_tolerance = finite_float(stage_d["threshold_tolerance"]) if stage_d is not None else None
+        stage_d_status = str(stage_d["status"]) if stage_d is not None else "not_required"
+
+        if stage_c_conclusion == "invalid":
+            final = "invalid"
+            reason = "Stage C did not produce three valid high-precision seed rows."
+        elif stage_c_conclusion == "no_measurable_effect":
+            final = "no_measurable_effect"
+            reason = "Stage C validation intervals overlap zero."
+        else:
+            if stage_d is None:
+                final = "inconclusive_candidate"
+                reason = "Stage C suggested an effect, but Stage D was not run."
+            elif stage_d["status"] != "ok" or not truthy(stage_d["threshold_precision_ok"]):
+                final = "inconclusive_candidate"
+                reason = "Stage D did not produce a valid high-precision row."
+            elif stage_c_conclusion == "rescue_supported" and stage_d_delta is not None and stage_d_tolerance is not None and stage_d_delta > stage_d_tolerance:
+                final = "rescue_supported"
+                reason = "Stage C intervals were positive and Stage D retained positive Delta m_c."
+            elif stage_c_conclusion == "inhibition_supported" and stage_d_delta is not None and stage_d_tolerance is not None and stage_d_delta < -stage_d_tolerance:
+                final = "inhibition_supported"
+                reason = "Stage C intervals were negative and Stage D retained negative Delta m_c."
+            else:
+                final = "inconclusive_candidate"
+                reason = "Stage D failed to preserve the Stage C sign beyond tolerance."
+
+        summaries.append(
+            {
+                "group_id": group_id,
+                "mu": representative["mu"],
+                "D_w_over_D_u": representative["D_w_over_D_u"],
+                "eta": representative["eta"],
+                "gamma": representative["gamma"],
+                "beta1": representative["beta1"],
+                "stage_c_seed_count": len(valid_rows),
+                "stage_c_delta_min": summary["delta_min"],
+                "stage_c_delta_max": summary["delta_max"],
+                "stage_c_delta_mean": summary["delta_mean"],
+                "stage_c_delta_std": summary["delta_std"],
+                "stage_c_interval_low": summary["interval_low"],
+                "stage_c_interval_high": summary["interval_high"],
+                "stage_c_group_conclusion": stage_c_conclusion,
+                "stage_d_delta": stage_d_delta if stage_d_delta is not None else np.nan,
+                "stage_d_tolerance": stage_d_tolerance if stage_d_tolerance is not None else np.nan,
+                "stage_d_status": stage_d_status,
+                "final_group_conclusion": final,
+                "final_reason": reason,
+            }
         )
-    return regimes
+    return summaries
 
 
-def plot_threshold_delta(rows: list[dict[str, object]], path: Path) -> None:
-    ok_rows = [row for row in rows if row["status"] == "ok"]
-    if not ok_rows:
+def final_label(group_summaries: list[dict[str, object]]) -> str:
+    finals = {str(row["final_group_conclusion"]) for row in group_summaries}
+    if "rescue_supported" in finals and "inhibition_supported" not in finals:
+        return "Final conclusion: spatial rescue supported"
+    if "inhibition_supported" in finals and "rescue_supported" not in finals:
+        return "Final conclusion: spatial inhibition supported"
+    if "rescue_supported" in finals and "inhibition_supported" in finals:
+        return "Final conclusion: inconclusive candidate, not claimed"
+    if "inconclusive_candidate" in finals:
+        return "Final conclusion: inconclusive candidate, not claimed"
+    return "Final conclusion: no measurable spatial-rescue effect in tested regimes"
+
+
+def plot_threshold_delta(group_summaries: list[dict[str, object]], path: Path) -> None:
+    if not group_summaries:
         return
-    labels = [str(row["run_id"]) for row in ok_rows]
-    deltas = [float(row["delta_threshold"]) for row in ok_rows]
-    colors = ["#2ca02c" if value > float(row["threshold_tolerance"]) else "#d62728" if value < -float(row["threshold_tolerance"]) else "#7f7f7f" for value, row in zip(deltas, ok_rows)]
-    fig, ax = plt.subplots(figsize=(10.5, 4.2))
-    ax.bar(np.arange(len(deltas)), deltas, color=colors)
-    ax.axhline(0.0, color="0.2", lw=1.0)
-    ax.set_xticks(np.arange(len(labels)))
-    ax.set_xticklabels(labels, rotation=45, ha="right")
-    ax.set_ylabel("Delta m_c = m_c_PDE - m_c_ODE")
-    ax.set_title("Roy-style 2D predator-mortality threshold comparison")
+    labels = [str(row["group_id"]) for row in group_summaries]
+    deltas = np.array([float(row["stage_c_delta_mean"]) for row in group_summaries], dtype=float)
+    low = np.array([float(row["stage_c_interval_low"]) for row in group_summaries], dtype=float)
+    high = np.array([float(row["stage_c_interval_high"]) for row in group_summaries], dtype=float)
+    yerr = np.vstack([np.maximum(deltas - low, 0.0), np.maximum(high - deltas, 0.0)])
+    colors_by_result = {
+        "rescue_supported": "#2ca02c",
+        "inhibition_supported": "#d62728",
+        "no_measurable_effect": "#7f7f7f",
+        "inconclusive_candidate": "#ff7f0e",
+        "invalid": "#9467bd",
+    }
+    colors = [colors_by_result.get(str(row["final_group_conclusion"]), "#7f7f7f") for row in group_summaries]
+    fig, ax = plt.subplots(figsize=(11.0, 4.8))
+    x = np.arange(len(group_summaries))
+    ax.bar(x, deltas, yerr=yerr, capsize=4, color=colors)
+    ax.axhline(0.0, color="0.15", lw=1.0)
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, rotation=35, ha="right", fontsize=7)
+    ax.set_ylabel("Stage C mean Delta m_c")
+    ax.set_title("Validated Roy-style 2D threshold comparison")
     ax.grid(axis="y", alpha=0.25)
     fig.tight_layout()
     fig.savefig(path, dpi=180)
     plt.close(fig)
 
 
-def plot_longtime(long_rows: list[dict[str, object]], path: Path) -> None:
-    subset = [row for row in long_rows if row["status"] == "ok"]
-    if not subset:
-        return
-    fig, ax = plt.subplots(figsize=(7.0, 4.2))
-    for stress in sorted({float(row["stress"]) for row in subset}):
-        rows = sorted([row for row in subset if np.isclose(float(row["stress"]), stress)], key=lambda item: float(item["T"]))
-        ax.plot(
-            [float(row["T"]) for row in rows],
-            [float(row["final_quarter_mean_pattern_strength"]) for row in rows],
-            marker="o",
-            label=f"s={stress:g}",
-        )
-    ax.axhline(PATTERN_TOL, color="0.35", ls="--", lw=1)
-    ax.set_xlabel("final time T")
-    ax.set_ylabel("final-quarter mean pattern strength")
-    ax.set_title("Exploratory pattern persistence")
-    ax.grid(alpha=0.25)
-    ax.legend()
-    fig.tight_layout()
-    fig.savefig(path, dpi=180)
-    plt.close(fig)
+def format_float(value: object, digits: int = 6) -> str:
+    number = finite_float(value)
+    if number is None:
+        return "nan"
+    return f"{number:.{digits}g}"
 
 
-def plot_phase(rows: list[dict[str, object]], axis: str, path: Path) -> None:
-    subset = [row for row in rows if row["axis"] == axis and row["status"] == "ok"]
-    if not subset:
-        return
-    stresses = sorted({float(row["stress"]) for row in subset})
-    if axis == "mu":
-        x_values = sorted({float(row["mu"]) for row in subset})
-        xlabel = "mu"
-        title = "Tail persistence over stress and mu"
-    else:
-        x_values = sorted({float(row["D_w_over_D_u"]) for row in subset})
-        xlabel = "D_w / D_u"
-        title = "Tail persistence over stress and diffusion ratio"
-    matrix = np.full((len(stresses), len(x_values)), CLASS_TO_INT["failed"], dtype=float)
-    for row in subset:
-        i = stresses.index(float(row["stress"]))
-        x_key = float(row["mu"]) if axis == "mu" else float(row["D_w_over_D_u"])
-        j = x_values.index(x_key)
-        matrix[i, j] = CLASS_TO_INT[str(row["classification"])]
-    fig, ax = plt.subplots(figsize=(8.2, 4.8))
-    ax.imshow(matrix, origin="lower", aspect="auto", vmin=0, vmax=4, cmap=ListedColormap(CLASS_COLORS))
-    ax.set_xticks(np.arange(len(x_values)))
-    ax.set_xticklabels([f"{value:g}" for value in x_values], rotation=30, ha="right")
-    ax.set_yticks(np.arange(len(stresses)))
-    ax.set_yticklabels([f"{value:g}" for value in stresses])
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel("stress s")
-    ax.set_title(title)
-    handles = [Patch(facecolor=CLASS_COLORS[value], label=label) for label, value in CLASS_TO_INT.items()]
-    ax.legend(handles=handles, loc="center left", bbox_to_anchor=(1.02, 0.5), frameon=False)
-    fig.tight_layout()
-    fig.savefig(path, dpi=180)
-    plt.close(fig)
-
-
-def summarize(
-    threshold_rows: list[dict[str, object]],
-    long_rows: list[dict[str, object]],
-    fine_rows: list[dict[str, object]],
-    path: Path,
-    figure_paths: dict[str, Path],
+def write_summary(
+    stage_a_rows: list[dict[str, object]],
+    stage_b_rows: list[dict[str, object]],
+    stage_c_rows: list[dict[str, object]],
+    stage_d_rows: list[dict[str, object]],
+    group_summaries: list[dict[str, object]],
 ) -> None:
-    ok_thresholds = [row for row in threshold_rows if row["status"] == "ok"]
-    stage_a = [row for row in ok_thresholds if row["stage"] == "A_quick_threshold"]
-    stage_b = [row for row in ok_thresholds if row["stage"] == "B_validation"]
-    baseline_rows = [
-        row
-        for row in ok_thresholds
-        if row["axis"] == "baseline" and np.isclose(float(row["mu"]), 0.85) and np.isclose(float(row["D_w_over_D_u"]), 100.0)
+    label = final_label(group_summaries)
+    valid_a = [row for row in stage_a_rows if row_is_valid_threshold(row)]
+    positive_a = [row for row in valid_a if truthy(row["candidate_spatial_rescue"])]
+    negative_a = [row for row in valid_a if truthy(row["candidate_spatial_inhibition"])]
+    finite_a = [row for row in valid_a if finite_float(row["delta_threshold"]) is not None]
+    largest_positive = max([float(row["delta_threshold"]) for row in positive_a], default=float("nan"))
+    largest_negative = min([float(row["delta_threshold"]) for row in negative_a], default=float("nan"))
+    closest = min(finite_a, key=lambda row: abs(float(row["delta_threshold"]))) if finite_a else None
+
+    if label == "Final conclusion: spatial rescue supported":
+        answer = "Spatial rescue is supported in the tested Roy-style 2D regimes because at least one Stage C group had strictly positive validation intervals and retained a positive Delta m_c in Stage D."
+    elif label == "Final conclusion: spatial inhibition supported":
+        answer = "Spatial inhibition is supported in the tested Roy-style 2D regimes because at least one Stage C group had strictly negative validation intervals and retained a negative Delta m_c in Stage D."
+    elif label == "Final conclusion: inconclusive candidate, not claimed":
+        answer = "A threshold-shift candidate appeared, but it did not survive the full validation/escalation rule; no rescue or inhibition claim is made."
+    else:
+        answer = "No measurable spatial-rescue effect is found in the tested Roy-style 2D regimes: Stage A candidates do not survive group-level validation as positive Delta m_c effects."
+
+    table_lines = [
+        "| group_id | mu | D_w/D_u | eta | Stage C seeds | mean Delta | Delta range | interval range | group conclusion | Stage D result | final conclusion |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---|---|---|",
     ]
-    baseline_stage_a = next((row for row in baseline_rows if row["stage"] == "A_quick_threshold"), None)
-    baseline_validation = [row for row in baseline_rows if row["stage"] == "B_validation"]
-    baseline_validation_row = baseline_validation[0] if baseline_validation else None
-    rescue = [row for row in ok_thresholds if truthy(row["candidate_spatial_rescue"])]
-    stage_a_rescue = [row for row in stage_a if truthy(row["candidate_spatial_rescue"])]
-    stage_b_rescue = [row for row in stage_b if truthy(row["candidate_spatial_rescue"])]
-    inhibition = [row for row in ok_thresholds if truthy(row["candidate_spatial_inhibition"])]
-    closest = None
-    if stage_a:
-        closest = min(stage_a, key=lambda row: abs(float(row["delta_threshold"])))
-
-    if stage_b_rescue:
-        conclusion = "spatial rescue is supported only for the validated positive-threshold rows listed below."
-    elif inhibition:
-        conclusion = "the tested regimes lean toward spatial inhibition where threshold differences exceed tolerance."
-    else:
-        conclusion = "no measurable spatial-rescue effect was found; threshold differences are within tolerance or negative."
-
-    def threshold_line(row: dict[str, object] | None) -> list[str]:
-        if row is None:
-            return ["- unavailable"]
-        return [
-            f"- `m_c^ODE = {float(row['ode_threshold']):.6g}`",
-            f"- `m_c^PDE = {float(row['pde_threshold']):.6g}`",
-            f"- `Delta m_c = {float(row['delta_threshold']):.6g}`",
-            f"- tolerance used for this row: `{float(row['threshold_tolerance']):.6g}`",
-            f"- row status: `{row['status']}`",
-        ]
-
-    validation_summary = []
-    for row in stage_b:
-        validation_summary.append(
-            f"- `{row['run_id']}`: axis `{row['axis']}`, seed `{row['seed']}`, "
-            f"T `{float(row['T']):g}`, grid `{int(row['n_x'])}x{int(row['n_y'])}`, "
-            f"Delta `{float(row['delta_threshold']):.6g}`, status `{row['status']}`"
-        )
-    if not validation_summary:
-        validation_summary = ["- no validation rows completed"]
-
-    if stage_a_rescue:
-        validation_intro = (
-            f"Stage A produced `{len(stage_a_rescue)}` positive `Delta m_c` candidate rows at the quick "
-            "`T=70`, `36x36` setting. Stage B therefore validated the baseline and the first positive "
-            "candidate regimes using longer `T=200`, `64x64` grids, and three perturbation seeds."
-        )
-    else:
-        validation_intro = (
-            "Stage A produced no positive `Delta m_c` candidates. Stage B therefore validated the baseline "
-            "and the closest-to-zero Stage A regime using longer `T=200`, `64x64` grids, and three perturbation seeds."
-        )
-
-    closest_lines = threshold_line(closest)
-    if closest is not None:
-        closest_lines.insert(
-            0,
-            f"- closest Stage A regime: `{closest['axis']}` with `{closest['varied_parameter']}={closest['varied_value']}`",
+    for row in group_summaries:
+        group_label = str(row["group_id"]).replace("|", "\\|")
+        table_lines.append(
+            "| "
+            + " | ".join(
+                [
+                    group_label,
+                    format_float(row["mu"], 4),
+                    format_float(row["D_w_over_D_u"], 4),
+                    format_float(row["eta"], 4),
+                    str(row["stage_c_seed_count"]),
+                    format_float(row["stage_c_delta_mean"]),
+                    f"[{format_float(row['stage_c_delta_min'])}, {format_float(row['stage_c_delta_max'])}]",
+                    f"[{format_float(row['stage_c_interval_low'])}, {format_float(row['stage_c_interval_high'])}]",
+                    str(row["stage_c_group_conclusion"]),
+                    f"{format_float(row['stage_d_delta'])} ({row['stage_d_status']})",
+                    str(row["final_group_conclusion"]),
+                ]
+            )
+            + " |"
         )
 
     lines = [
         "# Nonlinear PDE Results 07",
         "",
-        "This revision makes the predator-mortality threshold comparison the primary scientific output. Pattern morphology remains exploratory and is not used as the rescue criterion.",
+        f"**{label}.** {answer}",
         "",
-        "Persistence is classified from the final 25% of the predator-density time series. A trajectory is persistent when the tail mean is above `epsilon`, the tail minimum stays above `0.25 epsilon`, and the least-squares tail slope is not strongly negative:",
+        "## Core Criterion",
         "",
-        "`tail_slope >= -max(epsilon, 0.25 tail_mean) / tail_duration`.",
+        "The decisive quantity is `Delta m_c = m_c_PDE - m_c_ODE`, where `m_c_ODE` is the mortality-stress threshold for predator persistence in the well-mixed ODE and `m_c_PDE` is the corresponding threshold in the spatial PDE.",
         "",
-        "## Core Threshold Question",
+        "- `Delta m_c > 0`: spatial structure expands the predator-persistence / indirect-rescue range.",
+        "- `Delta m_c < 0`: spatial structure shrinks that range.",
+        "- values within the row tolerance are treated as no measurable threshold effect.",
         "",
-        "The decisive quantity is",
+        "## Persistence Rule",
         "",
-        "`Delta m_c = m_c_PDE - m_c_ODE`.",
+        "Persistence is evaluated on the final 25% of the predator-density trajectory. A trajectory is persistent only if all three conditions hold:",
         "",
-        "Positive values indicate that spatial structure expands the predator-persistence range under mortality stress; negative values indicate that spatial structure shrinks it; values within tolerance are treated as no measurable threshold effect.",
+        "- `tail_mean > epsilon`",
+        "- `tail_min > 0.25 * epsilon`",
+        "- `tail_slope >= -max(epsilon, 0.25 * tail_mean) / max(tail_duration, 1e-12)`",
         "",
-        "## Baseline Regime",
+        "PDE runs are also rejected as nonpersistent if negative state values, negative free space `z`, or nonfinite diagnostic time series are detected. ODE runs are rejected if integration fails or produces nonfinite output.",
         "",
-        "Baseline parameters use `mu=0.85` and `D_w/D_u=100`.",
+        "## Stage A Results",
         "",
-        "Quick Stage A estimate:",
+        f"- Stage A rows: `{len(valid_a)}`",
+        f"- positive candidates: `{len(positive_a)}`",
+        f"- negative candidates: `{len(negative_a)}`",
+        f"- largest positive Stage A `Delta m_c`: `{format_float(largest_positive)}`",
+        f"- largest negative Stage A `Delta m_c`: `{format_float(largest_negative)}`",
+        f"- closest-to-zero row: `{closest['group_id'] if closest else 'none'}` with `Delta m_c = {format_float(closest['delta_threshold'] if closest else np.nan)}`",
         "",
-        *threshold_line(baseline_stage_a),
+        "Stage A is candidate discovery only; it is not used as evidence for rescue or inhibition.",
         "",
-        "Validated `T=200`, `64x64` estimate from the first baseline seed:",
+        "## Stage B/C Validation",
         "",
-        *threshold_line(baseline_validation_row),
+        f"- Stage B precision-screen rows: `{len(stage_b_rows)}`",
+        f"- Stage C seed-validation rows: `{len(stage_c_rows)}`",
+        f"- Stage D grid-escalation rows: `{len(stage_d_rows)}`",
         "",
-        "## Stage A: Quick Threshold Finder",
+        *table_lines,
         "",
-        f"- completed threshold rows: `{len(stage_a)}`",
-        f"- candidate spatial-rescue rows: `{len(stage_a_rescue)}`",
-        f"- candidate spatial-inhibition rows: `{len([row for row in stage_a if truthy(row['candidate_spatial_inhibition'])])}`",
-        "- scanned axes: `mu`, `D_w/D_u`, and a small exploratory `eta` axis.",
-        "- Stage A is a candidate finder only; its positive rows are not interpreted as rescue without Stage B validation.",
+        "## Final Conclusion",
         "",
-        "## Closest Regime To A Rescue Candidate",
+        f"**{label}.** The final classification is based on the group summary intervals in `results/roy_2d_threshold_group_summary.csv`, not on pattern morphology or sparse stress classification counts.",
         "",
-        *closest_lines,
+        "## Secondary Diagnostics",
         "",
-        "## Stage B: Validation",
-        "",
-        validation_intro,
-        "",
-        f"- validated positive-threshold rows after Stage B: `{len(stage_b_rescue)}`",
-        "",
-        *validation_summary,
-        "",
-        "## Interpretation",
-        "",
-        conclusion,
-        "",
-        "Spatial rescue is not claimed unless a positive threshold difference survives validation. In this run, the conclusion is framed entirely around the sign and robustness of `Delta m_c`, not around the mere existence of spatial patterning.",
-        "",
-        "## Secondary Pattern Diagnostics",
-        "",
-        f"- representative long-time rows: `{len([row for row in long_rows if row['status'] == 'ok'])}`",
-        f"- representative fine-stress rows: `{len([row for row in fine_rows if row['status'] == 'ok'])}`",
-        "- dominant wavelength and Fourier power remain exploratory diagnostics only.",
+        "Pattern morphology, Fourier power, and dominant wavelength remain exploratory diagnostics. They are not part of the rescue criterion in this PR.",
         "",
         "Outputs:",
         "",
         f"- `{THRESHOLD_CSV.relative_to(ROOT)}`",
-        f"- `{LONGTIME_CSV.relative_to(ROOT)}`",
-        f"- `{FINE_CSV.relative_to(ROOT)}`",
-        f"- `{TIMESERIES_CSV.relative_to(ROOT)}`",
-        f"- `{figure_paths['threshold'].relative_to(ROOT)}`",
-        f"- `{figure_paths['longtime'].relative_to(ROOT)}`",
-        f"- `{figure_paths['mu'].relative_to(ROOT)}`",
-        f"- `{figure_paths['ratio'].relative_to(ROOT)}`",
+        f"- `{GROUP_SUMMARY_CSV.relative_to(ROOT)}`",
+        f"- `{THRESHOLD_FIG.relative_to(ROOT)}`",
     ]
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    SUMMARY_MD.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def representative_scans(threshold_rows: list[dict[str, object]]) -> tuple[list[dict[str, object]], list[dict[str, object]], list[dict[str, object]]]:
-    long_rows: list[dict[str, object]] = []
-    fine_rows: list[dict[str, object]] = []
-    timeseries_rows: list[dict[str, object]] = []
-    baseline = baseline_params(mu=0.85, D_w_ratio=100.0)
-    baseline_threshold = next(
-        (
-            row
-            for row in threshold_rows
-            if row["stage"] == "A_quick_threshold" and row["axis"] == "baseline" and row["status"] == "ok"
-        ),
-        None,
-    )
-    stress_near = 0.5
-    if baseline_threshold is not None and finite_float(baseline_threshold["ode_threshold"]) is not None:
-        stress_near = float(baseline_threshold["ode_threshold"])
-
-    run_counter = 0
-    for T in [35.0, 70.0, 120.0, 200.0]:
-        for stress in [0.0, stress_near]:
-            run_counter += 1
-            config = Roy2DConfig(
-                n_x=64,
-                n_y=64,
-                L_x=20.0,
-                L_y=20.0,
-                T=T,
-                dt=0.01,
-                record_every=100,
-                seed=20260630,
-                record_fourier=stress == stress_near,
-            )
-            row, series = run_point(
-                f"long_{run_counter:03d}",
-                "longtime",
-                "baseline_threshold",
-                baseline,
-                stress,
-                config,
-                record_timeseries=T in {70.0, 200.0},
-            )
-            long_rows.append(row)
-            timeseries_rows.extend(series)
-            print(f"representative long {row['run_id']}: T={T}, s={stress:.6g}, class={row['classification']}")
-
-    stress_grid = [0.45, 0.50, 0.525, 0.55, 0.575, 0.60]
-    fine_config = Roy2DConfig(n_x=36, n_y=36, L_x=20.0, L_y=20.0, T=70.0, dt=0.025, record_every=80, seed=20260631)
-    for stress in stress_grid:
-        run_counter += 1
-        row, _ = run_point(
-            f"fine_{run_counter:03d}",
-            "fine_threshold",
-            "baseline_threshold",
-            baseline,
-            stress,
-            fine_config,
-            False,
+def run_stage_a() -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    config = Roy2DConfig(n_x=36, n_y=36, L_x=20.0, L_y=20.0, T=70.0, dt=0.025, record_every=200, seed=20260620)
+    for idx, (axis, varied_parameter, varied_value, params) in enumerate(stage_a_regimes(), start=1):
+        gid = group_id_for(params)
+        row = threshold_row(
+            f"A_{idx:03d}",
+            "A_quick_threshold",
+            gid,
+            axis,
+            varied_parameter,
+            varied_value,
+            params,
+            config,
+            STAGE_A_FIXED_THRESHOLD_TOLERANCE,
+            seed_count=1,
+            max_iter_ode=13,
+            max_iter_pde=12,
+            validated=False,
+            s_low=0.0,
+            s_high=1.0,
         )
-        fine_rows.append(row)
-        print(f"representative fine {row['run_id']}: s={stress:.6g}, class={row['classification']}")
+        rows.append(row)
+        print(f"Stage A {row['run_id']}: {gid}, Delta={row['delta_threshold']}, status={row['status']}")
+    return rows
 
-    for mu in [0.72, 0.85, 0.95]:
-        for stress in [0.50, 0.55, 0.60]:
-            run_counter += 1
-            params = baseline_params(mu=mu, D_w_ratio=100.0)
-            row, _ = run_point(f"fine_{run_counter:03d}", "fine_threshold", "mu", params, stress, fine_config, False)
-            fine_rows.append(row)
-    for ratio in [70.0, 100.0, 250.0]:
-        for stress in [0.50, 0.55, 0.60]:
-            run_counter += 1
-            params = baseline_params(mu=0.85, D_w_ratio=ratio)
-            row, _ = run_point(f"fine_{run_counter:03d}", "fine_threshold", "diffusion_ratio", params, stress, fine_config, False)
-            fine_rows.append(row)
-    return long_rows, fine_rows, timeseries_rows
+
+def run_stage_b(stage_a_rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    config = Roy2DConfig(n_x=64, n_y=64, L_x=20.0, L_y=20.0, T=200.0, dt=0.01, record_every=500, seed=20260621)
+    for idx, source in enumerate(select_stage_b_rows(stage_a_rows), start=1):
+        params = params_from_row(source)
+        low, high = make_refined_stress_bracket(float(source["ode_threshold"]), float(source["pde_threshold"]), margin=0.04)
+        row = threshold_row(
+            f"B_{idx:03d}",
+            "B_precision_screen",
+            str(source["group_id"]),
+            str(source["axis"]),
+            str(source["varied_parameter"]),
+            float(source["varied_value"]),
+            params,
+            config,
+            VALIDATION_FIXED_THRESHOLD_TOLERANCE,
+            seed_count=1,
+            max_iter_ode=14,
+            max_iter_pde=12,
+            validated=True,
+            s_low=low,
+            s_high=high,
+        )
+        rows.append(row)
+        print(f"Stage B {row['run_id']}: {row['group_id']}, Delta={row['delta_threshold']}, status={row['status']}")
+    return rows
+
+
+def run_stage_c(stage_b_rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    base_config = Roy2DConfig(n_x=64, n_y=64, L_x=20.0, L_y=20.0, T=200.0, dt=0.01, record_every=500)
+    run_idx = 0
+    for source in select_stage_c_rows(stage_b_rows):
+        params = params_from_row(source)
+        low, high = make_refined_stress_bracket(float(source["ode_threshold"]), float(source["pde_threshold"]), margin=0.025)
+        for seed in [20260621, 20260622, 20260623]:
+            run_idx += 1
+            row = threshold_row(
+                f"C_{run_idx:03d}",
+                "C_seed_validation",
+                str(source["group_id"]),
+                str(source["axis"]),
+                str(source["varied_parameter"]),
+                float(source["varied_value"]),
+                params,
+                replace(base_config, seed=seed),
+                VALIDATION_FIXED_THRESHOLD_TOLERANCE,
+                seed_count=3,
+                max_iter_ode=14,
+                max_iter_pde=12,
+                validated=True,
+                s_low=low,
+                s_high=high,
+            )
+            rows.append(row)
+            print(f"Stage C {row['run_id']}: {row['group_id']}, seed={seed}, Delta={row['delta_threshold']}, status={row['status']}")
+    return rows
+
+
+def run_stage_d(rows: list[dict[str, object]], group_summaries: list[dict[str, object]]) -> list[dict[str, object]]:
+    stage_d_rows: list[dict[str, object]] = []
+    base_config = Roy2DConfig(n_x=96, n_y=96, L_x=20.0, L_y=20.0, T=250.0, dt=0.01, record_every=800, seed=20260624)
+    effect_groups = [
+        row
+        for row in group_summaries
+        if row["stage_c_group_conclusion"] in {"rescue_supported", "inhibition_supported"}
+    ]
+    for idx, summary in enumerate(effect_groups, start=1):
+        group_rows = [row for row in rows if row["stage"] == "C_seed_validation" and row["group_id"] == summary["group_id"] and row["status"] == "ok"]
+        if not group_rows:
+            continue
+        representative = group_rows[0]
+        params = params_from_row(representative)
+        ode_mean = float(np.mean([float(row["ode_threshold"]) for row in group_rows]))
+        pde_mean = float(np.mean([float(row["pde_threshold"]) for row in group_rows]))
+        low, high = make_refined_stress_bracket(ode_mean, pde_mean, margin=0.025)
+        row = threshold_row(
+            f"D_{idx:03d}",
+            "D_grid_escalation",
+            str(summary["group_id"]),
+            str(representative["axis"]),
+            str(representative["varied_parameter"]),
+            float(representative["varied_value"]),
+            params,
+            base_config,
+            STAGE_D_FIXED_THRESHOLD_TOLERANCE,
+            seed_count=1,
+            max_iter_ode=14,
+            max_iter_pde=11,
+            validated=True,
+            s_low=low,
+            s_high=high,
+        )
+        stage_d_rows.append(row)
+        print(f"Stage D {row['run_id']}: {row['group_id']}, Delta={row['delta_threshold']}, status={row['status']}")
+    return stage_d_rows
 
 
 def main() -> None:
     RESULTS_DIR.mkdir(exist_ok=True)
     FIG_DIR.mkdir(exist_ok=True)
 
-    threshold_rows: list[dict[str, object]] = []
-    stage_a_config = Roy2DConfig(n_x=36, n_y=36, L_x=20.0, L_y=20.0, T=70.0, dt=0.025, record_every=80, seed=20260620)
-    for idx, (axis, varied_parameter, varied_value, params) in enumerate(stage_a_regimes(), start=1):
-        row = threshold_row(
-            f"A_{idx:03d}",
-            "A_quick_threshold",
-            axis,
-            varied_parameter,
-            varied_value,
-            params,
-            stage_a_config,
-            seed_count=1,
-            max_iter_ode=12,
-            max_iter_pde=10,
-            validated=False,
-        )
-        threshold_rows.append(row)
-        print(
-            f"Stage A {row['run_id']}: axis={axis}, Delta={row['delta_threshold']}, "
-            f"status={row['status']}"
-        )
+    stage_a_rows = run_stage_a()
+    stage_b_rows = run_stage_b(stage_a_rows)
+    stage_c_rows = run_stage_c(stage_b_rows)
+    rows = stage_a_rows + stage_b_rows + stage_c_rows
+    preliminary_group_summaries = build_group_summaries(rows)
+    stage_d_rows = run_stage_d(rows, preliminary_group_summaries)
+    rows.extend(stage_d_rows)
+    group_summaries = build_group_summaries(rows)
 
-    validation_regimes = stage_b_regimes(threshold_rows)
-    validation_config = Roy2DConfig(n_x=64, n_y=64, L_x=20.0, L_y=20.0, T=200.0, dt=0.01, record_every=200)
-    validation_counter = 0
-    for axis, varied_parameter, varied_value, params in validation_regimes:
-        for seed in [20260621, 20260622, 20260623]:
-            validation_counter += 1
-            row = threshold_row(
-                f"B_{validation_counter:03d}",
-                "B_validation",
-                axis,
-                varied_parameter,
-                varied_value,
-                params,
-                replace(validation_config, seed=seed),
-                seed_count=3,
-                max_iter_ode=12,
-                max_iter_pde=8,
-                validated=True,
-            )
-            threshold_rows.append(row)
-            print(
-                f"Stage B {row['run_id']}: axis={axis}, seed={seed}, "
-                f"Delta={row['delta_threshold']}, status={row['status']}"
-            )
-
-    long_rows, fine_rows, timeseries_rows = representative_scans(threshold_rows)
-
-    write_csv(threshold_rows, THRESHOLD_CSV, THRESHOLD_FIELDNAMES)
-    write_csv(long_rows, LONGTIME_CSV, SCAN_FIELDNAMES)
-    write_csv(fine_rows, FINE_CSV, SCAN_FIELDNAMES)
-    write_csv(timeseries_rows, TIMESERIES_CSV, TIMESERIES_FIELDNAMES)
-
-    figure_paths = {
-        "threshold": FIG_DIR / "07_threshold_delta.png",
-        "longtime": FIG_DIR / "07_longtime_pattern_strength.png",
-        "mu": FIG_DIR / "07_fine_phase_stress_mu.png",
-        "ratio": FIG_DIR / "07_fine_phase_stress_diffusion_ratio.png",
-    }
-    plot_threshold_delta(threshold_rows, figure_paths["threshold"])
-    plot_longtime(long_rows, figure_paths["longtime"])
-    plot_phase(fine_rows, "mu", figure_paths["mu"])
-    plot_phase(fine_rows, "diffusion_ratio", figure_paths["ratio"])
-    summarize(threshold_rows, long_rows, fine_rows, SUMMARY_MD, figure_paths)
+    write_csv(rows, THRESHOLD_CSV, THRESHOLD_FIELDNAMES)
+    write_csv(group_summaries, GROUP_SUMMARY_CSV, GROUP_FIELDNAMES)
+    plot_threshold_delta(group_summaries, THRESHOLD_FIG)
+    write_summary(stage_a_rows, stage_b_rows, stage_c_rows, stage_d_rows, group_summaries)
     print(SUMMARY_MD.read_text(encoding="utf-8"))
 
 
