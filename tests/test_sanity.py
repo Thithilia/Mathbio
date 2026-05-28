@@ -8,6 +8,7 @@ from src.roy_style_model import (
     reaction_part as roy_reaction_part,
     require_positive_equilibrium as roy_require_positive_equilibrium,
 )
+from src.roy_style_2d import Roy2DConfig, laplacian_neumann_2d, simulate_pde_2d
 from src.turing_rescue_holling2 import HollingIIParams, continuous_turing_scan_holling2, solve_coexistence_equilibria_holling2
 from src.turing_rescue_model import (
     RescueParams,
@@ -143,3 +144,21 @@ def test_roy_style_table_parameter_set_is_turing_unstable():
     assert scan.ode_stable
     assert scan.max_spatial_growth > 0.0
     assert scan.turing_unstable
+
+
+def test_roy_2d_neumann_laplacian_constant_is_zero():
+    values = np.full((8, 9), 3.2)
+    lap = laplacian_neumann_2d(values, dx=0.5, dy=0.4)
+
+    assert np.allclose(lap, 0.0)
+
+
+def test_roy_2d_homogeneous_initial_state_stays_homogeneous_short_run():
+    params = RoyParams(mu=0.85)
+    eq = roy_require_positive_equilibrium(params)
+    config = Roy2DConfig(n_x=12, n_y=10, L_x=3.0, L_y=2.5, T=0.1, dt=0.005, perturbation_amplitude=0.0)
+    result = simulate_pde_2d(params, config, equilibrium=eq)
+
+    assert result.diagnostics.var_u < 1.0e-12
+    assert result.diagnostics.var_v < 1.0e-12
+    assert result.diagnostics.var_w < 1.0e-12
