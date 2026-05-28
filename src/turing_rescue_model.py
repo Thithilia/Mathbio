@@ -60,6 +60,20 @@ class TuringScanResult:
     dominant_growth: float
 
 
+@dataclass(frozen=True)
+class ContinuousTuringScanResult:
+    ks: np.ndarray
+    eigenvalues: np.ndarray
+    max_real_by_k: np.ndarray
+    maximum_spatial_growth: float
+    k_at_maximum_growth: float
+    unstable_windows: list[tuple[float, float]]
+    ode_eigenvalues: np.ndarray
+    ode_stable: bool
+    has_unstable_spatial_mode: bool
+    turing_unstable: bool
+
+
 def attack_weight(q: float | np.ndarray, params: RescueParams) -> float | np.ndarray:
     """Return a_D + (a_U-a_D)q, the mean attack rate at prey fraction q."""
     return params.a_D + (params.a_U - params.a_D) * q
@@ -297,6 +311,69 @@ def turing_scan(
     )
 
 
+def _unstable_windows_from_grid(
+    ks: np.ndarray,
+    max_real: np.ndarray,
+    tol: float,
+) -> list[tuple[float, float]]:
+    unstable = max_real > tol
+    windows: list[tuple[float, float]] = []
+    start_idx: int | None = None
+    for idx, is_unstable in enumerate(unstable):
+        if is_unstable and start_idx is None:
+            start_idx = idx
+        elif not is_unstable and start_idx is not None:
+            windows.append((float(ks[start_idx]), float(ks[idx - 1])))
+            start_idx = None
+    if start_idx is not None:
+        windows.append((float(ks[start_idx]), float(ks[-1])))
+    return windows
+
+
+def continuous_turing_scan(
+    params: RescueParams,
+    equilibrium: CoexistenceEquilibrium,
+    k_min: float,
+    k_max: float,
+    n_k: int,
+    tol: float = 1.0e-9,
+) -> ContinuousTuringScanResult:
+    """Scan a continuous grid of wavenumbers for diffusion-driven instability."""
+    if k_min < 0.0:
+        raise ValueError("k_min must be non-negative.")
+    if k_max <= k_min:
+        raise ValueError("k_max must be greater than k_min.")
+    if n_k < 2:
+        raise ValueError("n_k must be at least 2.")
+
+    J = jacobian_reaction(equilibrium.U, equilibrium.D, equilibrium.P, params)
+    ode_stable, ode_eigs = ode_local_stability(J, tol=tol)
+    diffusion_diag = np.diag([params.delta_U, params.delta_D, params.delta_P])
+
+    ks = np.linspace(k_min, k_max, n_k)
+    eigvals = np.empty((n_k, 3), dtype=complex)
+    max_real = np.empty(n_k, dtype=float)
+    for idx, k in enumerate(ks):
+        shifted = J - (k * k) * diffusion_diag
+        eigvals[idx] = np.linalg.eigvals(shifted)
+        max_real[idx] = np.max(eigvals[idx].real)
+
+    dominant_idx = int(np.argmax(max_real))
+    has_unstable_spatial_mode = bool(np.any(max_real > tol))
+    return ContinuousTuringScanResult(
+        ks=ks,
+        eigenvalues=eigvals,
+        max_real_by_k=max_real,
+        maximum_spatial_growth=float(max_real[dominant_idx]),
+        k_at_maximum_growth=float(ks[dominant_idx]),
+        unstable_windows=_unstable_windows_from_grid(ks, max_real, tol),
+        ode_eigenvalues=ode_eigs,
+        ode_stable=ode_stable,
+        has_unstable_spatial_mode=has_unstable_spatial_mode,
+        turing_unstable=bool(ode_stable and has_unstable_spatial_mode),
+    )
+
+
 def require_single_equilibrium(params: RescueParams, m: float | None = None) -> CoexistenceEquilibrium:
     """Return the first positive coexistence equilibrium or raise a useful error."""
     equilibria = solve_coexistence_equilibria(params, m=m)
@@ -304,4 +381,3 @@ def require_single_equilibrium(params: RescueParams, m: float | None = None) -> 
         current_m = params.m if m is None else m
         raise ValueError(f"No positive coexistence equilibrium found for m={current_m:.6g}.")
     return equilibria[0]
-

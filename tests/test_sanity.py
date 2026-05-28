@@ -1,8 +1,10 @@
 import numpy as np
 
 from src.simulate_pde_1d import compute_diagnostics, grid_1d, pack_state, simulate_ode, simulate_pde, unpack_state
+from src.turing_rescue_holling2 import HollingIIParams, continuous_turing_scan_holling2, solve_coexistence_equilibria_holling2
 from src.turing_rescue_model import (
     RescueParams,
+    continuous_turing_scan,
     prey_only_equilibrium,
     prey_only_invasion_threshold,
     require_single_equilibrium,
@@ -75,3 +77,35 @@ def test_turing_flag_requires_ode_stability_and_spatial_instability():
     scan = turing_scan(params, eq, n_max=20)
 
     assert scan.turing_unstable == (scan.ode_stable and scan.has_unstable_spatial_mode)
+
+
+def test_continuous_scan_matches_discrete_scan_on_same_k_grid():
+    params = RescueParams()
+    eq = require_single_equilibrium(params)
+    n_max = 20
+    discrete = turing_scan(params, eq, n_max=n_max)
+    continuous = continuous_turing_scan(
+        params,
+        eq,
+        k_min=np.pi / params.L,
+        k_max=n_max * np.pi / params.L,
+        n_k=n_max,
+    )
+
+    assert continuous.ode_stable == discrete.ode_stable
+    assert np.allclose(continuous.ks, discrete.ks)
+    assert np.allclose(continuous.max_real_by_k, discrete.max_real_by_mode)
+    assert np.isclose(continuous.maximum_spatial_growth, discrete.dominant_growth)
+
+
+def test_holling2_equilibrium_and_continuous_scan_are_finite():
+    params = HollingIIParams(m=0.10, h=0.50)
+    equilibria = solve_coexistence_equilibria_holling2(params)
+
+    assert equilibria
+    assert equilibria[0].residual < 1.0e-10
+
+    scan = continuous_turing_scan_holling2(params, equilibria[0], k_min=1.0e-4, k_max=2.0, n_k=20)
+
+    assert np.isfinite(scan.maximum_spatial_growth)
+    assert np.isfinite(scan.k_at_maximum_growth)
