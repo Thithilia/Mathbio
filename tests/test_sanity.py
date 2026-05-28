@@ -1,6 +1,13 @@
 import numpy as np
 
 from src.simulate_pde_1d import compute_diagnostics, grid_1d, pack_state, simulate_ode, simulate_pde, unpack_state
+from src.roy_style_model import (
+    RoyParams,
+    continuous_turing_scan as roy_continuous_turing_scan,
+    reaction_jacobian as roy_reaction_jacobian,
+    reaction_part as roy_reaction_part,
+    require_positive_equilibrium as roy_require_positive_equilibrium,
+)
 from src.turing_rescue_holling2 import HollingIIParams, continuous_turing_scan_holling2, solve_coexistence_equilibria_holling2
 from src.turing_rescue_model import (
     RescueParams,
@@ -109,3 +116,30 @@ def test_holling2_equilibrium_and_continuous_scan_are_finite():
 
     assert np.isfinite(scan.maximum_spatial_growth)
     assert np.isfinite(scan.k_at_maximum_growth)
+
+
+def test_roy_style_jacobian_matches_finite_difference():
+    params = RoyParams(mu=0.8)
+    eq = roy_require_positive_equilibrium(params)
+    y = np.array([eq.u, eq.v, eq.w], dtype=float)
+    analytic = roy_reaction_jacobian(eq.u, eq.v, eq.w, params)
+    numerical = np.empty_like(analytic)
+    step = 1.0e-6
+    for idx in range(3):
+        perturbation = np.zeros(3)
+        perturbation[idx] = step
+        plus = roy_reaction_part(*(y + perturbation), params)
+        minus = roy_reaction_part(*(y - perturbation), params)
+        numerical[:, idx] = ((plus - minus) / (2.0 * step)).ravel()
+
+    assert np.allclose(analytic, numerical, atol=1.0e-6, rtol=1.0e-5)
+
+
+def test_roy_style_table_parameter_set_is_turing_unstable():
+    params = RoyParams(mu=0.8)
+    eq = roy_require_positive_equilibrium(params)
+    scan = roy_continuous_turing_scan(params, eq, k_min=1.0e-4, k_max=8.0, n_k=240)
+
+    assert scan.ode_stable
+    assert scan.max_spatial_growth > 0.0
+    assert scan.turing_unstable
