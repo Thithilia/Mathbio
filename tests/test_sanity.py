@@ -1009,3 +1009,100 @@ def test_step19_basin_label_mapping():
     assert step19.basin_label_from_classification("persistent_steady") == "persistent_basin"
     assert step19.basin_label_from_classification("extinct_steady") == "extinct_basin"
     assert step19.basin_label_from_classification("declining_transient") == "transient_basin"
+
+
+def load_step20_module():
+    path = Path(__file__).resolve().parents[1] / "experiments" / "20_homogeneous_vs_spatial_mechanism.py"
+    spec = importlib.util.spec_from_file_location("step20_homogeneous_vs_spatial", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_step20_comparison_metrics_are_zero_for_identical_series():
+    step20 = load_step20_module()
+    values = np.array([0.0, 1.0, 2.0, 3.0])
+
+    metrics = step20.comparison_metrics(values, values.copy())
+
+    assert metrics["rmse"] == 0.0
+    assert metrics["max_abs_difference"] == 0.0
+    assert metrics["final_abs_difference"] == 0.0
+
+
+def test_step20_basin_agreement_summary_fraction_on_synthetic_rows():
+    step20 = load_step20_module()
+    rows = [
+        {"stress": 0.1, "ode_basin_label": "persistent_basin", "pde_basin_label": "persistent_basin", "labels_agree": True},
+        {"stress": 0.1, "ode_basin_label": "extinct_basin", "pde_basin_label": "persistent_basin", "labels_agree": False},
+        {"stress": 0.2, "ode_basin_label": "transient_basin", "pde_basin_label": "transient_basin", "labels_agree": True},
+    ]
+
+    summary = step20.basin_agreement_summary(rows)
+
+    assert summary["total"] == 3
+    assert summary["agreement_count"] == 2
+    assert np.isclose(summary["agreement_fraction"], 2.0 / 3.0)
+    assert np.isclose(summary["by_stress"][0.1]["agreement_fraction"], 0.5)
+
+
+def test_step20_decision_rule_returns_reaction_dominated_for_high_agreement_low_cv():
+    step20 = load_step20_module()
+    evidence = {
+        "representative_ode_pde_agreement_count": 3,
+        "representative_ode_pde_total": 3,
+        "basin_grid_agreement_fraction": 0.95,
+        "max_final_cv_n_steady": 1.0e-7,
+        "max_final_cv_w_steady": 1.0e-7,
+        "max_final_cv_q_steady": 1.0e-7,
+        "max_final_cv_w": 1.0e-6,
+        "max_final_cv_q": 1.0e-6,
+        "perturbation_steady_outcome_change_count": 0,
+        "perturbation_outcome_change_count": 0,
+        "representative_steady_disagreement_count": 0,
+        "physical_issue_count": 0,
+    }
+
+    label, _interpretation = step20.decide_final_label(evidence)
+
+    assert label == "reaction_dominated_homogeneous_multistability"
+
+
+def test_step20_decision_rule_returns_spatial_for_low_agreement_high_cv():
+    step20 = load_step20_module()
+    evidence = {
+        "representative_ode_pde_agreement_count": 1,
+        "representative_ode_pde_total": 3,
+        "basin_grid_agreement_fraction": 0.4,
+        "max_final_cv_n_steady": 5.0e-3,
+        "max_final_cv_w_steady": 2.0e-2,
+        "max_final_cv_q_steady": 2.0e-2,
+        "max_final_cv_w": 2.0e-2,
+        "max_final_cv_q": 2.0e-2,
+        "perturbation_steady_outcome_change_count": 1,
+        "perturbation_outcome_change_count": 1,
+        "representative_steady_disagreement_count": 1,
+        "physical_issue_count": 0,
+    }
+
+    label, _interpretation = step20.decide_final_label(evidence)
+
+    assert label == "spatially_mediated_bistability"
+
+
+def test_step20_perturbation_grouping_detects_outcome_changes():
+    step20 = load_step20_module()
+    rows = [
+        {"case_label": "persistent_case", "classification": "persistent_steady", "basin_label": "persistent_basin"},
+        {"case_label": "persistent_case", "classification": "persistent_steady", "basin_label": "persistent_basin"},
+        {"case_label": "extinct_case", "classification": "extinct_steady", "basin_label": "extinct_basin"},
+        {"case_label": "extinct_case", "classification": "recovery_transient", "basin_label": "transient_basin"},
+    ]
+
+    summary = step20.detect_perturbation_outcome_changes(rows)
+
+    assert not summary["persistent_case"]["classification_changed"]
+    assert summary["extinct_case"]["classification_changed"]
+    assert summary["extinct_case"]["basin_label_changed"]
