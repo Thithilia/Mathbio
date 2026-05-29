@@ -1,0 +1,13 @@
+quantity,value,condition,satisfied,interpretation
+Delta r,-0.35,r_v-r_u < 0 for defended-prey growth cost,True,defense lowers prey growth
+Delta a,-0.65,a_v-a_u < 0 for defended-prey palatability reduction,True,defense lowers attack or palatability
+Delta b,-0.06,b_v-b_u != 0 so q can tune conversion,True,conversion trade-off is non-flat
+c,0.5384615384615384,c=(Delta r)/(Delta a)>0,True,selection-gradient condition can set w*=c z* with positive ratio
+r_u - c a_u,0.46153846153846156,r_u-c a_u>0,True,prey equation yields positive z* denominator
+z_star,1.1916666666666667,z*>0,True,positive free-space coordinate
+w_star,0.6416666666666666,w*>0,True,persistent predator equilibrium
+n_star,4.833333333333334,n*>0,True,positive prey equilibrium
+s_at_q_equals_1,-0.11313888888888887,stress endpoint at q*=1,True,fully defended endpoint of interior branch
+s_at_q_equals_0,0.23244444444444454,stress endpoint at q*=0,True,undefended endpoint of interior branch
+stress_interval_length,0.3455833333333334,"max(s_q0,s_q1)-min(s_q0,s_q1)>0",True,nonzero stress interval with 0<q*(s)<1
+target_stresses_interior,6,all target stresses have 0<q*(s)<1 and feasible geometry,True,current target stresses lie on the interior compensation branch

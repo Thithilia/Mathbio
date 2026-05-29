@@ -1345,3 +1345,85 @@ def test_step22_final_label_rule_synthetic_inputs():
     assert supported == "ode_compensation_branch_supported"
     assert sensitive == "ode_compensation_branch_parameter_sensitive"
     assert unresolved == "ode_compensation_branch_unresolved"
+
+
+def load_step23_module():
+    path = Path(__file__).resolve().parents[1] / "experiments" / "23_roy_ode_compensation_conditions.py"
+    spec = importlib.util.spec_from_file_location("step23_ode_compensation_conditions", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_step23_current_geometry_matches_known_values():
+    step23 = load_step23_module()
+    params = RoyEvoParams(b_u=0.08, b_v=0.02)
+
+    geometry = step23.analytic_compensation_geometry(params)
+
+    assert geometry["valid_geometry"]
+    assert np.isclose(geometry["z_star"], 1.1916666666666667)
+    assert np.isclose(geometry["w_star"], 0.6416666666666666)
+    assert np.isclose(geometry["n_star"], 4.833333333333334)
+
+
+def test_step23_current_q_star_stress_zero_matches_known_value():
+    step23 = load_step23_module()
+    params = RoyEvoParams(b_u=0.08, b_v=0.02)
+
+    q_star = step23.analytic_q_star(params, 0.0)
+
+    assert np.isclose(q_star, 0.672614741580259)
+
+
+def test_step23_current_q_star_decreases_with_stress():
+    step23 = load_step23_module()
+    params = RoyEvoParams(b_u=0.08, b_v=0.02)
+
+    q_low = step23.analytic_q_star(params, 0.0)
+    q_high = step23.analytic_q_star(params, 0.175)
+
+    assert q_high < q_low
+
+
+def test_step23_current_stress_interval_contains_target_stresses():
+    step23 = load_step23_module()
+    params = RoyEvoParams(b_u=0.08, b_v=0.02)
+
+    interval = step23.stress_interval_for_q_in_unit_interval(params)
+
+    assert interval["valid_interval"]
+    assert interval["interior_stress_interval_low"] < 0.1584375 < interval["interior_stress_interval_high"]
+    assert interval["interior_stress_interval_low"] < 0.16486816 < interval["interior_stress_interval_high"]
+
+
+def test_step23_analytic_jacobian_shape_and_finite_entries():
+    step23 = load_step23_module()
+    params = RoyEvoParams(b_u=0.08, b_v=0.02)
+    conditions = step23.compensation_existence_conditions(params, 0.1584375)
+
+    jacobian = step23.ode_rhs_jacobian(
+        conditions["n_star"],
+        conditions["w_star"],
+        conditions["q_star"],
+        0.1584375,
+        params,
+    )
+
+    assert jacobian.shape == (3, 3)
+    assert np.all(np.isfinite(jacobian))
+
+
+def test_step23_final_label_supported_for_satisfied_conditions():
+    step23 = load_step23_module()
+
+    label = step23.decide_final_label(
+        conditions_all_satisfied=True,
+        analytic_matches_current=True,
+        stable_all_targets=True,
+        valid_stable_grid_count=1,
+    )
+
+    assert label == "compensation_conditions_derived_and_supported"

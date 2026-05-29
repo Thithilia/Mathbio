@@ -1,0 +1,7 @@
+quantity,formula,current_value,interpretation
+q_star(s),((m+s+mu*w*)/(n* z*) - b_u)/(b_v-b_u),linear in stress,defense frequency required to balance predator growth
+s(q),n* z* [b_u + (b_v-b_u) q] - m - mu*w*,affine inverse of q_star(s),stress value corresponding to an equilibrium defense frequency
+s_q0,n* z* b_u - m - mu*w*,0.23244444444444454,stress endpoint where q*=0
+s_q1,n* z* b_v - m - mu*w*,-0.11313888888888887,stress endpoint where q*=1
+interior_interval,"(min(s_q0,s_q1), max(s_q0,s_q1))","(-0.11313888888888887, 0.23244444444444454)",open stress interval where 0<q*(s)<1
+fixed_geometry,"z*=xi/(r_u-c a_u), w*=c z*, n*=kappa^{-1}-z*-w*","z*=1.1916666666666667, w*=0.6416666666666666, n*=4.833333333333334",geometry is stress-independent along the interior branch

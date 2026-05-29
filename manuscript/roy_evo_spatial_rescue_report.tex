@@ -250,6 +250,23 @@ q^*(s)=\frac{b_{\mathrm{req}}(s)-b_u}{b_v-b_u}.
 \]
 For the current parameterization, this analytic branch matches the numerical stable persistent equilibria to roundoff precision, with maximum \(|\Delta q^*|<10^{-14}\). Along the branch, \(q^*\) decreases as stress increases while \(n^*\) and \(w^*\) remain approximately fixed. A local structured trade-off check found the compensation branch in 72 of 81 nearby parameter sets, so the mechanism is supported locally but should not be treated as globally general.
 
+\paragraph{Interior compensation branch.}
+For the linear trade-off ODE, an interior persistent equilibrium with \(n^*>0\), \(w^*>0\), and \(0<q^*<1\) must satisfy
+\[
+w^*=c z^*,\qquad c=\frac{r_v-r_u}{a_v-a_u}.
+\]
+When \(c>0\), \(r_u-ca_u>0\), and the resulting
+\[
+z^*=\frac{\xi}{r_u-ca_u},\qquad
+w^*=cz^*,\qquad
+n^*=\kappa^{-1}-z^*-w^*
+\]
+are positive, the predator equation determines
+\[
+q^*(s)=\frac{(m+s+\mu w^*)/(n^*z^*)-b_u}{b_v-b_u}.
+\]
+The compensation branch is interior for stresses satisfying \(0<q^*(s)<1\). For the current parameterization, this analytic branch matches the numerical stable persistent equilibria up to machine precision. The analytic Jacobian is locally stable at the tested target stresses, and the local condition grid identifies a nontrivial stable region. These are conditional results for the tested linear trade-offs, not a global theorem for all defense trade-off forms.
+
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.82\linewidth]{figures/roy_evo_spatial/report/fig33_compensation_branch_current.png}
@@ -269,6 +286,27 @@ For the current parameterization, this analytic branch matches the numerical sta
   \includegraphics[width=0.88\linewidth]{figures/roy_evo_spatial/report/fig37_compensation_mechanism_diagram.png}
   \caption{Conceptual homogeneous compensation mechanism: increasing stress lowers predator pressure, shifts selection on \(q\), lowers \(q^*\), increases \(b(q^*)\), and restores predator growth balance along the persistent branch.}
   \label{fig:compensation-mechanism}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.88\linewidth]{figures/roy_evo_spatial/report/fig39_compensation_stability_along_branch.png}
+  \caption{Local stability diagnostics along the current analytic compensation branch. The maximum real part of the analytic Jacobian eigenvalues remains negative at the tested stresses.}
+  \label{fig:compensation-stability-branch}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.88\linewidth]{figures/roy_evo_spatial/report/fig40_compensation_stress_interval.png}
+  \caption{Interior stress interval for the current compensation branch. The branch remains feasible while \(0<q^*(s)<1\); the target stresses used here lie inside this interval.}
+  \label{fig:compensation-stress-interval}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\linewidth]{figures/roy_evo_spatial/report/fig41_compensation_conditions_schematic.png}
+  \caption{Schematic of the compensation-branch conditions. The selection-gradient condition fixes \(w^*/z^*\), the prey equation fixes \(z^*,w^*,n^*\), and the predator equation determines the stress-dependent \(q^*(s)\).}
+  \label{fig:compensation-conditions-schematic}
 \end{figure}
 
 \begin{figure}[htbp]
