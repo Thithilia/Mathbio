@@ -1,3 +1,7 @@
+import importlib.util
+import sys
+from pathlib import Path
+
 import numpy as np
 
 from src.simulate_pde_1d import compute_diagnostics, grid_1d, pack_state, simulate_ode, simulate_pde, unpack_state
@@ -517,3 +521,90 @@ def test_roy_evo_spatial_mechanism_is_zero_for_homogeneous_fields():
 
     assert abs(diagnostics["spatial_covariance_bonus"]) < 1.0e-14
     assert abs(diagnostics["cov_w_q"]) < 1.0e-14
+
+
+def load_step12_module():
+    path = Path(__file__).resolve().parents[1] / "experiments" / "12_roy_spatial_suppression_mechanism.py"
+    spec = importlib.util.spec_from_file_location("step12_suppression", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_step12_field_diagnostics_zero_for_homogeneous_fields():
+    step12 = load_step12_module()
+    n = np.full((4, 5), 4.8)
+    w = np.full((4, 5), 0.64)
+    q = np.full((4, 5), 0.67)
+
+    diagnostics = step12.field_diagnostics(n, w, q, stress=0.09)
+
+    assert abs(diagnostics["spatial_covariance_bonus"]) < 1.0e-14
+    assert abs(diagnostics["cov_w_q"]) < 1.0e-14
+    assert abs(diagnostics["cov_w_bq"]) < 1.0e-14
+
+
+def test_step12_uniform_predator_enrichment_is_one():
+    step12 = load_step12_module()
+    q = np.array([[0.2, 0.2], [0.8, 0.8]])
+    w = np.ones_like(q)
+    prey_gain = np.array([[2.0, 2.0], [1.0, 1.0]])
+
+    metrics = step12.patch_occupancy_metrics(w, q, prey_gain)
+
+    assert np.isclose(metrics["predator_low_q_enrichment"], 1.0)
+    assert np.isclose(metrics["predator_high_gain_enrichment"], 1.0)
+
+
+def test_step12_mismatch_synthetic_field_underoccupies_low_q_and_high_gain():
+    step12 = load_step12_module()
+    q = np.array([[0.2, 0.2], [0.8, 0.8]])
+    w = np.array([[0.1, 0.1], [2.0, 2.0]])
+    prey_gain = np.array([[2.0, 2.0], [1.0, 1.0]])
+
+    metrics = step12.patch_occupancy_metrics(w, q, prey_gain)
+
+    assert metrics["predator_low_q_enrichment"] < 1.0
+    assert metrics["predator_high_gain_enrichment"] < 1.0
+
+
+def test_step12_ode_row_uses_timeseries_schema():
+    step12 = load_step12_module()
+    run = step12.DiagnosticRun("ODE_TEST", "ODE", True, "synthetic", 0.0)
+    row = step12.ode_timepoint_row(run, 0.0, np.array([1.0, 0.2, 0.5]), "tail_persistent")
+
+    assert list(row.keys()) == step12.TIMESERIES_FIELDNAMES
+    assert row["model_type"] == "ODE"
+    assert row["spatial_covariance_bonus"] == 0.0
+
+
+def test_step12_final_diagnosis_rules_for_synthetic_cases():
+    step12 = load_step12_module()
+    ode_s3 = {
+        "persistent_predator": True,
+    }
+    mismatch = {
+        "persistent_predator": False,
+        "tail_mean_cov_w_q": 2.0e-6,
+        "tail_mean_cov_w_bq": -2.0e-6,
+        "tail_mean_cov_w_prey_gain": -1.0e-6,
+        "tail_mean_predator_low_q_enrichment": 0.8,
+        "tail_mean_predator_high_gain_enrichment": 1.2,
+        "tail_mean_var_q": 1.0e-4,
+        "tail_mean_spatial_covariance_bonus": 1.0e-5,
+    }
+    dilution = {
+        "persistent_predator": False,
+        "tail_mean_cov_w_q": 1.0e-12,
+        "tail_mean_cov_w_bq": -1.0e-12,
+        "tail_mean_cov_w_prey_gain": 1.0e-12,
+        "tail_mean_predator_low_q_enrichment": 1.0,
+        "tail_mean_predator_high_gain_enrichment": 1.0,
+        "tail_mean_var_q": 1.0e-12,
+        "tail_mean_spatial_covariance_bonus": 1.0e-12,
+    }
+
+    assert step12.final_step10_label(ode_s3, mismatch)[0] == "predator_low_defense_spatial_mismatch"
+    assert step12.final_step10_label(ode_s3, dilution)[0] == "diffusion_dilutes_evolutionary_rescue"
