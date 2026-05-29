@@ -267,6 +267,8 @@ q^*(s)=\frac{(m+s+\mu w^*)/(n^*z^*)-b_u}{b_v-b_u}.
 \]
 The compensation branch is interior for stresses satisfying \(0<q^*(s)<1\). For the current parameterization, this analytic branch matches the numerical stable persistent equilibria up to machine precision. The analytic Jacobian is locally stable at the tested target stresses, and the local condition grid identifies a nontrivial stable region. These are conditional results for the tested linear trade-offs, not a global theorem for all defense trade-off forms.
 
+The local stability of the interior compensation branch was also evaluated using the Routh--Hurwitz conditions for the cubic characteristic polynomial of the analytic Jacobian. For a polynomial \(\lambda^3+A_1\lambda^2+A_2\lambda+A_3\), local stability requires \(A_1>0\), \(A_2>0\), \(A_3>0\), and \(A_1A_2>A_3\). In the current parameterization, these inequalities hold at the target stresses along the compensation branch and agree with the analytic eigenvalue calculation (Figures~\ref{fig:routh-hurwitz-terms} and~\ref{fig:routh-hurwitz-margin}).
+
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.82\linewidth]{figures/roy_evo_spatial/report/fig33_compensation_branch_current.png}
@@ -307,6 +309,20 @@ The compensation branch is interior for stresses satisfying \(0<q^*(s)<1\). For 
   \includegraphics[width=0.9\linewidth]{figures/roy_evo_spatial/report/fig41_compensation_conditions_schematic.png}
   \caption{Schematic of the compensation-branch conditions. The selection-gradient condition fixes \(w^*/z^*\), the prey equation fixes \(z^*,w^*,n^*\), and the predator equation determines the stress-dependent \(q^*(s)\).}
   \label{fig:compensation-conditions-schematic}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\linewidth]{figures/roy_evo_spatial/report/fig42_routh_hurwitz_terms.png}
+  \caption{Routh--Hurwitz coefficient terms along the current compensation branch. All terms remain positive at the target stresses.}
+  \label{fig:routh-hurwitz-terms}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\linewidth]{figures/roy_evo_spatial/report/fig44_routh_hurwitz_margin.png}
+  \caption{Routh--Hurwitz stability margins for the current branch and the structured local condition grid. Positive margins indicate local stability under the cubic Routh--Hurwitz inequalities.}
+  \label{fig:routh-hurwitz-margin}
 \end{figure}
 
 \begin{figure}[htbp]

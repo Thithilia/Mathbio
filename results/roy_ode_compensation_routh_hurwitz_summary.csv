@@ -1,0 +1,15 @@
+metric,value,interpretation
+current_target_stresses_total,6,number of current branch target stresses evaluated
+current_target_stresses_rh_stable,6,target stresses satisfying all cubic Routh-Hurwitz inequalities
+current_rh_eigenvalue_agreement,True,Routh-Hurwitz stability agrees with direct analytic eigenvalue stability
+minimum_current_A1,3.946775446775447,smallest A1 across current target stresses
+minimum_current_A2,0.12403390505779832,smallest A2 across current target stresses
+minimum_current_A3,0.002228150937796774,smallest A3 across current target stresses
+minimum_current_margin,0.6052464511625869,smallest A1*A2-A3 margin across current target stresses
+condition_grid_total,450,structured local trade-off rows evaluated at two target rescue stresses
+condition_grid_branch_stable_count,217,grid rows with branch existence and Routh-Hurwitz stability
+condition_grid_branch_unstable_count,18,grid rows with branch existence but failed Routh-Hurwitz stability
+condition_grid_no_branch_count,215,grid rows where the interior branch is not feasible at that stress
+condition_grid_rh_eigenvalue_disagreement_count,0,rows where Routh-Hurwitz classification disagrees with eigenvalue stability
+condition_grid_branch_stable_fraction,0.4822222222222222,branch-stable rows divided by all condition-grid rows
+final_label,routh_hurwitz_conditions_supported,allowed final label for the Routh-Hurwitz stability analysis

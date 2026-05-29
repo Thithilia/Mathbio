@@ -1427,3 +1427,72 @@ def test_step23_final_label_supported_for_satisfied_conditions():
     )
 
     assert label == "compensation_conditions_derived_and_supported"
+
+
+def load_step24_module():
+    path = Path(__file__).resolve().parents[1] / "experiments" / "24_roy_ode_compensation_routh_hurwitz.py"
+    spec = importlib.util.spec_from_file_location("step24_ode_routh_hurwitz", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_step24_characteristic_coefficients_for_stable_diagonal_matrix():
+    step24 = load_step24_module()
+    jacobian = np.diag([-1.0, -2.0, -3.0])
+
+    coeffs = step24.characteristic_coefficients(jacobian)
+
+    assert np.isclose(coeffs["A1"], 6.0)
+    assert np.isclose(coeffs["A2"], 11.0)
+    assert np.isclose(coeffs["A3"], 6.0)
+
+
+def test_step24_routh_hurwitz_check_accepts_stable_cubic():
+    step24 = load_step24_module()
+
+    check = step24.routh_hurwitz_check(A1=6.0, A2=11.0, A3=6.0)
+
+    assert check["routh_hurwitz_stable"]
+
+
+def test_step24_routh_hurwitz_check_rejects_negative_a3():
+    step24 = load_step24_module()
+
+    check = step24.routh_hurwitz_check(A1=6.0, A2=11.0, A3=-6.0)
+
+    assert not check["routh_hurwitz_stable"]
+    assert not check["rh_A3_positive"]
+
+
+def test_step24_coefficients_agree_with_numpy_poly():
+    step24 = load_step24_module()
+    jacobian = np.array(
+        [
+            [-1.0, 0.2, 0.0],
+            [0.1, -2.0, 0.3],
+            [0.0, -0.4, -3.0],
+        ],
+        dtype=float,
+    )
+
+    coeffs = step24.characteristic_coefficients(jacobian)
+    poly = np.poly(jacobian)
+
+    assert np.allclose([1.0, coeffs["A1"], coeffs["A2"], coeffs["A3"]], poly)
+
+
+def test_step24_final_label_supported_for_stable_current_and_no_disagreements():
+    step24 = load_step24_module()
+
+    label = step24.decide_final_label(
+        current_total=6,
+        current_rh_stable=6,
+        current_rh_eigenvalue_agreement=True,
+        grid_stable_fraction=0.25,
+        grid_disagreement_count=0,
+    )
+
+    assert label == "routh_hurwitz_conditions_supported"
