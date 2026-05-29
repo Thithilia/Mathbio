@@ -68,7 +68,7 @@ def latex_escape_text(value: str) -> str:
 
 
 def load_ode_thresholds() -> tuple[float, float, float]:
-    """Load no-evolution and evolution ODE thresholds from Step 09A output."""
+    """Load no-evolution and evolution ODE thresholds."""
     rows = read_csv(ODE_THRESHOLD_CSV)
     thresholds: dict[bool, float] = {}
     for row in rows:
@@ -97,7 +97,7 @@ def load_basin_counts(path: Path) -> tuple[list[float], dict[str, list[int]]]:
 
 
 def load_boundary_summary() -> list[dict[str, str]]:
-    """Load the Step 15 basin-boundary summary, or aggregate it if absent."""
+    """Load the basin-boundary summary, or aggregate it if absent."""
     if BASIN_BOUNDARY_SUMMARY_CSV.exists():
         return read_csv(BASIN_BOUNDARY_SUMMARY_CSV)
 
@@ -274,19 +274,19 @@ def make_diagnostic_sequence() -> Path:
     """Plot the diagnostic sequence that changed the threshold narrative."""
     output_path = FIGURE_DIR / "fig03_diagnostic_sequence.png"
     steps = [
-        ("PR #4", "classifier-sensitive"),
-        ("PR #5", "persistence unresolved"),
-        ("PR #6", "hysteresis detected"),
-        ("PR #7", "bistability mapped"),
-        ("PR #9", "basin boundary mapped"),
+        ("Tail-window\nsensitivity", "classification depends on tail window"),
+        ("Long\ntransients", "multi-horizon status remains unsettled"),
+        ("Continuation\ndependence", "upward and downward paths differ"),
+        ("Bistability", "persistent and extinct states coexist"),
+        ("Basin-boundary\nmap", "initial q0 and w0 control basin entry"),
     ]
 
-    fig, ax = plt.subplots(figsize=(11.2, 3.2), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(12.4, 3.4), constrained_layout=True)
     ax.set_xlim(-0.5, len(steps) - 0.5)
     ax.set_ylim(0, 1)
     ax.axis("off")
 
-    for index, (pr_label, result) in enumerate(steps):
+    for index, (diagnostic_label, result) in enumerate(steps):
         box = mpatches.FancyBboxPatch(
             (index - 0.42, 0.36),
             0.84,
@@ -297,8 +297,8 @@ def make_diagnostic_sequence() -> Path:
             facecolor="#f4f7fb",
         )
         ax.add_patch(box)
-        ax.text(index, 0.56, pr_label, ha="center", va="center", fontsize=11, fontweight="bold")
-        ax.text(index, 0.42, result, ha="center", va="center", fontsize=9)
+        ax.text(index, 0.58, diagnostic_label, ha="center", va="center", fontsize=10, fontweight="bold")
+        ax.text(index, 0.39, result, ha="center", va="center", fontsize=8)
         if index < len(steps) - 1:
             ax.annotate(
                 "",
@@ -315,13 +315,13 @@ def make_diagnostic_sequence() -> Path:
         va="center",
         fontsize=11,
     )
-    ax.set_title("Diagnostic sequence correcting the initial threshold narrative", fontsize=14)
+    ax.set_title("Diagnostics showing why a scalar PDE threshold is insufficient", fontsize=14)
     save_figure(fig, output_path)
     return output_path
 
 
 def make_basin_regime_map() -> Path:
-    """Create a stacked bar chart for the PR #7 basin-regime map."""
+    """Create a stacked bar chart for the basin-regime map."""
     output_path = FIGURE_DIR / "fig04_basin_regime_map.png"
     stresses, counts = load_basin_counts(BASIN_REGIME_CSV)
     fig, ax = plt.subplots(figsize=(9.2, 5.2), constrained_layout=True)
@@ -353,7 +353,7 @@ def make_basin_regime_map() -> Path:
 
 
 def make_basin_boundary_heatmap() -> Path:
-    """Create q0--w0 basin-boundary panels for the focused PR #9 stresses."""
+    """Create q0--w0 basin-boundary panels for the focused stresses."""
     output_path = FIGURE_DIR / "fig05_basin_boundary_heatmap.png"
     rows = [
         row
@@ -404,7 +404,7 @@ def make_basin_boundary_heatmap() -> Path:
 
 
 def make_basin_boundary_counts() -> Path:
-    """Create stacked basin-count bars for the PR #9 focused stresses."""
+    """Create stacked basin-count bars for the focused basin-boundary stresses."""
     output_path = FIGURE_DIR / "fig06_basin_boundary_counts.png"
     summary_rows = load_boundary_summary()
     stresses = [float(row["stress"]) for row in summary_rows]
@@ -500,7 +500,7 @@ def make_table_thresholds(no_evo: float, evo: float, delta: float) -> Path:
 
 
 def make_table_bistability_regimes() -> Path:
-    """Write the Step 13 stress-regime table fragment."""
+    """Write the stress-regime table fragment."""
     rows = [
         ("0.141262205", "persistent_transient_mixed"),
         ("0.15", "persistent_transient_mixed"),
@@ -520,7 +520,7 @@ def make_table_bistability_regimes() -> Path:
 
 
 def make_table_basin_boundary_counts() -> Path:
-    """Write the Step 15 basin-boundary count table fragment."""
+    """Write the basin-boundary count table fragment."""
     summary_rows = load_boundary_summary()
     lines = [
         r"\begin{tabular}{rrrrrrl}",
