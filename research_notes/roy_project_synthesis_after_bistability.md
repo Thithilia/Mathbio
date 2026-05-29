@@ -92,13 +92,30 @@ The focused PR #7 basin scan produced the following stress-regime map:
 
 Bistability appears where persistent and extinct basin outcomes coexist across initial-condition families.
 
+## Basin-Boundary Update
+
+PR #9 quantified the basin boundary by scanning initial defense frequency `q0` and predator abundance scale `w0_scale`.
+
+```text
+PR #9: basin_boundary_mapped
+```
+
+| stress | persistent | extinct | transient | unresolved | nonphysical | regime |
+|---:|---:|---:|---:|---:|---:|---|
+| 0.1584375 | 20 | 7 | 43 | 0 | 0 | `bistable_persistent_extinct` |
+| 0.16486816 | 14 | 21 | 35 | 0 | 0 | `bistable_persistent_extinct` |
+
+![PDE-evolution basin boundary scan](../figures/roy_evo_spatial/17_basin_boundary_heatmap.png)
+
+The basin-boundary scan sharpened the Step 13 result. Persistent basins concentrate at low-to-intermediate `q0`, while initial predator abundance modulates whether trajectories enter predator-persistent, transient, or extinct regions.
+
 ## Current Scientific Conclusion
 
 ODE prey defense evolution supports indirect evolutionary rescue. In the spatial PDE, the evolutionary rescue response is path-dependent and initial-condition-dependent in the tested stress range.
 
-A single scalar PDE-evo threshold is inappropriate in the mapped stress range. The PDE eco-evolutionary model has stress-response regimes, including persistent/transient mixed regimes and bistable persistent/extinct regimes.
+A single scalar PDE-evo threshold is inappropriate in the mapped stress range. The PDE eco-evolutionary model has stress-response regimes, including persistent/transient mixed regimes and bistable persistent/extinct regimes. PR #9 further shows that basin entry is organized in `q0`-`w0_scale` initial-condition space.
 
-The next research direction is to quantify basin boundaries within the bistable interval, not to keep refining a scalar threshold.
+The next research direction is adaptive refinement of the basin boundary, not another threshold scan. The next quantitative question is how the separatrix in q0-w0 space changes with stress.
 
 ## Files
 
@@ -108,7 +125,9 @@ Key notes:
 research_notes/roy_evo_spatial_rescue_summary.md
 research_notes/roy_pde_evo_persistence_criterion.md
 research_notes/roy_pde_evo_hysteresis_basin_map.md
+research_notes/roy_pde_evo_basin_boundary_scan.md
 research_notes/roy_project_synthesis_after_bistability.md
+research_notes/roy_project_synthesis_after_basin_boundary.md
 ```
 
 Key result tables:
@@ -120,12 +139,15 @@ results/roy_pde_evo_persistence_stability.csv
 results/roy_pde_evo_persistence_stability_summary.csv
 results/roy_pde_evo_hysteresis_map.csv
 results/roy_pde_evo_basin_initial_condition_scan.csv
+results/roy_pde_evo_basin_boundary_scan.csv
+results/roy_pde_evo_basin_boundary_summary.csv
 ```
 
 Figure:
 
 ```text
 figures/roy_evo_spatial/13_basin_regime_map.png
+figures/roy_evo_spatial/17_basin_boundary_heatmap.png
 ```
 
 Reproducible plotting script:
@@ -136,4 +158,4 @@ experiments/16_plot_roy_basin_regime_map.py
 
 ## Next Research Direction
 
-Quantify basin boundaries within the bistable interval and identify which initial-condition dimensions move trajectories into predator-persistent, predator-extinct, or long-transient regimes.
+The next research direction is adaptive refinement of the basin boundary, not another threshold scan. The next quantitative question is how the separatrix in q0-w0 space changes with stress.

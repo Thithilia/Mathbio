@@ -170,9 +170,24 @@ PR #7 mapped basin structure and found `pde_evo_bistability_mapped`. In the focu
 
 Therefore, threshold language must be replaced by stress-regime and basin language. The current result is not a simple suppression result. It is a bistability result.
 
+## Updated Interpretation After Basin-Boundary Mapping
+
+PR #9 quantified basin boundaries in initial-condition space. The scan varied initial defense frequency `q0` and initial predator abundance scale `w0_scale` at target stresses `0.1584375` and `0.16486816`.
+
+Both target stresses were classified as `bistable_persistent_extinct`:
+
+```text
+0.1584375: persistent = 20, extinct = 7, transient = 43, unresolved = 0, nonphysical = 0
+0.16486816: persistent = 14, extinct = 21, transient = 35, unresolved = 0, nonphysical = 0
+```
+
+Persistent basins concentrate at low-to-intermediate `q0` and are modulated by initial predator abundance. High-defense or low-predator initial states more often enter extinct or transient outcomes.
+
+Transient outcomes remain common, so adaptive refinement is still needed for a sharper basin boundary. The current spatial endpoint is therefore a basin-structure result, not a scalar-threshold result.
+
 ## Current Conclusion
 
-Current conclusion: ODE prey defense evolution supports indirect evolutionary rescue. In the spatial PDE, the evolutionary rescue response is path-dependent and bistable in the tested stress range, so it cannot be summarized by a single persistence threshold.
+Current conclusion: ODE prey defense evolution supports indirect evolutionary rescue. In the spatial PDE, the evolutionary rescue response is path-dependent and bistable. Basin entry depends on initial defense frequency and predator abundance, so the spatial model should be analyzed through basin structure rather than a single persistence threshold.
 
 ## Files and Reproducibility
 
@@ -186,6 +201,8 @@ nonlinear_pde_results_10_evo_spatial_threshold.md
 research_notes/roy_pde_evo_persistence_criterion.md
 research_notes/roy_pde_evo_hysteresis_basin_map.md
 research_notes/roy_project_synthesis_after_bistability.md
+research_notes/roy_pde_evo_basin_boundary_scan.md
+research_notes/roy_project_synthesis_after_basin_boundary.md
 ```
 
 Key result tables:
@@ -204,8 +221,10 @@ results/roy_pde_evo_persistence_stability.csv
 results/roy_pde_evo_persistence_stability_summary.csv
 results/roy_pde_evo_hysteresis_map.csv
 results/roy_pde_evo_basin_initial_condition_scan.csv
+results/roy_pde_evo_basin_boundary_scan.csv
+results/roy_pde_evo_basin_boundary_summary.csv
 ```
 
 ## Recommended Next Research Question
 
-The next useful question is to quantify basin boundaries within the mapped bistable interval. The next step should not refine a single scalar threshold; it should identify how initial prey density, predator density, defense frequency, and continuation path determine whether the PDE approaches predator persistence, predator extinction, or a long transient.
+The next research direction is adaptive refinement of the basin boundary, not another threshold scan. The next quantitative question is how the separatrix in `q0`-`w0` space changes with stress.
