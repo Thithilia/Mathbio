@@ -91,3 +91,19 @@ This report studies indirect evolutionary rescue in a Roy-style predator-prey mo
 ## 12. Next Simulation Step
 
 Adaptive refinement of the basin boundary in q0-w0 space for stresses `0.1584375` and `0.16486816`.
+
+## Verification requirements before publication-level manuscript
+
+Before this outline is expanded into a publication-level manuscript, claims should be checked against `research_notes/roy_evo_spatial_verification_plan.md`.
+
+Required evidence:
+
+- Representative PDE snapshots of `n(x,y,t)`, `w(x,y,t)`, and `q(x,y,t)` for persistent, extinct, and transient or basin-boundary cases.
+- Spatial mean time series for `n`, `w`, and `q`.
+- Upward/downward continuation diagram with branch classifications.
+- Residual and convergence diagnostics, including tail slopes, normalized PDE RHS residuals, and horizon sensitivity.
+- Adaptive `q0`-`w0` basin-boundary refinement at `0.1584375` and `0.16486816`.
+- Grid/time-step, diffusion-coefficient, trade-off-strength, and evolutionary-rate robustness checks.
+- Analytical support through ODE equilibria, selection-gradient sign analysis, and stability or bifurcation notes where feasible.
+
+Publication-level wording should remain proposition-based: assumptions, evidence, missing evidence, and allowed claim. General claims that spatial structure amplifies, suppresses, or generally causes bistability are not justified by the current evidence.
