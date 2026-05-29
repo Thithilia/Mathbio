@@ -790,3 +790,67 @@ def test_step13_final_label_boundary_nonmonotone():
     label, _interpretation = step13.final_step11_label(summary_rows, [], 1200.0)
 
     assert label == "pde_evo_boundary_nonmonotone"
+
+
+def load_step15_module():
+    path = Path(__file__).resolve().parents[1] / "experiments" / "15_roy_pde_evo_hysteresis_basins.py"
+    spec = importlib.util.spec_from_file_location("step15_basins", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_step15_regime_persistent_only():
+    step15 = load_step15_module()
+
+    regime = step15.aggregate_stress_regime(["persistent_basin", "persistent_basin"])
+
+    assert regime == "persistent_only"
+
+
+def test_step15_regime_extinct_only():
+    step15 = load_step15_module()
+
+    regime = step15.aggregate_stress_regime(["extinct_basin", "extinct_basin"])
+
+    assert regime == "extinct_only"
+
+
+def test_step15_regime_bistable_persistent_extinct():
+    step15 = load_step15_module()
+
+    regime = step15.aggregate_stress_regime(["persistent_basin", "extinct_basin", "transient_basin"])
+
+    assert regime == "bistable_persistent_extinct"
+
+
+def test_step15_regime_persistent_transient_mixed():
+    step15 = load_step15_module()
+
+    regime = step15.aggregate_stress_regime(["persistent_basin", "transient_basin", "unresolved_basin"])
+
+    assert regime == "persistent_transient_mixed"
+
+
+def test_step15_final_label_bistability_mapped():
+    step15 = load_step15_module()
+
+    label, _interpretation = step15.final_step13_label(
+        {0.15: "bistable_persistent_extinct"},
+        direction_dependent=True,
+    )
+
+    assert label == "pde_evo_bistability_mapped"
+
+
+def test_step15_final_label_hysteresis_unresolved():
+    step15 = load_step15_module()
+
+    label, _interpretation = step15.final_step13_label(
+        {0.15: "persistent_transient_mixed"},
+        direction_dependent=True,
+    )
+
+    assert label == "pde_evo_hysteresis_confirmed_but_basins_unresolved"
