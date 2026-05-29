@@ -24,6 +24,27 @@ The ODE basin map uses the same q0-w0 grid and target stresses as the PR #18 com
 
 The numerical equilibrium scan found 31 unique equilibria across 6 target stresses. This is numerical evidence only, not an analytical proof. The table is `results/roy_ode_homogeneous_equilibria.csv`, and the stability figure is `figures/roy_evo_spatial/report/fig31_ode_equilibria_stability.png`.
 
+## Equilibrium compensation mechanism
+
+Across the analyzed stress values, there is a stable persistent equilibrium with approximately \(n^*\approx4.8333\) and \(w^*\approx0.6417\).
+
+As stress increases, the equilibrium defense frequency \(q^*\) decreases:
+
+| stress | q* |
+| ---: | ---: |
+| 0 | 0.6726 |
+| 0.069448242 | 0.4717 |
+| 0.11765625 | 0.3322 |
+| 0.1584375 | 0.2142 |
+| 0.16486816 | 0.1955 |
+| 0.175 | 0.1662 |
+
+This suggests a compensation mechanism: \(q\) shifts toward lower defense, increasing predator conversion opportunity enough to offset increased mortality stress at a positive predator equilibrium.
+
+At \(s=0.175\), the scan also found a stable near-extinct predator equilibrium, supporting homogeneous bistability at that stress.
+
+This is numerical equilibrium evidence, not a proof.
+
 ## Mechanism interpretation
 
 Qualitative ODE mechanism label: `ode_homogeneous_basin_structure_supported`.
