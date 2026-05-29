@@ -1,3 +1,7 @@
+import importlib.util
+import sys
+from pathlib import Path
+
 import numpy as np
 
 from src.simulate_pde_1d import compute_diagnostics, grid_1d, pack_state, simulate_ode, simulate_pde, unpack_state
@@ -517,3 +521,103 @@ def test_roy_evo_spatial_mechanism_is_zero_for_homogeneous_fields():
 
     assert abs(diagnostics["spatial_covariance_bonus"]) < 1.0e-14
     assert abs(diagnostics["cov_w_q"]) < 1.0e-14
+
+
+def load_step12_module():
+    path = Path(__file__).resolve().parents[1] / "experiments" / "12_roy_spatial_suppression_mechanism.py"
+    spec = importlib.util.spec_from_file_location("step12_suppression", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_step12_monotonicity_detects_clean_transition():
+    step12 = load_step12_module()
+
+    assert step12.is_clean_monotone_transition([True, True, False, False])
+    assert not step12.is_clean_monotone_transition([True, False, True, False])
+    assert not step12.is_clean_monotone_transition([True, True, True])
+
+
+def test_step12_monotonicity_detects_reentry():
+    step12 = load_step12_module()
+
+    assert step12.has_persistence_reentry([True, False, True])
+    assert step12.has_persistence_reentry([False, True, False, True])
+    assert not step12.has_persistence_reentry([True, True, False, False])
+
+
+def test_step12_relaxed_classifier_differs_for_slow_decline():
+    step12 = load_step12_module()
+    times = np.linspace(0.0, 100.0, 101)
+    mean_w = np.linspace(1.0, 0.2, 101)
+    mean_q = np.full_like(times, 0.5)
+    var_q = np.zeros_like(times)
+    min_z = np.ones_like(times)
+
+    diagnostics = step12.classify_tail_series(
+        times,
+        mean_w,
+        mean_q,
+        var_q,
+        min_z,
+        initial_q=0.5,
+        physical=True,
+        tail_fraction=0.25,
+    )
+
+    assert diagnostics["persistent_without_slope_check"]
+    assert not diagnostics["persistent_predator"]
+    assert diagnostics["classification_note"] == "slope_check_rejects"
+
+
+def test_step12_final_label_detects_tail_fraction_sensitivity():
+    step12 = load_step12_module()
+    rows = []
+    for tail_fraction, persistent in [(0.25, True), (0.35, False), (0.50, False)]:
+        rows.append(
+            {
+                "stress": 0.1,
+                "T": 500.0,
+                "tail_fraction": tail_fraction,
+                "physical": True,
+                "persistent_predator": persistent,
+                "persistent_without_slope_check": persistent,
+                "tail_mean_w": 1.0,
+                "tail_min_w": 0.9,
+                "tail_slope_w": 0.0,
+                "tail_slope_floor_w": -0.01,
+            }
+        )
+
+    label, _interpretation, flags = step12.decide_final_label(rows, (500.0,), (0.25, 0.35, 0.50))
+
+    assert label == "pde_evo_threshold_classifier_sensitive"
+    assert flags.tail_fraction_disagreements == 1
+
+
+def test_step12_final_label_detects_nonmonotone_reentry():
+    step12 = load_step12_module()
+    rows = []
+    for stress, persistent in [(0.1, True), (0.2, False), (0.3, True)]:
+        rows.append(
+            {
+                "stress": stress,
+                "T": 500.0,
+                "tail_fraction": 0.25,
+                "physical": True,
+                "persistent_predator": persistent,
+                "persistent_without_slope_check": persistent,
+                "tail_mean_w": 1.0,
+                "tail_min_w": 0.9,
+                "tail_slope_w": 0.0,
+                "tail_slope_floor_w": -0.01,
+            }
+        )
+
+    label, _interpretation, flags = step12.decide_final_label(rows, (500.0,), (0.25,))
+
+    assert label == "pde_evo_threshold_nonmonotone"
+    assert flags.reentry_sequences == 1
