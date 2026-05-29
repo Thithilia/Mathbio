@@ -854,3 +854,79 @@ def test_step15_final_label_hysteresis_unresolved():
     )
 
     assert label == "pde_evo_hysteresis_confirmed_but_basins_unresolved"
+
+
+def load_step17_module():
+    path = Path(__file__).resolve().parents[1] / "experiments" / "17_roy_pde_evo_basin_boundary_scan.py"
+    spec = importlib.util.spec_from_file_location("step17_boundary", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_step17_basin_label_persistent_steady():
+    step17 = load_step17_module()
+
+    assert step17.basin_label_from_classification("persistent_steady") == "persistent_basin"
+
+
+def test_step17_basin_label_extinct_steady():
+    step17 = load_step17_module()
+
+    assert step17.basin_label_from_classification("extinct_steady") == "extinct_basin"
+
+
+def test_step17_regime_bistable_when_persistent_and_extinct_positive():
+    step17 = load_step17_module()
+
+    regime = step17.stress_regime_from_counts(
+        persistent_count=2,
+        extinct_count=1,
+        transient_count=4,
+        unresolved_count=0,
+        nonphysical_count=0,
+    )
+
+    assert regime == "bistable_persistent_extinct"
+
+
+def test_step17_regime_persistent_transient_mixed_without_extinct():
+    step17 = load_step17_module()
+
+    regime = step17.stress_regime_from_counts(
+        persistent_count=2,
+        extinct_count=0,
+        transient_count=5,
+        unresolved_count=0,
+        nonphysical_count=0,
+    )
+
+    assert regime == "persistent_transient_mixed"
+
+
+def test_step17_final_label_mapped_for_two_bistable_stresses():
+    step17 = load_step17_module()
+
+    label, _interpretation = step17.final_step15_label(
+        {
+            0.1584375: "bistable_persistent_extinct",
+            0.16486816: "bistable_persistent_extinct",
+        }
+    )
+
+    assert label == "basin_boundary_mapped"
+
+
+def test_step17_final_label_partially_mapped_for_one_bistable_stress():
+    step17 = load_step17_module()
+
+    label, _interpretation = step17.final_step15_label(
+        {
+            0.1584375: "bistable_persistent_extinct",
+            0.16486816: "mostly_transient_or_unresolved",
+        }
+    )
+
+    assert label == "basin_boundary_partially_mapped"
