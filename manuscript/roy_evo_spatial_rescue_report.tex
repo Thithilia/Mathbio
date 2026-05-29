@@ -325,6 +325,83 @@ The local stability of the interior compensation branch was also evaluated using
   \label{fig:routh-hurwitz-margin}
 \end{figure}
 
+\subsection{Spatial stability and finite-amplitude heterogeneous perturbations}
+
+The homogeneous ODE compensation branch is also a homogeneous steady-state branch of the spatial PDE. Linear perturbations around this branch decompose into Neumann spatial modes with matrices
+\[
+J_F(U^*)-\lambda_{mn}D,
+\]
+where \(J_F(U^*)\) is the reaction Jacobian and
+\[
+D=\mathrm{diag}(D_n,D_w,D_q).
+\]
+For the current diffusion coefficients, all tested nonzero Neumann modes were stable across the target stresses, and the controlled diffusion-ratio grid showed no linear spatial instability in the tested range (Figures~\ref{fig:pde-mode-growth-rates}--\ref{fig:pde-spatial-mode-schematic}).
+
+Linear stability does not rule out finite-amplitude basin effects, so targeted nonlinear PDE tests used localized predator patches, localized defense patches, sinusoidal modes, random heterogeneity, and basin-boundary heterogeneity. These tests were compared with matched homogeneous controls. The final decision was spatial stability of the homogeneous branch with finite-amplitude basin effects: two local-defense perturbations from basin-boundary mean states changed the finite-horizon basin label from persistent to transient, while final spatial CV values decayed below threshold and no sustained spatial pattern persisted. Thus the finite-amplitude result qualifies the reaction-dominated interpretation near basin boundaries, but it does not support a persistent spatial-pattern-mediated rescue mechanism in the tested setup (Figures~\ref{fig:nonhomogeneous-initial-fields}--\ref{fig:pde-mechanism-decision}).
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.92\linewidth]{figures/roy_evo_spatial/report/fig45_pde_mode_growth_rates.png}
+  \caption{Nonzero Neumann spatial-mode growth rates along the homogeneous compensation branch under the current diffusion coefficients.}
+  \label{fig:pde-mode-growth-rates}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\linewidth]{figures/roy_evo_spatial/report/fig46_pde_spatial_stability_along_branch.png}
+  \caption{Spatial stability summary along the compensation branch. The largest nonzero mode growth rate remains negative at the tested stresses.}
+  \label{fig:pde-spatial-stability-branch}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\linewidth]{figures/roy_evo_spatial/report/fig47_pde_diffusion_ratio_stability.png}
+  \caption{Controlled diffusion-ratio linear stability grid. The grid varies diffusion ratios only for the linear mode analysis and is not a nonlinear PDE parameter scan.}
+  \label{fig:pde-diffusion-ratio-stability}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.88\linewidth]{figures/roy_evo_spatial/report/fig48_pde_spatial_mode_schematic.png}
+  \caption{Schematic of the spatial-mode stability calculation for perturbations around the homogeneous compensation branch.}
+  \label{fig:pde-spatial-mode-schematic}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.95\linewidth]{figures/roy_evo_spatial/report/fig49_nonhomogeneous_initial_conditions.png}
+  \caption{Representative non-homogeneous initial conditions used in the targeted nonlinear PDE perturbation tests.}
+  \label{fig:nonhomogeneous-initial-fields}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.95\linewidth]{figures/roy_evo_spatial/report/fig50_nonhomogeneous_final_fields.png}
+  \caption{Final fields from representative non-homogeneous perturbation tests. Spatial variation decays in the representative saved fields.}
+  \label{fig:nonhomogeneous-final-fields}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.92\linewidth]{figures/roy_evo_spatial/report/fig51_nonhomogeneous_mean_timeseries.png}
+  \caption{Spatial mean trajectories for homogeneous controls and selected non-homogeneous PDE perturbation tests.}
+  \label{fig:nonhomogeneous-mean-timeseries}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.92\linewidth]{figures/roy_evo_spatial/report/fig52_nonhomogeneous_spatial_metrics.png}
+  \caption{Spatial coefficient-of-variation diagnostics for selected non-homogeneous PDE perturbation tests.}
+  \label{fig:nonhomogeneous-spatial-metrics}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.86\linewidth]{figures/roy_evo_spatial/report/fig53_pde_mechanism_decision.png}
+  \caption{Decision summary for the PDE spatial-mode and finite-amplitude non-homogeneous perturbation analysis.}
+  \label{fig:pde-mechanism-decision}
+\end{figure}
+
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.98\linewidth]{figures/roy_evo_spatial/report/fig28_ode_representative_timeseries.png}
@@ -381,22 +458,23 @@ Strongly supported in the tested parameterization:
 Moderately supported:
 \begin{itemize}
   \item initial defense frequency \(q_0\) and predator abundance \(w_0\) influence basin entry.
+  \item finite-amplitude local-defense heterogeneity can shift finite-horizon basin assignment near tested basin-boundary states without leaving a persistent spatial pattern.
 \end{itemize}
 
 Unresolved:
 \begin{itemize}
   \item the exact separatrix in \(q_0\)--\(w_0\) space;
-  \item sensitivity to diffusion coefficients;
+  \item nonlinear basin sensitivity across diffusion coefficients beyond the current targeted perturbation tests;
   \item generality across trade-off forms and parameterizations;
-  \item analytical characterization of the homogeneous equilibrium and basin structure;
+  \item global basin geometry of the homogeneous reaction system;
   \item biological calibration.
 \end{itemize}
 
 \section{Limitations and future work}
 
-The current analysis has several limitations. It uses one trade-off parameterization, with \(b_u=0.08\) and \(b_v=0.02\). Transient outcomes remain common near the basin boundary. The \(q_0\)--\(w_0\) basin boundary has not yet been adaptively refined. Sensitivity to diffusion coefficients has not yet been tested after basin mapping. The model has also not been externally calibrated to a particular biological system.
+The current analysis has several limitations. It uses one trade-off parameterization, with \(b_u=0.08\) and \(b_v=0.02\). Transient outcomes remain common near the basin boundary. The \(q_0\)--\(w_0\) basin boundary has not yet been adaptively refined. The diffusion-ratio analysis is linear, and the nonlinear spatial perturbation tests are targeted rather than exhaustive. The model has also not been externally calibrated to a particular biological system.
 
-The next numerical task is to test how the homogeneous basin structure depends on the defense trade-off parameters and to refine the analytical equilibrium and stability interpretation. Further PDE basin refinement may be useful later, but it should follow the current mechanism correction rather than replace it.
+The next numerical task is to follow up the basin-boundary finite-amplitude cases with longer-horizon or locally refined diagnostics, while keeping that work separate from broad PDE scanning. Further PDE basin refinement may be useful later, but it should follow the current mechanism correction rather than replace it.
 
 In the well-mixed system, prey defense evolution supports indirect evolutionary rescue. In the spatially extended system, the same eco-evolutionary reaction mechanism does not reduce to a single persistence threshold. Instead, the PDE preserves basin-dependent outcomes, with basin entry controlled in part by initial prey defense frequency and predator abundance. Persistent spatial patterning is not currently supported as the mechanism in this parameterization.
 

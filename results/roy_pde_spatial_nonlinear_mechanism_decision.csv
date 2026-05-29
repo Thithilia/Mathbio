@@ -1,0 +1,11 @@
+metric,value,interpretation
+linear_target_stresses_total,4,target stresses on the homogeneous compensation branch tested for spatial modes
+linear_target_stresses_spatially_stable,4,target stresses with all tested nonzero Neumann modes stable
+max_nonzero_linear_growth,-0.012866633712765614,largest nonzero spatial-mode growth rate for current diffusion coefficients
+diffusion_grid_total,100,linear diffusion-ratio grid rows evaluated
+diffusion_grid_spatial_instability_count,0,diffusion-ratio rows with positive nonzero mode growth
+nonhomogeneous_runs_total,28,targeted nonlinear PDE runs including homogeneous controls
+nonhomogeneous_basin_change_count,2,heterogeneous runs with basin label different from matched homogeneous PDE control
+nonhomogeneous_persistent_pattern_count,0,runs with final spatial CV above threshold
+nonhomogeneous_unresolved_count,2,"transient, unresolved, or nonphysical nonlinear runs"
+final_label,pde_homogeneous_branch_spatially_stable_but_finite_heterogeneity_affects_basin,allowed final label for PDE spatial stability and nonhomogeneous perturbation tests
