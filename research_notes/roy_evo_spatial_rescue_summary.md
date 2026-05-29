@@ -181,9 +181,9 @@ Both stresses showed `bistable_persistent_extinct` outcomes:
 0.16486816: persistent = 14, extinct = 21, transient = 35, unresolved = 0, nonphysical = 0
 ```
 
-Persistent basins were concentrated at low-to-intermediate `q0` and modulated by predator initial abundance. High-defense initial states more often entered extinct outcomes at the focused stresses, while many intermediate states remained transient at the current horizon.
+Persistent basins concentrate at low-to-intermediate `q0` and are modulated by initial predator abundance. High-defense or low-predator initial states more often enter extinct or transient outcomes.
 
-Transient outcomes remain common, so long-horizon or targeted continuation remains relevant. The basin-boundary result makes the current endpoint more precise: spatial PDE outcomes should be analyzed through basin structure in `q0`-`w0` space, not as a single scalar persistence threshold.
+Transient outcomes remain common, so adaptive refinement is still needed for a sharper basin boundary. The current spatial endpoint is therefore a basin-structure result, not a scalar-threshold result.
 
 ## Current Conclusion
 
@@ -227,4 +227,4 @@ results/roy_pde_evo_basin_boundary_summary.csv
 
 ## Recommended Next Research Question
 
-The next useful question is adaptive refinement of the basin boundary. The next step should not refine a single scalar threshold; it should identify how the separatrix in `q0`-`w0` space changes with stress and which transient grid points converge under targeted continuation.
+The next research direction is adaptive refinement of the basin boundary, not another threshold scan. The next quantitative question is how the separatrix in `q0`-`w0` space changes with stress.

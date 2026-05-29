@@ -2,27 +2,21 @@
 
 ## Executive Summary
 
-The well-mixed ODE supports indirect evolutionary rescue through prey defense evolution. The spatial PDE does not admit a simple scalar rescue threshold in the tested stress range. Instead, it shows hysteresis and bistability.
-
-PR #9 shows that basin entry depends on the initial defense frequency `q0` and predator abundance scale `w0_scale`. Therefore, the spatial model is best described by reachable outcome basins rather than a single threshold.
+The well-mixed ODE supports indirect evolutionary rescue through prey defense evolution. The spatial PDE does not admit a simple scalar rescue threshold in the tested stress range. Instead, it shows hysteresis and bistability. PR #9 shows that basin entry depends on the initial defense frequency `q0` and predator abundance scale `w0_scale`. Therefore, the spatial model is best described by reachable outcome basins rather than a single threshold.
 
 ## Current Endpoint
 
-The current endpoint is:
+The current project endpoint is:
 
 ```text
-Current conclusion: the spatial eco-evolutionary model has a bistable rescue structure. Initial defense frequency and predator abundance help determine whether predator persistence or extinction is reached at the same stress.
+ODE prey defense evolution supports indirect evolutionary rescue. In the spatial PDE, the evolutionary rescue response is path-dependent and bistable. Basin entry depends on initial defense frequency q0 and predator abundance w0, so the spatial model should be analyzed through basin structure rather than a single persistence threshold.
 ```
-
-This endpoint preserves the ODE result while correcting the spatial PDE interpretation. The ODE rescue mechanism remains supported, but the spatial PDE response is path-dependent and initial-condition-dependent.
 
 ## Model Sequence
 
-The modeling sequence established three main results.
+The fixed-defense spatial Roy-style PDE did not produce robust predator rescue. The best fixed-defense candidate at `D_w/D_u=150` was classified as `transient_or_numerical_candidate`.
 
-First, fixed-defense spatial Roy-style PDE dynamics did not produce robust predator rescue. The best fixed-defense candidate at `D_w/D_u=150` was classified as `transient_or_numerical_candidate`.
-
-Second, the well-mixed eco-evolutionary ODE supported indirect evolutionary rescue. The ODE thresholds were:
+The well-mixed eco-evolutionary ODE supported indirect evolutionary rescue:
 
 ```text
 m_c^{ODE,no evo} = 0.069448242
@@ -32,29 +26,25 @@ Delta_evo_ODE = 0.095419922
 
 In the ODE rescue window, prey defense frequency decreased from about `0.6726` to about `0.3336`, consistent with reduced defense and increased palatability supporting predator recovery.
 
-Third, the spatial eco-evolutionary PDE could not be reduced to a stable scalar threshold. Later analyses showed classifier sensitivity, unresolved long transients, hysteresis, and bistability.
+The spatial eco-evolutionary PDE did not produce a stable scalar rescue threshold. Its response depends on persistence criteria, time horizon, continuation direction, and initial condition.
 
 ## Why Threshold Language Failed
 
-The first spatial PDE threshold comparison suggested a lower PDE-evo threshold than the ODE-evo threshold. That comparison was useful as an early diagnostic, but it was not a stable final interpretation.
+The first threshold comparison suggested a lower PDE-evo threshold than the ODE-evo threshold. Later analyses showed that threshold language is insufficient because the system has multiple reachable outcomes at the same stress.
 
-The threshold language failed for three reasons:
+The correction sequence was:
 
-- PR #4 found `pde_evo_threshold_classifier_sensitive`.
-- PR #5 found `pde_evo_persistence_unresolved`.
-- PR #6 found `pde_evo_hysteresis_detected`.
-
-Together, these results showed that the spatial PDE did not behave like a single monotone stress-response curve.
+```text
+PR #4: pde_evo_threshold_classifier_sensitive
+PR #5: pde_evo_persistence_unresolved
+PR #6: pde_evo_hysteresis_detected
+PR #7: pde_evo_bistability_mapped
+PR #9: basin_boundary_mapped
+```
 
 ## Bistability and Hysteresis
 
-PR #7 mapped reachable outcomes and found:
-
-```text
-pde_evo_bistability_mapped
-```
-
-The focused basin map included:
+PR #7 showed that the spatial PDE has stress-response regimes rather than one monotone persistence boundary. The focused basin map included:
 
 ```text
 0.141262205: persistent_transient_mixed
@@ -85,11 +75,11 @@ The stress-level summary was:
 
 ## Interpretation of q0 and w0 Dependence
 
-Defense state is a major basin-entry coordinate. Low-to-intermediate `q0` values more often enter predator-persistent outcomes, while high-defense initial states more often enter predator-extinct outcomes at the focused stresses.
+Low-to-intermediate `q0` tends to favor persistent outcomes, so defense state is a major basin-entry coordinate.
 
-Predator initial abundance also matters. Within the low-to-intermediate `q0` range, `w0_scale` modulates whether the system enters predator-persistent or transient/extinct regions.
+Initial predator abundance modulates basin entry within that `q0` range. The same stress can lead to predator persistence, predator extinction, or a transient classification depending on the initial predator abundance scale.
 
-Transient outcomes remain common. The basin boundary is therefore not fully sharp at the current horizon and should be refined adaptively rather than treated as a finished separatrix.
+Transient outcomes remain common, so the basin boundary is not fully sharp at the current horizon. The next step is adaptive basin-boundary refinement, not another scalar threshold scan.
 
 ## Current Scientific Conclusion
 
