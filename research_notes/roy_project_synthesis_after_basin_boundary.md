@@ -4,6 +4,8 @@
 
 The well-mixed ODE supports indirect evolutionary rescue through prey defense evolution. The spatial PDE does not admit a simple scalar rescue threshold in the tested stress range. Instead, it shows hysteresis and bistability. PR #9 shows that basin entry depends on the initial defense frequency `q0` and predator abundance scale `w0_scale`. Therefore, the spatial model is best described by reachable outcome basins rather than a single threshold.
 
+PR #18 refined the mechanism interpretation. The best current mechanism diagnosis is `reaction_dominated_homogeneous_multistability`: the spatially extended PDE preserves basin-dependent outcomes, but representative solutions remain nearly homogeneous and the matched ODE explains most basin labels. Spatial-pattern-mediated rescue is not currently supported in the tested parameterization.
+
 ## Current Endpoint
 
 The current project endpoint is:
@@ -11,6 +13,8 @@ The current project endpoint is:
 ```text
 ODE prey defense evolution supports indirect evolutionary rescue. In the spatial PDE, the evolutionary rescue response is path-dependent and bistable. Basin entry depends on initial defense frequency q0 and predator abundance w0, so the spatial model should be analyzed through basin structure rather than a single persistence threshold.
 ```
+
+After PR #18, this endpoint should be read as a basin-structure result in a spatially extended PDE, not as evidence that persistent spatial patterning generates the basins. ODE-PDE basin labels agree for 90 percent of the q0-w0 grid; all 14 disagreements involve transient labels, and there are no direct persistent/extinct conflicts.
 
 ## Model Sequence
 
@@ -83,9 +87,9 @@ Transient outcomes remain common, so the basin boundary is not fully sharp at th
 
 ## Current Scientific Conclusion
 
-Current conclusion: the spatial eco-evolutionary model has a bistable rescue structure. Initial defense frequency and predator abundance help determine whether predator persistence or extinction is reached at the same stress.
+Current conclusion: the well-mixed eco-evolutionary reaction system supports indirect evolutionary rescue and basin-dependent multistability in the tested parameterization. The spatial PDE preserves these basin-dependent outcomes, but persistent spatial patterning is not currently supported as the mechanism.
 
-The spatial PDE has bistable and path-dependent rescue dynamics. It should be analyzed through reachable outcome basins and basin boundaries, not through a single scalar persistence threshold.
+The spatial PDE should still be analyzed through reachable outcome basins and basin boundaries rather than a single scalar persistence threshold. The mechanism question has shifted to the homogeneous reaction system: why does it have multiple basins, and under what trade-off conditions does indirect evolutionary rescue become basin-dependent?
 
 ## Files
 
@@ -96,6 +100,9 @@ research_notes/roy_evo_spatial_rescue_summary.md
 research_notes/roy_project_synthesis_after_bistability.md
 research_notes/roy_pde_evo_basin_boundary_scan.md
 research_notes/roy_project_synthesis_after_basin_boundary.md
+research_notes/roy_homogeneous_vs_spatial_mechanism.md
+research_notes/roy_current_mechanism_interpretation.md
+research_notes/roy_ode_homogeneous_mechanism.md
 ```
 
 Key result tables:
@@ -103,6 +110,11 @@ Key result tables:
 ```text
 results/roy_pde_evo_basin_boundary_scan.csv
 results/roy_pde_evo_basin_boundary_summary.csv
+results/roy_homogeneous_vs_spatial_basin_agreement.csv
+results/roy_homogeneous_vs_spatial_basin_disagreements.csv
+results/roy_homogeneous_vs_spatial_disagreement_summary.csv
+results/roy_ode_homogeneous_basin_map.csv
+results/roy_ode_homogeneous_equilibria.csv
 ```
 
 Figure:
@@ -113,4 +125,4 @@ figures/roy_evo_spatial/17_basin_boundary_heatmap.png
 
 ## Next Research Direction
 
-The next research direction is adaptive refinement of the basin boundary, not another threshold scan. The next quantitative question is how the separatrix in `q0`-`w0` space changes with stress.
+The next research direction is the homogeneous ODE mechanism, not another PDE scan. The next quantitative question is why the homogeneous eco-evolutionary reaction system has multiple basins, and under what trade-off conditions indirect evolutionary rescue becomes basin-dependent.

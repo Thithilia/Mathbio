@@ -1182,3 +1182,82 @@ def test_step20_perturbation_grouping_detects_outcome_changes():
     assert not summary["persistent_case"]["classification_changed"]
     assert summary["extinct_case"]["classification_changed"]
     assert summary["extinct_case"]["basin_label_changed"]
+
+
+def load_step21_module():
+    path = Path(__file__).resolve().parents[1] / "experiments" / "21_roy_ode_homogeneous_mechanism.py"
+    spec = importlib.util.spec_from_file_location("step21_ode_mechanism", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_step21_finite_difference_jacobian_shape():
+    step21 = load_step21_module()
+
+    def func(x):
+        return np.array([x[0] + x[1], x[0] * x[1], x[2] ** 2], dtype=float)
+
+    jacobian = step21.finite_difference_jacobian(func, np.array([1.0, 2.0, 3.0]))
+
+    assert jacobian.shape == (3, 3)
+
+
+def test_step21_equilibrium_deduplication_merges_close_equilibria():
+    step21 = load_step21_module()
+    equilibria = [
+        {"n_star": 1.0, "w_star": 0.2, "q_star": 0.3, "residual_norm": 1.0e-8},
+        {"n_star": 1.0 + 1.0e-7, "w_star": 0.2 - 1.0e-7, "q_star": 0.3, "residual_norm": 1.0e-7},
+        {"n_star": 2.0, "w_star": 0.1, "q_star": 0.8, "residual_norm": 1.0e-8},
+    ]
+
+    unique = step21.deduplicate_equilibria(equilibria, tol=1.0e-5)
+
+    assert len(unique) == 2
+
+
+def test_step21_basin_label_mapping():
+    step21 = load_step21_module()
+
+    assert step21.basin_label_from_classification("persistent_steady") == "persistent_basin"
+    assert step21.basin_label_from_classification("extinct_steady") == "extinct_basin"
+    assert step21.basin_label_from_classification("recovery_transient") == "transient_basin"
+    assert step21.basin_label_from_classification("declining_transient") == "transient_basin"
+
+
+def test_step21_mechanism_summary_label_supported_for_stable_basin_structure():
+    step21 = load_step21_module()
+    basin_counts = {
+        0.1584375: {
+            "persistent_basin": 3,
+            "extinct_basin": 2,
+            "transient_basin": 1,
+        }
+    }
+    representative_classes = {"persistent_steady", "extinct_steady", "recovery_transient"}
+
+    label = step21.mechanism_label_from_inputs(
+        basin_counts=basin_counts,
+        ode_pde_agreement_fraction=0.9,
+        representative_classes=representative_classes,
+        stable_persistent_equilibria=1,
+        stable_extinct_equilibria=1,
+    )
+
+    assert label == "ode_homogeneous_basin_structure_supported"
+
+
+def test_step21_selection_gradient_helper_matches_formula():
+    step21 = load_step21_module()
+    params = RoyEvoParams(b_u=0.08, b_v=0.02)
+    n = 1.0
+    w = 0.5
+    q = 0.4
+    z = 1.0 / params.kappa - n - w
+    expected = (params.r_v - params.r_u) * z - (params.a_v - params.a_u) * w
+
+    gradient = step21.selection_gradient_value(n=n, w=w, q=q, params=params)
+
+    assert np.isclose(gradient, expected)

@@ -1,0 +1,13 @@
+metric,value,interpretation
+number_of_stress_values_analyzed,6,targeted ODE equilibrium stresses
+number_of_equilibria_found,31,unique numerical equilibria across target stresses
+number_of_stable_persistent_equilibria,6,stable equilibria with predator abundance above epsilon
+number_of_stable_extinct_or_predator_free_equilibria,1,stable equilibria with predator abundance at or below epsilon
+ode_pde_basin_agreement_fraction_from_pr18,0.9,PR18 high agreement supports ODE control of PDE basin labels
+basin_map_persistent_count_stress_0.1584375,27,ODE q0-w0 basin map persistent count
+basin_map_extinct_count_stress_0.1584375,7,ODE q0-w0 basin map extinct count
+basin_map_transient_count_stress_0.1584375,36,ODE q0-w0 basin map transient count
+basin_map_persistent_count_stress_0.16486816,21,ODE q0-w0 basin map persistent count
+basin_map_extinct_count_stress_0.16486816,21,ODE q0-w0 basin map extinct count
+basin_map_transient_count_stress_0.16486816,28,ODE q0-w0 basin map transient count
+qualitative_mechanism_label,ode_homogeneous_basin_structure_supported,conditional label for homogeneous ODE mechanism evidence
