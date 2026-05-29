@@ -22,6 +22,17 @@ from src.roy_style_2d import (
     summarize_delta_group,
     tail_metrics,
 )
+from src.roy_evo_spatial import (
+    RoyEvoParams,
+    a_of_q,
+    b_of_q,
+    bisection_threshold,
+    classify_evo_trajectory,
+    r_of_q,
+    reaction_ode_evo,
+    selection_gradient,
+    simulate_ode_evo,
+)
 from src.turing_rescue_holling2 import HollingIIParams, continuous_turing_scan_holling2, solve_coexistence_equilibria_holling2
 from src.turing_rescue_model import (
     RescueParams,
@@ -317,3 +328,79 @@ def test_group_summary_conclusion_rule():
     assert rescue["conclusion"] == "rescue_supported"
     assert inhibition["conclusion"] == "inhibition_supported"
     assert none["conclusion"] == "no_measurable_effect"
+
+
+def test_roy_evo_tradeoff_functions_are_monotone():
+    params = RoyEvoParams()
+    q_values = np.array([0.0, 0.5, 1.0])
+
+    r_values = r_of_q(q_values, params)
+    a_values = a_of_q(q_values, params)
+    b_values = b_of_q(q_values, params)
+
+    assert np.all(np.diff(r_values) < 0.0)
+    assert np.all(np.diff(a_values) < 0.0)
+    assert np.all(np.diff(b_values) < 0.0)
+
+
+def test_roy_evo_selection_gradient_changes_with_predator_pressure():
+    params = RoyEvoParams()
+
+    low_w_gradient = selection_gradient(n=1.0, w=0.01, q=0.5, params=params)
+    high_w_gradient = selection_gradient(n=1.0, w=3.0, q=0.5, params=params)
+
+    assert low_w_gradient < 0.0
+    assert high_w_gradient > 0.0
+
+
+def test_roy_evo_q_remains_bounded_in_short_physical_run():
+    params = RoyEvoParams(b_u=0.08, b_v=0.02)
+    result = simulate_ode_evo(params, initial_state=np.array([4.8, 0.64, 0.67]), T=5.0, n_eval=50)
+
+    assert result.success
+    q = result.y[2]
+    assert np.min(q) >= -1.0e-8
+    assert np.max(q) <= 1.0 + 1.0e-8
+
+
+def test_roy_evo_no_evolution_mode_freezes_q_derivative():
+    params = RoyEvoParams()
+    dydt = reaction_ode_evo(0.0, np.array([1.0, 0.5, 0.4]), params, stress=0.1, evolve=False)
+
+    assert dydt[2] == 0.0
+
+
+def test_roy_evo_classifier_detects_persistence_and_extinction():
+    params = RoyEvoParams()
+    t = np.linspace(0.0, 10.0, 51)
+    persistent_y = np.vstack(
+        [
+            np.full_like(t, 1.0),
+            np.full_like(t, 2.0e-3),
+            np.full_like(t, 0.5),
+        ]
+    )
+    extinct_y = np.vstack(
+        [
+            np.full_like(t, 1.0),
+            np.linspace(2.0e-4, 1.0e-6, len(t)),
+            np.full_like(t, 0.5),
+        ]
+    )
+
+    persistent = classify_evo_trajectory(t, persistent_y, params=params)
+    extinct = classify_evo_trajectory(t, extinct_y, params=params)
+
+    assert persistent["persistent_predator"]
+    assert not extinct["persistent_predator"]
+
+
+def test_roy_evo_bisection_threshold_synthetic_monotonic_case():
+    def classify(stress: float):
+        return stress <= 0.37, {"tail_mean_w": 1.0 - stress}
+
+    result = bisection_threshold(classify, 0.0, 1.0, tolerance=1.0e-4, max_iter=20)
+
+    assert result["threshold_status"] == "ok"
+    assert result["threshold"] <= 0.3701
+    assert result["threshold_gap"] <= 1.0e-4
