@@ -1048,6 +1048,24 @@ def test_step20_basin_agreement_summary_fraction_on_synthetic_rows():
     assert np.isclose(summary["by_stress"][0.1]["agreement_fraction"], 0.5)
 
 
+def test_step20_disagreement_type_detects_persistent_extinct_conflict():
+    step20 = load_step20_module()
+
+    dtype = step20.disagreement_type("persistent_basin", "extinct_basin")
+
+    assert dtype == "ode_persistent_pde_extinct"
+    assert step20.disagreement_is_direct_persistent_extinct(dtype)
+
+
+def test_step20_disagreement_type_detects_transient_involved_case():
+    step20 = load_step20_module()
+
+    dtype = step20.disagreement_type("persistent_basin", "transient_basin")
+
+    assert dtype == "ode_persistent_pde_transient"
+    assert step20.disagreement_involves_transient(dtype)
+
+
 def test_step20_decision_rule_returns_reaction_dominated_for_high_agreement_low_cv():
     step20 = load_step20_module()
     evidence = {
@@ -1063,6 +1081,9 @@ def test_step20_decision_rule_returns_reaction_dominated_for_high_agreement_low_
         "perturbation_outcome_change_count": 0,
         "representative_steady_disagreement_count": 0,
         "physical_issue_count": 0,
+        "disagreement_count": 10,
+        "transient_involved_disagreement_count": 10,
+        "direct_persistent_extinct_disagreement_count": 0,
     }
 
     label, _interpretation = step20.decide_final_label(evidence)
@@ -1085,11 +1106,66 @@ def test_step20_decision_rule_returns_spatial_for_low_agreement_high_cv():
         "perturbation_outcome_change_count": 1,
         "representative_steady_disagreement_count": 1,
         "physical_issue_count": 0,
+        "disagreement_count": 20,
+        "transient_involved_disagreement_count": 20,
+        "direct_persistent_extinct_disagreement_count": 0,
     }
 
     label, _interpretation = step20.decide_final_label(evidence)
 
     assert label == "spatially_mediated_bistability"
+
+
+def test_step20_decision_rule_returns_mixed_for_many_direct_basin_conflicts():
+    step20 = load_step20_module()
+    evidence = {
+        "representative_ode_pde_agreement_count": 3,
+        "representative_ode_pde_total": 3,
+        "basin_grid_agreement_fraction": 0.9,
+        "max_final_cv_n_steady": 1.0e-7,
+        "max_final_cv_w_steady": 1.0e-7,
+        "max_final_cv_q_steady": 1.0e-7,
+        "max_final_cv_w": 1.0e-6,
+        "max_final_cv_q": 1.0e-6,
+        "perturbation_steady_outcome_change_count": 0,
+        "perturbation_outcome_change_count": 0,
+        "representative_steady_disagreement_count": 0,
+        "physical_issue_count": 0,
+        "disagreement_count": 8,
+        "transient_involved_disagreement_count": 0,
+        "direct_persistent_extinct_disagreement_count": 4,
+        "basin_grid_total": 140,
+    }
+
+    label, _interpretation = step20.decide_final_label(evidence)
+
+    assert label == "mixed_homogeneous_and_spatial_effects"
+
+
+def test_step20_decision_rule_keeps_reaction_label_for_transient_disagreements():
+    step20 = load_step20_module()
+    evidence = {
+        "representative_ode_pde_agreement_count": 3,
+        "representative_ode_pde_total": 3,
+        "basin_grid_agreement_fraction": 0.9,
+        "max_final_cv_n_steady": 1.0e-7,
+        "max_final_cv_w_steady": 1.0e-7,
+        "max_final_cv_q_steady": 1.0e-7,
+        "max_final_cv_w": 1.0e-6,
+        "max_final_cv_q": 1.0e-6,
+        "perturbation_steady_outcome_change_count": 0,
+        "perturbation_outcome_change_count": 0,
+        "representative_steady_disagreement_count": 0,
+        "physical_issue_count": 0,
+        "disagreement_count": 14,
+        "transient_involved_disagreement_count": 14,
+        "direct_persistent_extinct_disagreement_count": 0,
+        "basin_grid_total": 140,
+    }
+
+    label, _interpretation = step20.decide_final_label(evidence)
+
+    assert label == "reaction_dominated_homogeneous_multistability"
 
 
 def test_step20_perturbation_grouping_detects_outcome_changes():

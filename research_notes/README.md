@@ -17,4 +17,4 @@ Start here:
 
 ## Current endpoint
 
-ODE prey defense evolution supports indirect evolutionary rescue. In the spatial PDE, the response is path-dependent and bistable. Basin entry depends on initial defense frequency and predator abundance, so the spatial model should be analyzed through basin structure rather than a single persistence threshold.
+The best current mechanism diagnosis is reaction-dominated homogeneous multistability embedded in the spatial PDE. The spatial PDE preserves basin-dependent outcomes, but representative solutions remain nearly homogeneous and ODE-PDE basin labels agree for most q0-w0 grid points. Spatial-pattern-mediated rescue is not currently supported.

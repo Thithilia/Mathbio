@@ -99,10 +99,18 @@ Spatial coefficient of variation decayed to small values in the representative f
 
 The ODE/PDE basin-label agreement fraction on the existing \(q_0\)--\(w_0\) grid was 0.9 over 140 compared rows. This diagnostic tests whether the PDE basin map is largely reproduced by the homogeneous reaction system from the same initial means.
 
+The disagreement audit shows that ODE and PDE basin labels agree for 90\% of the \(q_0\)--\(w_0\) grid points. Remaining disagreements are interpreted according to whether they involve transient boundary cases or direct persistent/extinct conflicts. In this audit, 14 disagreements involved transient labels and 0 were direct persistent/extinct conflicts.
+
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.98\linewidth]{figures/roy_evo_spatial/report/fig24_ode_pde_basin_agreement.png}
 \caption{ODE/PDE basin-label agreement on the existing focused \(q_0\)--\(w_0\) basin grid. Cell labels show ODE/PDE basin initials.}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.72\linewidth]{figures/roy_evo_spatial/report/fig27_ode_pde_basin_confusion_matrix.png}
+\caption{Confusion matrix comparing ODE and PDE basin labels across the existing focused \(q_0\)--\(w_0\) grid.}
 \end{figure}
 
 \subsection{Perturbation sensitivity}

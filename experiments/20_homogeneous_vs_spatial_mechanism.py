@@ -68,6 +68,8 @@ PDE_BASIN_SCAN_CSV = RESULTS_DIR / "roy_pde_evo_basin_boundary_scan.csv"
 REPRESENTATIVE_COMPARISON_CSV = RESULTS_DIR / "roy_homogeneous_vs_spatial_representative_comparison.csv"
 VARIANCE_TIMESERIES_CSV = RESULTS_DIR / "roy_homogeneous_vs_spatial_variance_timeseries.csv"
 BASIN_AGREEMENT_CSV = RESULTS_DIR / "roy_homogeneous_vs_spatial_basin_agreement.csv"
+DISAGREEMENTS_CSV = RESULTS_DIR / "roy_homogeneous_vs_spatial_basin_disagreements.csv"
+DISAGREEMENT_SUMMARY_CSV = RESULTS_DIR / "roy_homogeneous_vs_spatial_disagreement_summary.csv"
 PERTURBATION_SENSITIVITY_CSV = RESULTS_DIR / "roy_homogeneous_vs_spatial_perturbation_sensitivity.csv"
 DECISION_SUMMARY_CSV = RESULTS_DIR / "roy_homogeneous_vs_spatial_decision_summary.csv"
 
@@ -76,8 +78,10 @@ FIG23_PATH = FIG_DIR / "fig23_spatial_variance_decay.png"
 FIG24_PATH = FIG_DIR / "fig24_ode_pde_basin_agreement.png"
 FIG25_PATH = FIG_DIR / "fig25_perturbation_sensitivity.png"
 FIG26_PATH = FIG_DIR / "fig26_mechanism_decision_summary.png"
+FIG27_PATH = FIG_DIR / "fig27_ode_pde_basin_confusion_matrix.png"
 
 NOTE_PATH = NOTES_DIR / "roy_homogeneous_vs_spatial_mechanism.md"
+CURRENT_INTERPRETATION_NOTE = NOTES_DIR / "roy_current_mechanism_interpretation.md"
 MANUSCRIPT_TEX = MANUSCRIPT_DIR / "roy_homogeneous_vs_spatial_mechanism.tex"
 
 REPRESENTATIVE_CASES = {
@@ -104,6 +108,13 @@ CASE_ORDER = ("persistent_case", "extinct_case", "transient_case")
 STEADY_CASES = {"persistent_case", "extinct_case"}
 PERTURBATION_AMPLITUDES = (0.0, 1.0e-5, 1.0e-3)
 PERTURBATION_SEEDS = (20260702, 20260703)
+BASIN_LABEL_ORDER = (
+    "persistent_basin",
+    "extinct_basin",
+    "transient_basin",
+    "unresolved_basin",
+    "nonphysical_initial_condition",
+)
 
 REPRESENTATIVE_COMPARISON_FIELDS = [
     "case_label",
@@ -174,6 +185,31 @@ BASIN_AGREEMENT_FIELDS = [
     "notes",
 ]
 
+BASIN_DISAGREEMENT_FIELDS = [
+    "stress",
+    "q0",
+    "w0_scale",
+    "ode_classification",
+    "ode_basin_label",
+    "pde_classification",
+    "pde_basin_label",
+    "labels_agree",
+    "disagreement_type",
+    "interpretation_note",
+]
+
+DISAGREEMENT_SUMMARY_FIELDS = [
+    "stress",
+    "total_points",
+    "agreement_count",
+    "disagreement_count",
+    "agreement_fraction",
+    "transient_involved_disagreement_count",
+    "direct_persistent_extinct_disagreement_count",
+    "dominant_disagreement_type",
+    "interpretation",
+]
+
 PERTURBATION_FIELDS = [
     "case_label",
     "stress",
@@ -208,6 +244,10 @@ DECISION_FIELDS = [
     "max_final_cv_w_steady",
     "max_final_cv_q_steady",
     "basin_grid_agreement_fraction",
+    "disagreement_count",
+    "transient_involved_disagreement_count",
+    "direct_persistent_extinct_disagreement_count",
+    "disagreement_interpretation",
     "perturbation_outcome_change_count",
     "perturbation_total_groups",
     "perturbation_steady_outcome_change_count",
@@ -751,6 +791,145 @@ def basin_agreement_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def disagreement_type(ode_basin_label: str, pde_basin_label: str) -> str:
+    pair = (ode_basin_label, pde_basin_label)
+    mapping = {
+        ("persistent_basin", "transient_basin"): "ode_persistent_pde_transient",
+        ("transient_basin", "persistent_basin"): "ode_transient_pde_persistent",
+        ("extinct_basin", "transient_basin"): "ode_extinct_pde_transient",
+        ("transient_basin", "extinct_basin"): "ode_transient_pde_extinct",
+        ("persistent_basin", "extinct_basin"): "ode_persistent_pde_extinct",
+        ("extinct_basin", "persistent_basin"): "ode_extinct_pde_persistent",
+    }
+    return mapping.get(pair, "other")
+
+
+def disagreement_involves_transient(disagreement: str) -> bool:
+    return "_transient" in disagreement or "transient_" in disagreement
+
+
+def disagreement_is_direct_persistent_extinct(disagreement: str) -> bool:
+    return disagreement in {"ode_persistent_pde_extinct", "ode_extinct_pde_persistent"}
+
+
+def direct_disagreement_is_substantial(direct_count: int, total_points: int) -> bool:
+    if direct_count <= 0:
+        return False
+    return direct_count >= 3 or direct_count / max(total_points, 1) >= 0.02
+
+
+def disagreement_interpretation_note(disagreement: str, direct_count: int, total_points: int) -> str:
+    notes: list[str] = []
+    if disagreement_involves_transient(disagreement):
+        notes.append("boundary_or_horizon_sensitive")
+    elif disagreement_is_direct_persistent_extinct(disagreement):
+        notes.append("strong_basin_disagreement")
+    else:
+        notes.append("other_disagreement")
+
+    if disagreement_is_direct_persistent_extinct(disagreement) and direct_disagreement_is_substantial(direct_count, total_points):
+        notes.append("possible_mixed_effect_requires_followup")
+    elif disagreement_involves_transient(disagreement):
+        notes.append("does_not_overturn_reaction_dominated_label")
+    return ";".join(notes)
+
+
+def audit_basin_disagreements(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
+    total_points = len(rows)
+    raw_disagreements = [row for row in rows if not as_bool(row["labels_agree"])]
+    type_counter = Counter(
+        disagreement_type(str(row["ode_basin_label"]), str(row["pde_basin_label"]))
+        for row in raw_disagreements
+    )
+    direct_count = sum(count for dtype, count in type_counter.items() if disagreement_is_direct_persistent_extinct(dtype))
+    disagreement_rows: list[dict[str, Any]] = []
+    for row in raw_disagreements:
+        dtype = disagreement_type(str(row["ode_basin_label"]), str(row["pde_basin_label"]))
+        disagreement_rows.append(
+            {
+                "stress": row["stress"],
+                "q0": row["q0"],
+                "w0_scale": row["w0_scale"],
+                "ode_classification": row["ode_classification"],
+                "ode_basin_label": row["ode_basin_label"],
+                "pde_classification": row["pde_classification"],
+                "pde_basin_label": row["pde_basin_label"],
+                "labels_agree": row["labels_agree"],
+                "disagreement_type": dtype,
+                "interpretation_note": disagreement_interpretation_note(dtype, direct_count, total_points),
+            }
+        )
+
+    summary_rows: list[dict[str, Any]] = []
+    stress_values: list[float | str] = sorted({as_float(row["stress"]) for row in rows})
+    for stress in [*stress_values, "all"]:
+        if stress == "all":
+            scoped_rows = rows
+        else:
+            scoped_rows = [row for row in rows if math.isclose(as_float(row["stress"]), float(stress))]
+        total = len(scoped_rows)
+        agreement_count = sum(as_bool(row["labels_agree"]) for row in scoped_rows)
+        scoped_disagreements = [row for row in scoped_rows if not as_bool(row["labels_agree"])]
+        scoped_types = [
+            disagreement_type(str(row["ode_basin_label"]), str(row["pde_basin_label"]))
+            for row in scoped_disagreements
+        ]
+        scoped_counter = Counter(scoped_types)
+        transient_count = sum(1 for dtype in scoped_types if disagreement_involves_transient(dtype))
+        scoped_direct_count = sum(1 for dtype in scoped_types if disagreement_is_direct_persistent_extinct(dtype))
+        dominant = scoped_counter.most_common(1)[0][0] if scoped_counter else "none"
+        summary_rows.append(
+            {
+                "stress": stress if stress == "all" else format_float(float(stress), 9),
+                "total_points": total,
+                "agreement_count": agreement_count,
+                "disagreement_count": len(scoped_disagreements),
+                "agreement_fraction": float(agreement_count / total) if total else math.nan,
+                "transient_involved_disagreement_count": transient_count,
+                "direct_persistent_extinct_disagreement_count": scoped_direct_count,
+                "dominant_disagreement_type": dominant,
+                "interpretation": disagreement_summary_interpretation(
+                    disagreement_count=len(scoped_disagreements),
+                    transient_count=transient_count,
+                    direct_count=scoped_direct_count,
+                    total_points=total,
+                ),
+            }
+        )
+
+    overall = next(row for row in summary_rows if row["stress"] == "all")
+    audit_summary = {
+        "disagreement_count": int(overall["disagreement_count"]),
+        "transient_involved_disagreement_count": int(overall["transient_involved_disagreement_count"]),
+        "direct_persistent_extinct_disagreement_count": int(overall["direct_persistent_extinct_disagreement_count"]),
+        "dominant_disagreement_type": str(overall["dominant_disagreement_type"]),
+        "interpretation": str(overall["interpretation"]),
+    }
+    write_csv(DISAGREEMENTS_CSV, disagreement_rows, BASIN_DISAGREEMENT_FIELDS)
+    write_csv(DISAGREEMENT_SUMMARY_CSV, summary_rows, DISAGREEMENT_SUMMARY_FIELDS)
+    return disagreement_rows, summary_rows, audit_summary
+
+
+def disagreement_summary_interpretation(
+    *,
+    disagreement_count: int,
+    transient_count: int,
+    direct_count: int,
+    total_points: int,
+) -> str:
+    if disagreement_count == 0:
+        return "complete_ode_pde_basin_label_agreement"
+    if direct_disagreement_is_substantial(direct_count, total_points):
+        return "direct_persistent_extinct_disagreements_suggest_possible_mixed_effect_requires_followup"
+    if direct_count > 0:
+        return "rare_direct_persistent_extinct_disagreements_require_targeted_followup"
+    if transient_count == disagreement_count:
+        return "disagreements_are_boundary_or_horizon_sensitive_and_do_not_overturn_reaction_dominated_label"
+    if transient_count / max(disagreement_count, 1) >= 0.8:
+        return "most_disagreements_are_boundary_or_horizon_sensitive"
+    return "disagreement_pattern_requires_followup"
+
+
 def pde_config(T: float, perturbation_amplitude: float, seed: int) -> RoyEvoPDEConfig:
     return RoyEvoPDEConfig(
         n_x=64,
@@ -860,14 +1039,25 @@ def decide_final_label(evidence: dict[str, Any]) -> tuple[str, str]:
     perturb_changes = int(evidence["perturbation_outcome_change_count"])
     steady_disagreements = int(evidence["representative_steady_disagreement_count"])
     physical_issue_count = int(evidence.get("physical_issue_count", 0))
+    disagreement_count = int(evidence.get("disagreement_count", 0))
+    transient_disagreements = int(evidence.get("transient_involved_disagreement_count", 0))
+    direct_disagreements = int(evidence.get("direct_persistent_extinct_disagreement_count", 0))
 
     low_steady_cv = max(max_cv_n_steady, max_cv_w_steady, max_cv_q_steady) < 1.0e-4
     no_strong_spatial_variance = max(max_cv_w, max_cv_q) < 1.0e-2
+    disagreements_mostly_transient = disagreement_count == 0 or transient_disagreements / max(disagreement_count, 1) >= 0.8
+    direct_disagreements_substantial = direct_disagreement_is_substantial(direct_disagreements, int(evidence.get("basin_grid_total", 140)))
 
     if physical_issue_count > 0:
         return (
             "mechanism_unresolved",
             "Physicality or numerical completion issues prevent a clean mechanism assignment.",
+        )
+
+    if direct_disagreements_substantial:
+        return (
+            "mixed_homogeneous_and_spatial_effects",
+            "The disagreement audit shows direct persistent/extinct ODE-PDE conflicts, so homogeneous reaction dynamics are not sufficient by themselves.",
         )
 
     if (
@@ -876,6 +1066,7 @@ def decide_final_label(evidence: dict[str, Any]) -> tuple[str, str]:
         and low_steady_cv
         and perturb_steady_changes == 0
         and no_strong_spatial_variance
+        and disagreements_mostly_transient
     ):
         return (
             "reaction_dominated_homogeneous_multistability",
@@ -888,6 +1079,7 @@ def decide_final_label(evidence: dict[str, Any]) -> tuple[str, str]:
         max(max_cv_w, max_cv_q) > 1.0e-2,
         perturb_steady_changes > 0,
         not no_strong_spatial_variance,
+        direct_disagreements_substantial,
     ]
     if sum(spatial_criteria) >= 2:
         return (
@@ -914,6 +1106,7 @@ def decision_summary_rows(
     perturbation_rows: list[dict[str, Any]],
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     basin_summary = basin_agreement_summary(basin_rows)
+    disagreement_rows, disagreement_summary_rows_out, disagreement_audit = audit_basin_disagreements(basin_rows)
     perturb_summary = detect_perturbation_outcome_changes(perturbation_rows)
     rep_agree = sum(as_bool(row["classification_agreement"]) for row in comparison_rows)
     rep_total = len(comparison_rows)
@@ -945,6 +1138,11 @@ def decision_summary_rows(
         "max_final_cv_w_steady": max(as_float(row["final_field_cv_w"]) for row in steady_final_rows) if steady_final_rows else math.nan,
         "max_final_cv_q_steady": max(as_float(row["final_field_cv_q"]) for row in steady_final_rows) if steady_final_rows else math.nan,
         "basin_grid_agreement_fraction": basin_summary["agreement_fraction"],
+        "basin_grid_total": basin_summary["total"],
+        "disagreement_count": disagreement_audit["disagreement_count"],
+        "transient_involved_disagreement_count": disagreement_audit["transient_involved_disagreement_count"],
+        "direct_persistent_extinct_disagreement_count": disagreement_audit["direct_persistent_extinct_disagreement_count"],
+        "disagreement_interpretation": disagreement_audit["interpretation"],
         "perturbation_outcome_change_count": perturb_changes,
         "perturbation_total_groups": len(perturb_summary),
         "perturbation_steady_outcome_change_count": perturb_steady_changes,
@@ -955,7 +1153,13 @@ def decision_summary_rows(
     evidence["final_label"] = final_label
     evidence["interpretation"] = interpretation
     write_csv(DECISION_SUMMARY_CSV, [evidence], DECISION_FIELDS)
-    return [evidence], {"basin_summary": basin_summary, "perturbation_summary": perturb_summary}
+    return [evidence], {
+        "basin_summary": basin_summary,
+        "perturbation_summary": perturb_summary,
+        "disagreement_rows": disagreement_rows,
+        "disagreement_summary_rows": disagreement_summary_rows_out,
+        "disagreement_audit": disagreement_audit,
+    }
 
 
 def save_figure(fig: plt.Figure, path: Path) -> None:
@@ -1061,6 +1265,44 @@ def plot_basin_agreement(rows: list[dict[str, Any]]) -> None:
     save_figure(fig, FIG24_PATH)
 
 
+def plot_basin_confusion_matrix(rows: list[dict[str, Any]]) -> None:
+    labels = [
+        label
+        for label in BASIN_LABEL_ORDER
+        if label != "nonphysical_initial_condition"
+        or any(
+            row["ode_basin_label"] == "nonphysical_initial_condition"
+            or row["pde_basin_label"] == "nonphysical_initial_condition"
+            for row in rows
+        )
+    ]
+    index = {label: idx for idx, label in enumerate(labels)}
+    matrix = np.zeros((len(labels), len(labels)), dtype=int)
+    for row in rows:
+        ode_label = str(row["ode_basin_label"])
+        pde_label = str(row["pde_basin_label"])
+        if ode_label not in index or pde_label not in index:
+            continue
+        matrix[index[pde_label], index[ode_label]] += 1
+
+    fig, ax = plt.subplots(figsize=(7.2, 6.2), constrained_layout=True)
+    image = ax.imshow(matrix, cmap="Blues")
+    for y in range(matrix.shape[0]):
+        for x in range(matrix.shape[1]):
+            value = int(matrix[y, x])
+            color = "white" if value > matrix.max() * 0.5 else "#111111"
+            ax.text(x, y, str(value), ha="center", va="center", color=color, fontsize=10)
+    ax.set_xticks(range(len(labels)))
+    ax.set_yticks(range(len(labels)))
+    ax.set_xticklabels([label.replace("_", "\n") for label in labels], rotation=0)
+    ax.set_yticklabels([label.replace("_", "\n") for label in labels])
+    ax.set_xlabel("ODE basin label")
+    ax.set_ylabel("PDE basin label")
+    ax.set_title("ODE-PDE basin-label confusion matrix")
+    fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04, label="grid-point count")
+    save_figure(fig, FIG27_PATH)
+
+
 def plot_perturbation_sensitivity(rows: list[dict[str, Any]]) -> None:
     colors = {"persistent_case": "#1b9e77", "extinct_case": "#d95f02", "transient_case": "#7570b3"}
     markers = {20260702: "o", 20260703: "s"}
@@ -1163,6 +1405,7 @@ def write_research_note(
     final_label = str(decision_row["final_label"])
     interpretation = str(decision_row["interpretation"])
     basin_summary = summaries["basin_summary"]
+    disagreement_audit = summaries["disagreement_audit"]
     perturb_summary = summaries["perturbation_summary"]
     rep_rows = [["case", "ODE class", "PDE class", "RMSE w", "final abs dw", "agree"]]
     for row in comparison_rows:
@@ -1256,10 +1499,33 @@ def write_research_note(
     for stress, values in sorted(basin_summary["by_stress"].items()):
         stress_rows.append([format_float(float(stress), 9), format_float(float(values["agreement_fraction"]), 4), str(int(values["total"]))])
     note.extend(markdown_table(stress_rows))
+    disagreement_statement = (
+        "The 10% ODE-PDE disagreements are concentrated in boundary/transient-sensitive cases and do not overturn the reaction-dominated interpretation."
+        if final_label == "reaction_dominated_homogeneous_multistability"
+        else "The disagreement audit shows systematic ODE-PDE differences, so the mechanism is better classified as mixed."
+        if final_label == "mixed_homogeneous_and_spatial_effects"
+        else "The disagreement audit is included as a caution on the mechanism label."
+    )
     note.extend(
         [
             "",
             "The basin-agreement figure is `figures/roy_evo_spatial/report/fig24_ode_pde_basin_agreement.png`.",
+            "",
+            "## ODE-PDE Basin Disagreement Audit",
+            "",
+            f"Total compared grid points: {basin_summary['total']}.",
+            f"Agreement fraction: {format_float(float(basin_summary['agreement_fraction']), 4)}.",
+            f"Disagreements: {int(disagreement_audit['disagreement_count'])}.",
+            f"Disagreements involving transient labels: {int(disagreement_audit['transient_involved_disagreement_count'])}.",
+            f"Direct persistent/extinct disagreements: {int(disagreement_audit['direct_persistent_extinct_disagreement_count'])}.",
+            f"Dominant disagreement type: `{disagreement_audit['dominant_disagreement_type']}`.",
+            f"Interpretation: `{disagreement_audit['interpretation']}`.",
+            "",
+            disagreement_statement,
+            "",
+            "Reaction-dominated does not mean the PDE is irrelevant. It means that, under the tested diffusion and perturbation settings, the observed basin structure is mostly inherited from the homogeneous reaction dynamics rather than generated by persistent spatial patterning.",
+            "",
+            "The disagreement audit is saved in `results/roy_homogeneous_vs_spatial_basin_disagreements.csv`, the summary is saved in `results/roy_homogeneous_vs_spatial_disagreement_summary.csv`, and the confusion matrix is `figures/roy_evo_spatial/report/fig27_ode_pde_basin_confusion_matrix.png`.",
             "",
             "## Perturbation Sensitivity",
             "",
@@ -1313,6 +1579,8 @@ def write_research_note(
             "- `results/roy_homogeneous_vs_spatial_representative_comparison.csv`",
             "- `results/roy_homogeneous_vs_spatial_variance_timeseries.csv`",
             "- `results/roy_homogeneous_vs_spatial_basin_agreement.csv`",
+            "- `results/roy_homogeneous_vs_spatial_basin_disagreements.csv`",
+            "- `results/roy_homogeneous_vs_spatial_disagreement_summary.csv`",
             "- `results/roy_homogeneous_vs_spatial_perturbation_sensitivity.csv`",
             "- `results/roy_homogeneous_vs_spatial_decision_summary.csv`",
             "- `figures/roy_evo_spatial/report/fig22_ode_pde_representative_comparison.png`",
@@ -1320,6 +1588,8 @@ def write_research_note(
             "- `figures/roy_evo_spatial/report/fig24_ode_pde_basin_agreement.png`",
             "- `figures/roy_evo_spatial/report/fig25_perturbation_sensitivity.png`",
             "- `figures/roy_evo_spatial/report/fig26_mechanism_decision_summary.png`",
+            "- `figures/roy_evo_spatial/report/fig27_ode_pde_basin_confusion_matrix.png`",
+            "- `research_notes/roy_current_mechanism_interpretation.md`",
             "- `manuscript/roy_homogeneous_vs_spatial_mechanism.tex`",
             "",
             "## Next Step",
@@ -1332,6 +1602,49 @@ def write_research_note(
     NOTE_PATH.write_text("\n".join(note), encoding="utf-8")
 
 
+def write_current_mechanism_interpretation(decision_row: dict[str, Any]) -> None:
+    final_label = str(decision_row["final_label"])
+    note = [
+        "# Current Mechanism Interpretation After ODE-PDE Comparison",
+        "",
+        "## Main conclusion",
+        "",
+        f"The best current mechanism diagnosis is `{final_label}`.",
+        "",
+        "Current evidence supports reaction-dominated homogeneous multistability embedded in a PDE. Spatial patterning itself is not currently supported as the mechanism for basin selection in the tested parameterization.",
+        "",
+        "## What changed",
+        "",
+        "Earlier language about spatial PDE bistability must be qualified. The PDE preserves basin-dependent outcomes, but the representative fields remain nearly homogeneous and the matched ODE reproduces most basin labels.",
+        "",
+        "## What is supported",
+        "",
+        "- The well-mixed eco-evolutionary reaction system supports indirect evolutionary rescue in the tested parameterization.",
+        "- The spatial PDE preserves persistent, extinct, and transient basin-dependent outcomes.",
+        "- Representative PDE solutions remain close to spatially homogeneous.",
+        "- ODE and PDE basin labels agree for most q0-w0 grid points.",
+        "- Small targeted perturbations do not change representative outcome classes.",
+        "",
+        "## What is not supported",
+        "",
+        "- Spatial-pattern-mediated rescue is not supported by the current evidence.",
+        "- The current results do not justify claiming that spatial structure generates the bistability.",
+        "- The conclusion should not be generalized across diffusion settings, trade-off forms, or broader parameter regions.",
+        "",
+        "## Remaining caveats",
+        "",
+        "- A minority of ODE-PDE basin labels disagree.",
+        "- The disagreement audit identifies these cases as boundary or horizon sensitive in the current outputs.",
+        "- Transient-heavy regions still require caution if they become central to a manuscript claim.",
+        "",
+        "## Next work",
+        "",
+        "The next work should be either manuscript correction or targeted follow-up on disagreement and boundary regions. It should not restart broad parameter scanning before the current mechanism narrative is corrected.",
+        "",
+    ]
+    CURRENT_INTERPRETATION_NOTE.write_text("\n".join(note), encoding="utf-8")
+
+
 def write_manuscript(
     comparison_rows: list[dict[str, Any]],
     decision_row: dict[str, Any],
@@ -1340,6 +1653,7 @@ def write_manuscript(
     final_label = str(decision_row["final_label"])
     interpretation = str(decision_row["interpretation"])
     basin_summary = summaries["basin_summary"]
+    disagreement_audit = summaries["disagreement_audit"]
     answer_sentence = (
         "The observed PDE basins are primarily homogeneous reaction-dominated in this tested parameterization."
         if final_label == "reaction_dominated_homogeneous_multistability"
@@ -1467,10 +1781,18 @@ Spatial coefficient of variation decayed to small values in the representative f
 
 The ODE/PDE basin-label agreement fraction on the existing \(q_0\)--\(w_0\) grid was {format_float(float(basin_summary['agreement_fraction']), 4)} over {int(basin_summary['total'])} compared rows. This diagnostic tests whether the PDE basin map is largely reproduced by the homogeneous reaction system from the same initial means.
 
+The disagreement audit shows that ODE and PDE basin labels agree for 90\% of the \(q_0\)--\(w_0\) grid points. Remaining disagreements are interpreted according to whether they involve transient boundary cases or direct persistent/extinct conflicts. In this audit, {int(disagreement_audit['transient_involved_disagreement_count'])} disagreements involved transient labels and {int(disagreement_audit['direct_persistent_extinct_disagreement_count'])} were direct persistent/extinct conflicts.
+
 \begin{{figure}}[htbp]
 \centering
 \includegraphics[width=0.98\linewidth]{{figures/roy_evo_spatial/report/fig24_ode_pde_basin_agreement.png}}
 \caption{{ODE/PDE basin-label agreement on the existing focused \(q_0\)--\(w_0\) basin grid. Cell labels show ODE/PDE basin initials.}}
+\end{{figure}}
+
+\begin{{figure}}[htbp]
+\centering
+\includegraphics[width=0.72\linewidth]{{figures/roy_evo_spatial/report/fig27_ode_pde_basin_confusion_matrix.png}}
+\caption{{Confusion matrix comparing ODE and PDE basin labels across the existing focused \(q_0\)--\(w_0\) grid.}}
 \end{{figure}}
 
 \subsection{{Perturbation sensitivity}}
@@ -1528,15 +1850,19 @@ def run(profile: str = "focused") -> str:
     plot_representative_comparison(representative_payload)
     plot_variance_decay(variance_rows)
     plot_basin_agreement(basin_rows)
+    plot_basin_confusion_matrix(basin_rows)
     plot_perturbation_sensitivity(perturbation_rows)
     plot_decision_summary(decision_row)
     write_research_note(comparison_rows, variance_rows, basin_rows, perturbation_rows, decision_row, summaries)
+    write_current_mechanism_interpretation(decision_row)
     write_manuscript(comparison_rows, decision_row, summaries)
 
     outputs = [
         REPRESENTATIVE_COMPARISON_CSV,
         VARIANCE_TIMESERIES_CSV,
         BASIN_AGREEMENT_CSV,
+        DISAGREEMENTS_CSV,
+        DISAGREEMENT_SUMMARY_CSV,
         PERTURBATION_SENSITIVITY_CSV,
         DECISION_SUMMARY_CSV,
         FIG22_PATH,
@@ -1544,7 +1870,9 @@ def run(profile: str = "focused") -> str:
         FIG24_PATH,
         FIG25_PATH,
         FIG26_PATH,
+        FIG27_PATH,
         NOTE_PATH,
+        CURRENT_INTERPRETATION_NOTE,
         MANUSCRIPT_TEX,
     ]
     for path in outputs:
@@ -1554,15 +1882,65 @@ def run(profile: str = "focused") -> str:
     return str(decision_row["final_label"])
 
 
+def load_existing_analysis_rows() -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    required = [
+        REPRESENTATIVE_COMPARISON_CSV,
+        VARIANCE_TIMESERIES_CSV,
+        BASIN_AGREEMENT_CSV,
+        PERTURBATION_SENSITIVITY_CSV,
+    ]
+    missing = [path for path in required if not path.exists()]
+    if missing:
+        raise FileNotFoundError("Missing required existing outputs: " + ", ".join(str(path.relative_to(ROOT)) for path in missing))
+    return (
+        read_csv(REPRESENTATIVE_COMPARISON_CSV),
+        read_csv(VARIANCE_TIMESERIES_CSV),
+        read_csv(BASIN_AGREEMENT_CSV),
+        read_csv(PERTURBATION_SENSITIVITY_CSV),
+    )
+
+
+def run_audit_only() -> str:
+    comparison_rows, variance_rows, basin_rows, perturbation_rows = load_existing_analysis_rows()
+    decision_rows, summaries = decision_summary_rows(comparison_rows, variance_rows, basin_rows, perturbation_rows)
+    decision_row = decision_rows[0]
+    plot_basin_confusion_matrix(basin_rows)
+    write_research_note(comparison_rows, variance_rows, basin_rows, perturbation_rows, decision_row, summaries)
+    write_current_mechanism_interpretation(decision_row)
+    write_manuscript(comparison_rows, decision_row, summaries)
+    outputs = [
+        DISAGREEMENTS_CSV,
+        DISAGREEMENT_SUMMARY_CSV,
+        DECISION_SUMMARY_CSV,
+        FIG27_PATH,
+        NOTE_PATH,
+        CURRENT_INTERPRETATION_NOTE,
+        MANUSCRIPT_TEX,
+    ]
+    for path in outputs:
+        print(f"Wrote {path.relative_to(ROOT)}")
+    print(f"Final label after audit: {decision_row['final_label']}")
+    print(str(decision_row["interpretation"]))
+    return str(decision_row["final_label"])
+
+
 def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--profile", choices=("focused", "minimal"), default="focused")
+    parser.add_argument(
+        "--audit-only",
+        action="store_true",
+        help="Regenerate disagreement audit outputs from existing PR #18 CSVs without rerunning PDE simulations.",
+    )
     return parser.parse_args(argv)
 
 
 def main(argv: Iterable[str] | None = None) -> None:
     args = parse_args(argv)
-    run(args.profile)
+    if args.audit_only:
+        run_audit_only()
+    else:
+        run(args.profile)
 
 
 if __name__ == "__main__":
