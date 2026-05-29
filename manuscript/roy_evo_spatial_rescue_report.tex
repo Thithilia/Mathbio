@@ -1,6 +1,6 @@
 \documentclass[11pt]{article}
 
-\usepackage{amsmath,amssymb,graphicx,booktabs,geometry,hyperref}
+\usepackage{amsmath,amssymb,graphicx,booktabs,geometry,natbib,hyperref}
 
 \geometry{margin=1in}
 \hypersetup{
@@ -24,11 +24,11 @@ We study whether spatial structure can alter indirect evolutionary rescue in a p
 
 \section{Introduction}
 
-Evolutionary rescue occurs when adaptive trait or genotype-frequency change allows a population to persist after environmental stress. In the present predator--prey setting, the relevant trait is prey defense. Higher defense reduces predation pressure, but it also carries ecological costs through lower prey growth and lower predator conversion opportunity. Indirect evolutionary rescue of the predator can occur when increased predator mortality lowers predator pressure, selection favors reduced prey defense, and the resulting lower-defense prey state improves predator recovery.
+Evolutionary rescue occurs when adaptive trait or genotype-frequency change allows a population to persist after environmental stress \citep{GomulkiewiczHolt1995,BellGonzalez2009,Bell2017}. In the present predator--prey setting, the relevant trait is prey defense. Higher defense reduces predation pressure, but it also carries ecological costs through lower prey growth and lower predator conversion opportunity. Indirect evolutionary rescue of the predator can occur when increased predator mortality lowers predator pressure, selection favors reduced prey defense, and the resulting lower-defense prey state improves predator recovery \citep{YamamichiMiner2015}.
 
 This mechanism cannot be tested in a fixed-defense model. A fixed-defense spatial predator--prey model can ask whether spatial patterning alone creates predator persistence beyond a well-mixed reference, but it cannot test evolutionary rescue because the prey defense state does not change. The eco-evolutionary model therefore introduces a defense frequency \(q\), with \(q=0\) representing fully undefended prey and \(q=1\) representing fully defended prey.
 
-Comparing well-mixed and spatial models is useful because diffusion can alter local predator--prey overlap, transient recovery paths, and the basins of attraction of persistent or extinct states. A scalar mortality threshold \(m_c\) is a natural first diagnostic: below the threshold the predator persists, while above it the predator fails to persist. This diagnostic is appropriate when the stress response is monotone and when persistence is controlled by one attracting outcome. It can fail in bistable systems, where persistent and extinct states are both reachable at the same stress.
+Comparing well-mixed and spatial models is useful because diffusion can alter local predator--prey overlap, transient recovery paths, and the basins of attraction of persistent or extinct states. Predator--prey systems are also a central setting in which rapid evolution and ecological dynamics can interact on similar timescales \citep{YoshidaEtAl2003,KasadaYamamichiYoshida2014}. A scalar mortality threshold \(m_c\) is a natural first diagnostic: below the threshold the predator persists, while above it the predator fails to persist. This diagnostic is appropriate when the stress response is monotone and when persistence is controlled by one attracting outcome. It can fail in bistable systems, where persistent and extinct states are both reachable at the same stress.
 
 The main result is that the well-mixed eco-evolutionary model supports indirect evolutionary rescue, while the spatial eco-evolutionary model is not summarized by a single persistence threshold. In the spatial model, the same stress can lead to predator persistence, extinction, or long transients depending on initial condition and continuation path.
 
@@ -36,7 +36,9 @@ The main result is that the well-mixed eco-evolutionary model supports indirect 
 
 This report follows the conceptual structure of indirect evolutionary rescue models in which ecological persistence depends on evolutionary change in another component of the community. Here the evolutionary coordinate is prey defense frequency. Predator mortality stress changes predator pressure; predator pressure changes selection on defense; and the resulting defense state feeds back on prey growth, prey palatability, and predator conversion.
 
-The defense trade-off is intentionally minimal: defended prey have lower growth and lower vulnerability or conversion value than undefended prey. Such defense-growth and defense-palatability trade-offs are enough to create a feedback in which a stressed predator may recover indirectly when prey defense declines. Future bibliography work should attach this framing to the indirect evolutionary rescue literature, including the Yamamichi and Miner model [TODO: cite Yamamichi and Miner indirect evolutionary rescue paper].
+The defense trade-off is intentionally minimal: defended prey have lower growth and lower vulnerability or conversion value than undefended prey. Such defense-growth and defense-palatability trade-offs are enough to create a feedback in which a stressed predator may recover indirectly when prey defense declines \citep{YamamichiMiner2015}. The form of these trade-offs can qualitatively alter eco-evolutionary predator--prey dynamics \citep{KasadaYamamichiYoshida2014}.
+
+The present model is closest in spirit to indirect evolutionary rescue models in which predator mortality stress changes selection on prey defense. In the well-mixed case, the mechanism matches the qualitative logic proposed by \citet{YamamichiMiner2015}: predator decline reduces predation pressure, lower predation pressure favors less-defended prey, and the resulting change in prey state improves predator persistence. The spatial extension studied here asks whether this mechanism remains describable by a mortality threshold once diffusion and spatial initial-condition dependence are introduced.
 
 The contribution of the present report is mathematical and numerical rather than a final biological generalization. It shows that adding spatial dynamics changes the rescue question from a scalar threshold comparison to a basin-structured dynamical problem in the tested parameterization.
 
@@ -128,7 +130,7 @@ Thus
 \]
 In the rescue window, defense frequency declined from approximately \(0.6726\) to approximately \(0.3336\).
 
-Mechanistically, increased predator mortality reduces predator pressure. Lower predator pressure makes defense less favorable because the growth cost of defense is no longer offset by strong predation avoidance. As \(q\) declines, prey growth and predator conversion opportunity increase, allowing predator persistence over a larger stress interval. This is the cleanest evidence for indirect evolutionary rescue in the model sequence.
+Mechanistically, increased predator mortality reduces predator pressure. Lower predator pressure makes defense less favorable because the growth cost of defense is no longer offset by strong predation avoidance. As \(q\) declines, prey growth and predator conversion opportunity increase, allowing predator persistence over a larger stress interval. This is the cleanest evidence for indirect evolutionary rescue in the model sequence and follows the same qualitative feedback identified by \citet{YamamichiMiner2015}.
 
 \begin{figure}[htbp]
   \centering
@@ -214,7 +216,7 @@ Table~\ref{tab:basin-boundary-counts} highlights the stress-dependent basin bala
 
 \section{Discussion}
 
-The fixed-defense control shows that spatial patterning alone was insufficient for robust predator rescue in the tested Roy-style model. The well-mixed eco-evolutionary model then shows that evolutionary change in prey defense can rescue predators under mortality stress. The spatial eco-evolutionary model changes the qualitative organization of the rescue problem.
+The fixed-defense control shows that spatial patterning alone was insufficient for robust predator rescue in the tested Roy-style model. The well-mixed eco-evolutionary model then shows that evolutionary change in prey defense can rescue predators under mortality stress, consistent with indirect evolutionary rescue theory \citep{YamamichiMiner2015}. The spatial eco-evolutionary model changes the qualitative organization of the rescue problem.
 
 The spatial result is not a simple amplification or suppression of the well-mixed rescue threshold; it is a change in dynamical organization from threshold crossing to basin-dependent outcomes. This changes what ``spatial effect on rescue'' means. Rather than asking whether the PDE threshold is higher or lower than the ODE threshold, the relevant question is which outcomes are reachable at each stress and how the basins depend on initial ecological and evolutionary state.
 
@@ -249,5 +251,8 @@ The current analysis has several limitations. It uses one trade-off parameteriza
 The next numerical task is adaptive refinement of the \(q_0\)--\(w_0\) separatrix at stresses \(0.1584375\) and \(0.16486816\). This should target the transition between persistent, extinct, and transient regions rather than repeat a scalar threshold scan.
 
 In the well-mixed system, prey defense evolution supports indirect evolutionary rescue. In the spatial system, the same eco-evolutionary mechanism does not reduce to a single persistence threshold. Instead, the spatial model exhibits path-dependent and bistable rescue dynamics, with basin entry controlled in part by initial prey defense frequency and predator abundance.
+
+\bibliographystyle{plainnat}
+\bibliography{manuscript/references}
 
 \end{document}
