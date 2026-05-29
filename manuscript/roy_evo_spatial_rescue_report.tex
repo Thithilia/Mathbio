@@ -232,6 +232,45 @@ The ODE \(q_0\)--\(w_0\) basin map reproduces persistent, extinct, and transient
 
 The equilibrium scan suggests that the persistent homogeneous branch compensates increased predator mortality by lowering the equilibrium defense frequency \(q^*\), while \(n^*\) and \(w^*\) remain close to the same positive values over the tested stress range. This provides a reaction-level explanation for the rescue mechanism and for why the spatial PDE can inherit basin-dependent outcomes without persistent spatial patterning.
 
+\subsection{Homogeneous compensation branch}
+
+The homogeneous compensation branch can be derived directly from the interior ODE equilibrium equations. Let \(c=(r_v-r_u)/(a_v-a_u)\). The selection-gradient condition gives \(w=cz\). With the linear trade-offs, \(r(q)-ca(q)=r_u-ca_u\), so
+\[
+z^*=\frac{\xi}{r_u-ca_u},\qquad
+w^*=cz^*,\qquad
+n^*=\kappa^{-1}-z^*-w^*.
+\]
+The predator balance then determines the required conversion value
+\[
+b_{\mathrm{req}}(s)=\frac{m+s+\mu w^*}{n^*z^*},
+\]
+and the conversion trade-off gives
+\[
+q^*(s)=\frac{b_{\mathrm{req}}(s)-b_u}{b_v-b_u}.
+\]
+For the current parameterization, this analytic branch matches the numerical stable persistent equilibria to roundoff precision, with maximum \(|\Delta q^*|<10^{-14}\). Along the branch, \(q^*\) decreases as stress increases while \(n^*\) and \(w^*\) remain approximately fixed. A local structured trade-off check found the compensation branch in 72 of 81 nearby parameter sets, so the mechanism is supported locally but should not be treated as globally general.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.82\linewidth]{figures/roy_evo_spatial/report/fig33_compensation_branch_current.png}
+  \caption{Analytic homogeneous compensation branch compared with the existing numerical stable persistent equilibria. The branch keeps \(n^*\) and \(w^*\) nearly fixed while \(q^*(s)\) declines with stress.}
+  \label{fig:compensation-branch-current}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.92\linewidth]{figures/roy_evo_spatial/report/fig34_compensation_interval_tradeoff_grid.png}
+  \caption{Local structured trade-off robustness check for the analytic compensation branch. Interval lengths are local diagnostics, not a claim of global robustness.}
+  \label{fig:compensation-tradeoff-grid}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.88\linewidth]{figures/roy_evo_spatial/report/fig37_compensation_mechanism_diagram.png}
+  \caption{Conceptual homogeneous compensation mechanism: increasing stress lowers predator pressure, shifts selection on \(q\), lowers \(q^*\), increases \(b(q^*)\), and restores predator growth balance along the persistent branch.}
+  \label{fig:compensation-mechanism}
+\end{figure}
+
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.98\linewidth]{figures/roy_evo_spatial/report/fig28_ode_representative_timeseries.png}
