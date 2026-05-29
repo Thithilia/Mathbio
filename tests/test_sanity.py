@@ -930,3 +930,82 @@ def test_step17_final_label_partially_mapped_for_one_bistable_stress():
     )
 
     assert label == "basin_boundary_partially_mapped"
+
+
+def load_step19_module():
+    path = Path(__file__).resolve().parents[1] / "experiments" / "19_roy_pde_evo_representative_solutions.py"
+    spec = importlib.util.spec_from_file_location("step19_representatives", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_step19_select_representative_cases_from_synthetic_rows():
+    step19 = load_step19_module()
+    rows = [
+        {
+            "stress": "0.1584375",
+            "q0": "0.1",
+            "w0_scale": "0.1",
+            "classification": "persistent_steady",
+            "basin_label": "persistent_basin",
+            "relative_change_between_last_windows": "0.0",
+        },
+        {
+            "stress": "0.16486816",
+            "q0": "0.9",
+            "w0_scale": "0.05",
+            "classification": "extinct_steady",
+            "basin_label": "extinct_basin",
+            "relative_change_between_last_windows": "0.0",
+        },
+        {
+            "stress": "0.1584375",
+            "q0": "0.7",
+            "w0_scale": "0.02",
+            "classification": "recovery_transient",
+            "basin_label": "transient_basin",
+            "relative_change_between_last_windows": "10.0",
+        },
+    ]
+
+    selected = step19.select_representative_cases(rows)
+
+    assert selected["persistent_case"]["basin_label"] == "persistent_basin"
+    assert selected["extinct_case"]["basin_label"] == "extinct_basin"
+    assert selected["transient_case"]["basin_label"] == "transient_basin"
+
+
+def test_step19_snapshot_times_include_first_and_final():
+    step19 = load_step19_module()
+
+    times = step19.snapshot_times_for_horizon(1600.0)
+
+    assert np.isclose(times[0], 0.0)
+    assert np.isclose(times[-1], 1600.0)
+    assert len(times) == 5
+
+
+def test_step19_residual_helper_returns_finite_values_for_homogeneous_state():
+    step19 = load_step19_module()
+    params = RoyEvoParams(b_u=0.08, b_v=0.02)
+    config = RoyEvoPDEConfig(n_x=4, n_y=3, L_x=2.0, L_y=2.0, D_n=0.01, D_w=0.01, D_q=0.005)
+    n = np.full((config.n_y, config.n_x), 4.8)
+    w = np.full((config.n_y, config.n_x), 0.64)
+    q = np.full((config.n_y, config.n_x), 0.67)
+
+    residual = step19.pde_evo_rhs_residual(n, w, q, params, config, stress=0.02)
+
+    assert np.isfinite(residual["rhs_norm"])
+    assert np.isfinite(residual["state_norm"])
+    assert np.isfinite(residual["normalized_residual"])
+
+
+def test_step19_basin_label_mapping():
+    step19 = load_step19_module()
+
+    assert step19.basin_label_from_classification("persistent_steady") == "persistent_basin"
+    assert step19.basin_label_from_classification("extinct_steady") == "extinct_basin"
+    assert step19.basin_label_from_classification("declining_transient") == "transient_basin"
