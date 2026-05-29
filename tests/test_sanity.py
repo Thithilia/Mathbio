@@ -23,13 +23,19 @@ from src.roy_style_2d import (
     tail_metrics,
 )
 from src.roy_evo_spatial import (
+    RoyEvoPDEConfig,
+    RoyEvoPDEResult,
     RoyEvoParams,
     a_of_q,
     b_of_q,
     bisection_threshold,
+    classify_evo_pde_result,
     classify_evo_trajectory,
+    initial_state_from_ode_equilibrium,
     r_of_q,
     reaction_ode_evo,
+    simulate_pde_evo_2d,
+    spatial_mechanism_diagnostics,
     selection_gradient,
     simulate_ode_evo,
 )
@@ -404,3 +410,110 @@ def test_roy_evo_bisection_threshold_synthetic_monotonic_case():
     assert result["threshold_status"] == "ok"
     assert result["threshold"] <= 0.3701
     assert result["threshold_gap"] <= 1.0e-4
+
+
+def test_roy_evo_homogeneous_pde_short_run_matches_ode():
+    params = RoyEvoParams(b_u=0.08, b_v=0.02)
+    y0 = np.array([4.8, 0.64, 0.67])
+    config = RoyEvoPDEConfig(n_x=8, n_y=7, L_x=2.0, L_y=2.0, T=0.05, dt=0.001, record_every=10, perturbation_amplitude=0.0)
+    initial = initial_state_from_ode_equilibrium(y0, config)
+
+    pde = simulate_pde_evo_2d(params, config, initial, stress=0.02, evolve=True)
+    ode = simulate_ode_evo(params, y0, stress=0.02, evolve=True, T=config.T, n_eval=2)
+
+    assert np.allclose([pde.mean_n_time[-1], pde.mean_w_time[-1], pde.mean_q_time[-1]], ode.y[:, -1], atol=2.0e-4)
+
+
+def test_roy_evo_pde_q_bounds_are_recorded_for_short_run():
+    params = RoyEvoParams(b_u=0.08, b_v=0.02)
+    y0 = np.array([4.8, 0.64, 0.67])
+    config = RoyEvoPDEConfig(n_x=10, n_y=10, L_x=3.0, L_y=3.0, T=1.0, dt=0.02, record_every=10, seed=7)
+    result = simulate_pde_evo_2d(params, config, initial_state_from_ode_equilibrium(y0, config), stress=0.02, evolve=True)
+    diagnostics = classify_evo_pde_result(result, params)
+
+    assert diagnostics["physical"]
+    assert diagnostics["min_q"] >= -1.0e-6
+    assert diagnostics["max_q"] <= 1.0 + 1.0e-6
+    assert diagnostics["q_clip_max_violation"] <= 1.0e-4
+
+
+def test_roy_evo_pde_no_evolution_keeps_mean_q_constant():
+    params = RoyEvoParams(b_u=0.08, b_v=0.02)
+    y0 = np.array([4.8, 0.64, 0.67])
+    config = RoyEvoPDEConfig(n_x=10, n_y=10, L_x=3.0, L_y=3.0, T=1.0, dt=0.02, record_every=10, seed=8)
+    result = simulate_pde_evo_2d(params, config, initial_state_from_ode_equilibrium(y0, config), stress=0.02, evolve=False)
+
+    assert np.isclose(result.mean_q_time[0], result.mean_q_time[-1], atol=1.0e-12)
+
+
+def test_roy_evo_pde_classifier_rejects_nonfinite_arrays():
+    params = RoyEvoParams()
+    t = np.array([0.0, 1.0])
+    values = np.array([1.0, np.nan])
+    result = RoyEvoPDEResult(
+        t=t,
+        mean_n_time=values,
+        mean_w_time=np.ones_like(t),
+        mean_q_time=np.full_like(t, 0.5),
+        var_n_time=np.zeros_like(t),
+        var_w_time=np.zeros_like(t),
+        var_q_time=np.zeros_like(t),
+        min_z_time=np.ones_like(t),
+        n=np.ones((2, 2)),
+        w=np.ones((2, 2)),
+        q=np.full((2, 2), 0.5),
+        diagnostics={"nonfinite_detected": True, "q_clip_count": 0, "q_clip_max_violation": 0.0},
+    )
+
+    diagnostics = classify_evo_pde_result(result, params)
+
+    assert diagnostics["nonfinite_detected"]
+    assert not diagnostics["persistent_predator"]
+
+
+def test_roy_evo_pde_classifier_rejects_negative_free_space():
+    params = RoyEvoParams()
+    t = np.linspace(0.0, 1.0, 3)
+    result = RoyEvoPDEResult(
+        t=t,
+        mean_n_time=np.full_like(t, 10.0),
+        mean_w_time=np.full_like(t, 1.0e-3),
+        mean_q_time=np.full_like(t, 0.5),
+        var_n_time=np.zeros_like(t),
+        var_w_time=np.zeros_like(t),
+        var_q_time=np.zeros_like(t),
+        min_z_time=np.full_like(t, -0.1),
+        n=np.full((2, 2), 10.0),
+        w=np.full((2, 2), 1.0e-3),
+        q=np.full((2, 2), 0.5),
+        diagnostics={
+            "completed": True,
+            "nonfinite_detected": False,
+            "initial_mean_q": 0.5,
+            "min_n": 10.0,
+            "min_w": 1.0e-3,
+            "min_q": 0.5,
+            "max_q": 0.5,
+            "min_z": -0.1,
+            "q_clip_count": 0,
+            "q_clip_max_violation": 0.0,
+            "spatial_covariance_bonus_time": np.zeros_like(t),
+        },
+    )
+
+    diagnostics = classify_evo_pde_result(result, params)
+
+    assert not diagnostics["physical"]
+    assert not diagnostics["persistent_predator"]
+
+
+def test_roy_evo_spatial_mechanism_is_zero_for_homogeneous_fields():
+    params = RoyEvoParams(b_u=0.08, b_v=0.02)
+    n = np.full((4, 5), 4.8)
+    w = np.full((4, 5), 0.64)
+    q = np.full((4, 5), 0.67)
+
+    diagnostics = spatial_mechanism_diagnostics(n, w, q, params, stress=0.02)
+
+    assert abs(diagnostics["spatial_covariance_bonus"]) < 1.0e-14
+    assert abs(diagnostics["cov_w_q"]) < 1.0e-14
