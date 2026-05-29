@@ -32,6 +32,14 @@ Comparing well-mixed and spatial models is useful because diffusion can alter lo
 
 The main result is that the well-mixed eco-evolutionary model supports indirect evolutionary rescue, while the spatial eco-evolutionary model is not summarized by a single persistence threshold. In the spatial model, the same stress can lead to predator persistence, extinction, or long transients depending on initial condition and continuation path.
 
+\subsection{Relation to previous eco-evolutionary rescue models}
+
+This report follows the conceptual structure of indirect evolutionary rescue models in which ecological persistence depends on evolutionary change in another component of the community. Here the evolutionary coordinate is prey defense frequency. Predator mortality stress changes predator pressure; predator pressure changes selection on defense; and the resulting defense state feeds back on prey growth, prey palatability, and predator conversion.
+
+The defense trade-off is intentionally minimal: defended prey have lower growth and lower vulnerability or conversion value than undefended prey. Such defense-growth and defense-palatability trade-offs are enough to create a feedback in which a stressed predator may recover indirectly when prey defense declines. Future bibliography work should attach this framing to the indirect evolutionary rescue literature, including the Yamamichi and Miner model [TODO: cite Yamamichi and Miner indirect evolutionary rescue paper].
+
+The contribution of the present report is mathematical and numerical rather than a final biological generalization. It shows that adding spatial dynamics changes the rescue question from a scalar threshold comparison to a basin-structured dynamical problem in the tested parameterization.
+
 \section{Model formulation}
 
 The eco-evolutionary variables are total prey density \(n\), predator density \(w\), prey defense frequency \(q\), free space \(z\), and predator mortality stress \(s\). Free space is
@@ -65,7 +73,7 @@ The spatial simulations use zero-flux Neumann boundary conditions.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.92\linewidth]{figures/roy_evo_spatial/report/fig01_model_schematic.png}
-  \caption{Eco-evolutionary model variables and trade-off links. Defense frequency \(q\) changes growth, predation, and conversion terms, while stress \(s\) increases predator mortality.}
+  \caption{Eco-evolutionary model variables and trade-off links. Arrows indicate that defense frequency \(q\) sets the growth, attack, and conversion functions \(r(q)\), \(a(q)\), and \(b(q)\); prey and predator densities determine free space \(z=\kappa^{-1}-n-w\); and mortality stress \(s\) increases predator mortality.}
   \label{fig:model-schematic}
 \end{figure}
 
@@ -91,6 +99,12 @@ A positive value indicates that prey evolution expands the predator persistence 
 The second numerical question was whether adding spatial diffusion changes the same rescue effect. A scalar PDE threshold was initially tested because it gives a direct comparison with the ODE threshold when persistence changes monotonically with stress. The later spatial diagnostics were needed because the apparent PDE boundary was sensitive to the tail window, integration horizon, and tail-slope rule. Multi-horizon analysis showed long transients near the apparent boundary, continuation experiments showed direction-dependent outcomes, and basin scans showed that different initial conditions can reach different outcomes at the same stress.
 
 The outcome classes used in the spatial interpretation are scientific rather than procedural. A persistent outcome has a predator density tail that remains positive and steady enough to support persistence. An extinct outcome has predator density near zero. A transient outcome has not settled clearly into either class at the tested horizon. A bistable stress is one where both persistent and extinct outcomes are reachable from different initial states or continuation paths.
+
+\subsection{Numerical protocol}
+
+Well-mixed ODE thresholds were estimated by stress continuation and bisection, with predator persistence assessed from tail behavior. PDE scalar thresholds were used only as preliminary screening quantities because a scalar threshold is meaningful only if stress response is effectively monotone.
+
+Spatial simulations used zero-flux boundaries and diffusion in \(n\), \(w\), and \(q\). Initial PDE persistence calls were based on final-time and tail-window behavior, but sensitivity to tail window, integration horizon, and tail-slope rule motivated multi-horizon diagnostics. Continuation tests then used final states from neighboring stress values as initial states to test path dependence. Basin scans first varied broad initial-condition families and later varied \(q_0\) and \(w_0/w_{\mathrm{baseline}}\) directly. PDE outcomes were interpreted as persistent, extinct, transient, or bistable using tail behavior, steady-state residual checks, and whether multiple outcomes were reachable at the same stress.
 
 \section{Fixed-defense spatial model as a control}
 
@@ -119,7 +133,7 @@ Mechanistically, increased predator mortality reduces predator pressure. Lower p
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.72\linewidth]{figures/roy_evo_spatial/report/fig02_ode_thresholds.png}
-  \caption{Well-mixed ODE threshold comparison. Prey defense evolution increases the predator mortality stress tolerated by the system.}
+  \caption{Well-mixed ODE threshold comparison. The no-evolution threshold is \(m_c^{ODE,\mathrm{no\ evo}}=0.069448242\), the evolving-defense threshold is \(m_c^{ODE,\mathrm{evo}}=0.16486816\), and the evolutionary rescue effect is \(\Delta_{evo}^{ODE}=0.095419922\).}
   \label{fig:ode-thresholds}
 \end{figure}
 
@@ -138,12 +152,12 @@ That comparison was useful as a warning signal, but it was not a stable final su
 
 \section{Evidence for path dependence and bistability}
 
-The spatial diagnostics proceeded in four conceptual steps. First, persistence classification was found to depend on the tail window and integration horizon. Second, longer multi-horizon analysis showed that several stresses near the apparent boundary remained transient rather than cleanly persistent or extinct. Third, continuation experiments showed direction-dependent outcomes: upward continuation could maintain a predator-persistent branch at stresses where downward continuation from high stress could remain extinct or transient. Finally, initial-condition basin scans confirmed that predator-persistent and predator-extinct outcomes can both be reached at the same stress.
+The spatial diagnostics proceeded through four conceptual phases. First, persistence classification was found to depend on the tail window and integration horizon. Second, longer multi-horizon analysis showed that several stresses near the apparent boundary remained transient rather than cleanly persistent or extinct. Third, continuation experiments showed direction-dependent outcomes: upward continuation could maintain a predator-persistent branch at stresses where downward continuation from high stress could remain extinct or transient. Finally, initial-condition basin scans confirmed that predator-persistent and predator-extinct outcomes can both be reached at the same stress.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.96\linewidth]{figures/roy_evo_spatial/report/fig03_diagnostic_sequence.png}
-  \caption{Scientific diagnostic sequence showing why a single scalar PDE threshold is insufficient.}
+  \caption{Diagnostic sequence showing why scalar PDE threshold language failed. Tail-window sensitivity, long transients, continuation dependence, and basin scans together showed that the spatial system is organized by path-dependent outcomes rather than one monotone persistence boundary.}
   \label{fig:diagnostic-sequence}
 \end{figure}
 
@@ -158,7 +172,7 @@ The broader basin-regime map identifies two types of stress regimes:
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.86\linewidth]{figures/roy_evo_spatial/report/fig04_basin_regime_map.png}
-  \caption{Basin outcomes across initial-condition families. Bistability appears where persistent and extinct basin outcomes coexist at the same stress.}
+  \caption{Basin outcomes across initial-condition families. Each stacked bar counts initial-condition families by basin label at a fixed stress; coexistence of persistent and extinct outcomes in the same bar indicates bistability.}
   \label{fig:basin-regime}
 \end{figure}
 
@@ -178,14 +192,14 @@ The scan shows that basin entry is two-dimensional. Low-to-intermediate \(q_0\) 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.98\linewidth]{figures/roy_evo_spatial/report/fig05_basin_boundary_heatmap.png}
-  \caption{Basin-boundary scan over initial defense frequency \(q_0\) and predator abundance scale \(w_0/w_{\mathrm{baseline}}\).}
+  \caption{Basin-boundary scan over initial defense frequency \(q_0\) and predator abundance scale \(w_0/w_{\mathrm{baseline}}\) at stresses \(s=0.1584375\) and \(s=0.16486816\). Colors encode basin labels for persistent, extinct, transient, unresolved, or nonphysical outcomes.}
   \label{fig:basin-boundary}
 \end{figure}
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.72\linewidth]{figures/roy_evo_spatial/report/fig06_basin_boundary_counts.png}
-  \caption{Outcome counts in the focused \(q_0\)--\(w_0\) basin-boundary scan.}
+  \caption{Outcome counts in the focused \(q_0\)--\(w_0\) basin-boundary scan. Transient outcomes remain common at both stresses, so the basin boundary is interpretable but the separatrix is not fully resolved at the tested horizon.}
   \label{fig:basin-counts}
 \end{figure}
 
@@ -196,6 +210,8 @@ The scan shows that basin entry is two-dimensional. Low-to-intermediate \(q_0\) 
   \resizebox{\linewidth}{!}{\input{tables/roy_evo_spatial/table04_basin_boundary_counts.tex}}
 \end{table}
 
+Table~\ref{tab:basin-boundary-counts} highlights the stress-dependent basin balance. At \(s=0.1584375\), persistent and extinct basins both occur, but transient outcomes dominate the grid. At \(s=0.16486816\), extinct outcomes become more common, yet persistent outcomes remain reachable. Therefore the basin boundary is interpretable but not sharply resolved at the current horizon.
+
 \section{Discussion}
 
 The fixed-defense control shows that spatial patterning alone was insufficient for robust predator rescue in the tested Roy-style model. The well-mixed eco-evolutionary model then shows that evolutionary change in prey defense can rescue predators under mortality stress. The spatial eco-evolutionary model changes the qualitative organization of the rescue problem.
@@ -204,11 +220,33 @@ The spatial result is not a simple amplification or suppression of the well-mixe
 
 The basin-boundary results indicate that initial defense frequency and predator abundance are important coordinates for basin entry. Low-to-intermediate defense frequencies more often reach predator persistence, while high-defense states and some low-predator states more often lead to extinction or unresolved transients. Because transient outcomes remain common, the current basin map should be read as a resolved first layer of basin structure, not as a fully refined separatrix.
 
-\section{Limitations and next steps}
+\subsection{Strength of current claims}
+
+Strongly supported in the tested parameterization:
+\begin{itemize}
+  \item well-mixed prey defense evolution increases predator mortality tolerance;
+  \item fixed-defense spatial patterning did not produce robust predator rescue;
+  \item the spatial eco-evolutionary model shows path dependence and bistability in the tested stress range.
+\end{itemize}
+
+Moderately supported:
+\begin{itemize}
+  \item initial defense frequency \(q_0\) and predator abundance \(w_0\) influence basin entry.
+\end{itemize}
+
+Unresolved:
+\begin{itemize}
+  \item the exact separatrix in \(q_0\)--\(w_0\) space;
+  \item sensitivity to diffusion coefficients;
+  \item generality across trade-off forms and parameterizations;
+  \item biological calibration.
+\end{itemize}
+
+\section{Limitations and future work}
 
 The current analysis has several limitations. It uses one trade-off parameterization, with \(b_u=0.08\) and \(b_v=0.02\). Transient outcomes remain common near the basin boundary. The \(q_0\)--\(w_0\) basin boundary has not yet been adaptively refined. Sensitivity to diffusion coefficients has not yet been tested after basin mapping. The model has also not been externally calibrated to a particular biological system.
 
-The next simulation step is adaptive refinement of the \(q_0\)--\(w_0\) separatrix at stresses \(0.1584375\) and \(0.16486816\). This should target the transition between persistent, extinct, and transient regions rather than repeat a scalar threshold scan.
+The next numerical task is adaptive refinement of the \(q_0\)--\(w_0\) separatrix at stresses \(0.1584375\) and \(0.16486816\). This should target the transition between persistent, extinct, and transient regions rather than repeat a scalar threshold scan.
 
 In the well-mixed system, prey defense evolution supports indirect evolutionary rescue. In the spatial system, the same eco-evolutionary mechanism does not reduce to a single persistence threshold. Instead, the spatial model exhibits path-dependent and bistable rescue dynamics, with basin entry controlled in part by initial prey defense frequency and predator abundance.
 
