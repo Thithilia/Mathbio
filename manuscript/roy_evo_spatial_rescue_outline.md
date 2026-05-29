@@ -100,6 +100,7 @@ Required evidence:
 
 - Representative PDE snapshots of `n(x,y,t)`, `w(x,y,t)`, and `q(x,y,t)` for persistent, extinct, and transient or basin-boundary cases.
 - Spatial mean time series for `n`, `w`, and `q`.
+- Representative PDE snapshots and mean time series have been generated in `figures/roy_evo_spatial/report/fig19_pde_solution_snapshots.png` and `figures/roy_evo_spatial/report/fig20_pde_mean_timeseries.png`.
 - Upward/downward continuation diagram with branch classifications.
 - Residual and convergence diagnostics, including tail slopes, normalized PDE RHS residuals, and horizon sensitivity.
 - Adaptive `q0`-`w0` basin-boundary refinement at `0.1584375` and `0.16486816`.
