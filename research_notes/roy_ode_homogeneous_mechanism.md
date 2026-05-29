@@ -26,24 +26,22 @@ The numerical equilibrium scan found 31 unique equilibria across 6 target stress
 
 ## Equilibrium compensation mechanism
 
-Across the analyzed stress values, there is a stable persistent equilibrium with approximately \(n^*\approx4.8333\) and \(w^*\approx0.6417\).
+Across the analyzed stress values, the numerical equilibrium scan finds a stable persistent equilibrium with approximately \(n^* \approx 4.8333\) and \(w^* \approx 0.6417\).
 
 As stress increases, the equilibrium defense frequency \(q^*\) decreases:
 
-| stress | q* |
-| ---: | ---: |
-| 0 | 0.6726 |
-| 0.069448242 | 0.4717 |
-| 0.11765625 | 0.3322 |
-| 0.1584375 | 0.2142 |
-| 0.16486816 | 0.1955 |
-| 0.175 | 0.1662 |
+- \(s=0\): \(q^*=0.6726\)
+- \(s=0.069448242\): \(q^*=0.4717\)
+- \(s=0.11765625\): \(q^*=0.3322\)
+- \(s=0.1584375\): \(q^*=0.2142\)
+- \(s=0.16486816\): \(q^*=0.1955\)
+- \(s=0.175\): \(q^*=0.1662\)
 
-This suggests a compensation mechanism: \(q\) shifts toward lower defense, increasing predator conversion opportunity enough to offset increased mortality stress at a positive predator equilibrium.
+This suggests a compensation mechanism: prey defense frequency shifts downward, increasing predator conversion opportunity enough to offset increased predator mortality at a positive predator equilibrium.
 
-At \(s=0.175\), the scan also found a stable near-extinct predator equilibrium, supporting homogeneous bistability at that stress.
+At \(s=0.175\), the scan also finds a stable near-extinct predator equilibrium, supporting homogeneous bistability at that stress.
 
-This is numerical equilibrium evidence, not a proof.
+This is numerical equilibrium evidence, not an analytical proof.
 
 ## Mechanism interpretation
 
