@@ -1,0 +1,3 @@
+stress,persistent_count,extinct_count,transient_count,unresolved_count,nonphysical_count,regime_label
+0.1584375,20,7,43,0,0,bistable_persistent_extinct
+0.16486816,14,21,35,0,0,bistable_persistent_extinct
