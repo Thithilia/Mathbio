@@ -621,3 +621,132 @@ def test_step12_final_label_detects_nonmonotone_reentry():
 
     assert label == "pde_evo_threshold_nonmonotone"
     assert flags.reentry_sequences == 1
+
+
+def load_step14_module():
+    path = Path(__file__).resolve().parents[1] / "experiments" / "14_roy_pde_evo_continuation.py"
+    spec = importlib.util.spec_from_file_location("step14_continuation", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def step14_metrics(**overrides):
+    metrics = {
+        "physical": True,
+        "tail_mean_w": 0.5,
+        "tail_min_w": 0.49,
+        "previous_window_mean_w": 0.5,
+        "latest_window_mean_w": 0.5,
+        "relative_change_between_last_windows": 0.0,
+        "normalized_residual": 1.0e-6,
+        "persistent_with_slope_rule": True,
+        "persistent_without_slope_rule": True,
+    }
+    metrics.update(overrides)
+    return metrics
+
+
+def test_step14_residual_zero_for_zero_rhs_homogeneous_field():
+    step14 = load_step14_module()
+    config = RoyEvoPDEConfig(n_x=4, n_y=4, L_x=1.0, L_y=1.0, dt=0.01, T=1.0)
+    n = np.zeros((4, 4))
+    w = np.zeros((4, 4))
+    q = np.zeros((4, 4))
+
+    residual = step14.pde_evo_rhs_residual(n, w, q, step14.PARAMS, config, stress=0.0)
+
+    assert residual["rhs_norm"] == 0.0
+    assert residual["normalized_residual"] == 0.0
+
+
+def test_step14_classify_persistent_steady_for_stable_positive_tail():
+    step14 = load_step14_module()
+
+    classification = step14.classify_asymptotic_run(step14_metrics())
+
+    assert classification == "persistent_steady"
+
+
+def test_step14_classify_declining_transient_for_large_negative_change():
+    step14 = load_step14_module()
+
+    classification = step14.classify_asymptotic_run(
+        step14_metrics(
+            previous_window_mean_w=1.0,
+            latest_window_mean_w=0.7,
+            relative_change_between_last_windows=-0.3,
+            normalized_residual=1.0e-3,
+        )
+    )
+
+    assert classification == "declining_transient"
+
+
+def test_step14_classify_recovery_transient_for_large_positive_change():
+    step14 = load_step14_module()
+
+    classification = step14.classify_asymptotic_run(
+        step14_metrics(
+            previous_window_mean_w=0.2,
+            latest_window_mean_w=0.4,
+            relative_change_between_last_windows=1.0,
+            normalized_residual=1.0e-3,
+        )
+    )
+
+    assert classification == "recovery_transient"
+
+
+def test_step14_hysteresis_detection_finds_direction_difference():
+    step14 = load_step14_module()
+    rows = [
+        {"sweep_direction": "upward", "stress": 0.1, "classification": "persistent_steady"},
+        {"sweep_direction": "downward", "stress": 0.1, "classification": "extinct_steady"},
+    ]
+
+    mismatches = step14.detect_hysteresis(rows)
+
+    assert len(mismatches) == 1
+    assert mismatches[0]["stress"] == 0.1
+
+
+def test_step14_final_label_prioritizes_hysteresis_over_transients():
+    step14 = load_step14_module()
+    long_rows = [
+        {"stress": 0.135, "T": 3200.0, "classification": "declining_transient"},
+        {"stress": 0.15, "T": 3200.0, "classification": "recovery_transient"},
+    ]
+    continuation_rows = [
+        {"sweep_direction": "upward", "stress": 0.15, "classification": "persistent_steady"},
+        {"sweep_direction": "downward", "stress": 0.15, "classification": "extinct_steady"},
+    ]
+
+    label, _interpretation, _hysteresis, transient_count = step14.decide_final_label(
+        long_rows,
+        continuation_rows,
+        3200.0,
+    )
+
+    assert label == "pde_evo_hysteresis_detected"
+    assert transient_count == 2
+
+
+def test_step14_final_label_long_transients_confirmed():
+    step14 = load_step14_module()
+    long_rows = [
+        {"stress": 0.135, "T": 3200.0, "classification": "declining_transient"},
+        {"stress": 0.15, "T": 3200.0, "classification": "persistent_transient"},
+        {"stress": 0.175, "T": 3200.0, "classification": "extinct_steady"},
+    ]
+
+    label, _interpretation, _hysteresis, transient_count = step14.decide_final_label(
+        long_rows,
+        [],
+        3200.0,
+    )
+
+    assert label == "pde_evo_long_transients_confirmed"
+    assert transient_count == 2
