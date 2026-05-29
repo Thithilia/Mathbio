@@ -1,8 +1,9 @@
-"""Step 10: diagnose spatial suppression of eco-evolutionary rescue.
+"""Step 10: check PDE-evolution threshold monotonicity and classifier stability.
 
-This focused diagnostic compares ODE and PDE trajectories in the rescue and
-suppression windows from Steps 09A/09B.  It does not scan parameters or change
-the model.
+This script replaces the premature spatial-suppression mechanism diagnosis with
+a focused validation of the PDE-evo predator persistence boundary. It does not
+scan parameters or change the model; it tests whether persistence is monotone
+and stable near the disputed threshold region.
 """
 
 from __future__ import annotations
@@ -15,28 +16,19 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
+import numpy as np
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import numpy as np
-
 from src.roy_evo_spatial import (
     RoyEvoPDEConfig,
+    RoyEvoPDEResult,
     RoyEvoParams,
-    a_of_q,
-    b_of_q,
-    classify_evo_trajectory,
     find_evo_equilibrium,
-    free_space_evo,
-    grid_2d_evo,
     initial_state_from_ode_equilibrium,
-    laplacian_neumann_2d_evo,
-    predator_growth_factor_evo,
-    r_of_q,
-    reaction_part_evo_pde,
-    selection_gradient,
-    simulate_ode_evo,
+    simulate_pde_evo_2d,
 )
 
 
@@ -44,92 +36,100 @@ RESULTS_DIR = ROOT / "results"
 NOTES_DIR = ROOT / "research_notes"
 TIMESERIES_CSV = RESULTS_DIR / "roy_spatial_suppression_timeseries.csv"
 SUMMARY_CSV = RESULTS_DIR / "roy_spatial_suppression_summary.csv"
+MONOTONICITY_CSV = RESULTS_DIR / "roy_spatial_suppression_monotonicity.csv"
 SUMMARY_MD = NOTES_DIR / "roy_spatial_suppression_mechanism.md"
 
-EPSILON = 1.0e-4
-SMALL_COVARIANCE = 1.0e-8
-SMALL_VAR_Q = 1.0e-8
 PARAMS = RoyEvoParams(b_u=0.08, b_v=0.02)
-BURN_IN_INITIAL = np.array([1.0, 0.2, 0.5], dtype=float)
-BURN_IN_T = 3000.0
-ODE_T = 1500.0
+EPSILON = 1.0e-4
+TAIL_FRACTIONS = (0.25, 0.35, 0.50)
+FOCUSED_HORIZONS = (500.0, 800.0)
+MINIMAL_HORIZONS = (500.0,)
+STRESS_GRID = (
+    0.09,
+    0.105,
+    0.11765625,
+    0.125,
+    0.135,
+    0.141262205,
+    0.150,
+    0.1584375,
+    0.16486816,
+    0.175,
+)
 
-ODE_NO_EVO_THRESHOLD = 0.069448242
 ODE_EVO_THRESHOLD = 0.16486816
-PDE_EVO_THRESHOLD = 0.11765625
-SUPPRESSION_WINDOW_STRESS = 0.5 * (PDE_EVO_THRESHOLD + ODE_EVO_THRESHOLD)
+PDE_EVO_THRESHOLD_STAGE_B = 0.11765625
+PDE_EVO_S3_STRESS = 0.141262205
 
-STRESSES = [
-    ("S0_unstressed", 0.0),
-    ("S1_shared_rescue_window", 0.09),
-    ("S2_near_pde_evo_threshold", PDE_EVO_THRESHOLD),
-    ("S3_suppression_window_midpoint", SUPPRESSION_WINDOW_STRESS),
-    ("S4_near_ode_evo_threshold", ODE_EVO_THRESHOLD),
+MONOTONICITY_FIELDNAMES = [
+    "run_id",
+    "stress",
+    "T",
+    "n_x",
+    "n_y",
+    "seed",
+    "tail_fraction",
+    "physical",
+    "persistent_predator",
+    "persistent_without_slope_check",
+    "tail_mean_w",
+    "tail_min_w",
+    "tail_slope_w",
+    "tail_slope_floor_w",
+    "tail_mean_q",
+    "tail_q_change",
+    "tail_mean_var_q",
+    "tail_mean_min_z",
+    "min_n",
+    "min_w",
+    "min_q",
+    "max_q",
+    "min_z",
+    "q_clip_count",
+    "q_clip_max_violation",
+    "classification_note",
 ]
-NO_EVO_STRESS_LABELS = {"S1_shared_rescue_window", "S2_near_pde_evo_threshold", "S3_suppression_window_midpoint"}
 
 TIMESERIES_FIELDNAMES = [
     "run_id",
-    "model_type",
-    "evolve",
-    "stress_label",
     "stress",
     "time",
     "mean_n",
     "mean_w",
     "mean_q",
-    "mean_z",
     "var_n",
     "var_w",
     "var_q",
     "min_z",
-    "spatial_growth",
-    "meanfield_growth",
-    "spatial_covariance_bonus",
-    "cov_w_q",
-    "cov_w_bq",
-    "cov_w_n",
-    "cov_w_prey_gain",
-    "predator_fraction_in_low_q",
-    "predator_fraction_in_high_gain",
-    "area_fraction_low_q",
-    "area_fraction_high_gain",
-    "predator_low_q_enrichment",
-    "predator_high_gain_enrichment",
-    "persistent_tail_label",
 ]
 
 SUMMARY_FIELDNAMES = [
     "run_id",
-    "model_type",
-    "evolve",
-    "stress_label",
     "stress",
-    "tail_mean_w",
-    "tail_min_w",
-    "tail_slope_w",
-    "persistent_predator",
-    "tail_mean_q",
-    "tail_q_change",
-    "tail_mean_var_q",
-    "tail_mean_cov_w_q",
-    "tail_mean_cov_w_bq",
-    "tail_mean_cov_w_n",
-    "tail_mean_cov_w_prey_gain",
-    "tail_mean_spatial_covariance_bonus",
-    "tail_mean_predator_low_q_enrichment",
-    "tail_mean_predator_high_gain_enrichment",
-    "diagnosis",
+    "T",
+    "persistent_tail_025",
+    "persistent_tail_035",
+    "persistent_tail_050",
+    "persistent_without_slope_tail_025",
+    "tail_mean_w_tail_025",
+    "tail_slope_w_tail_025",
+    "tail_slope_floor_w_tail_025",
+    "tail_mean_q_tail_025",
+    "tail_q_change_tail_025",
+    "tail_mean_var_q_tail_025",
+    "classification_note",
 ]
 
 
 @dataclass(frozen=True)
-class DiagnosticRun:
-    run_id: str
-    model_type: str
-    evolve: bool
-    stress_label: str
-    stress: float
+class StabilityFlags:
+    physical_failures: int
+    tail_fraction_disagreements: int
+    horizon_disagreements: int
+    slope_rule_disagreements: int
+    reentry_sequences: int
+    clean_transition_sequences: int
+    near_tolerance_rows: int
 
 
 def write_csv(rows: list[dict[str, object]], path: Path, fieldnames: list[str]) -> None:
@@ -141,12 +141,14 @@ def write_csv(rows: list[dict[str, object]], path: Path, fieldnames: list[str]) 
             writer.writerow(row)
 
 
-def safe_fraction(numerator: float, denominator: float) -> float:
-    return float(numerator / denominator) if denominator > 0.0 else float("nan")
+def bool_text(value: object) -> str:
+    return "True" if bool(value) else "False"
 
 
-def tail_mask(times: np.ndarray, tail_fraction: float = 0.25) -> np.ndarray:
-    cutoff = times[-1] - tail_fraction * (times[-1] - times[0])
+def tail_mask(times: np.ndarray, tail_fraction: float) -> np.ndarray:
+    if len(times) < 2:
+        raise ValueError("Need at least two time points for tail classification.")
+    cutoff = float(times[-1]) - tail_fraction * float(times[-1] - times[0])
     mask = times >= cutoff
     if np.count_nonzero(mask) < 2:
         mask = np.zeros_like(times, dtype=bool)
@@ -159,574 +161,620 @@ def tail_slope(times: np.ndarray, values: np.ndarray, mask: np.ndarray) -> float
     tail_values = values[mask]
     centered_t = tail_t - float(np.mean(tail_t))
     denom = float(np.dot(centered_t, centered_t))
-    return 0.0 if denom <= 0.0 else float(np.dot(centered_t, tail_values - float(np.mean(tail_values))) / denom)
+    if denom <= 0.0:
+        return 0.0
+    return float(np.dot(centered_t, tail_values - float(np.mean(tail_values))) / denom)
 
 
-def persistent_from_tail(times: np.ndarray, mean_w: np.ndarray, physical: bool = True) -> bool:
-    if len(times) < 2 or len(mean_w) != len(times) or not np.all(np.isfinite(mean_w)):
+def physical_from_result(result: RoyEvoPDEResult) -> bool:
+    arrays = (
+        result.t,
+        result.mean_n_time,
+        result.mean_w_time,
+        result.mean_q_time,
+        result.var_n_time,
+        result.var_w_time,
+        result.var_q_time,
+        result.min_z_time,
+        result.n,
+        result.w,
+        result.q,
+    )
+    if any(not np.all(np.isfinite(array)) for array in arrays):
         return False
-    mask = tail_mask(times)
-    tail_t = times[mask]
-    tail_w = mean_w[mask]
-    duration = max(float(tail_t[-1] - tail_t[0]), 1.0e-12)
-    mean_value = float(np.mean(tail_w))
-    min_value = float(np.min(tail_w))
-    slope = tail_slope(times, mean_w, mask)
-    slope_floor = -max(EPSILON, 0.25 * mean_value) / duration
-    return bool(physical and mean_value > EPSILON and min_value > 0.25 * EPSILON and slope >= slope_floor)
-
-
-def patch_occupancy_metrics(w: np.ndarray, q: np.ndarray, prey_gain: np.ndarray) -> dict[str, float]:
-    w_arr = np.asarray(w, dtype=float)
-    q_arr = np.asarray(q, dtype=float)
-    prey_gain_arr = np.asarray(prey_gain, dtype=float)
-    low_q_mask = q_arr <= float(np.median(q_arr))
-    high_gain_mask = prey_gain_arr >= float(np.median(prey_gain_arr))
-    total_predator = float(np.sum(w_arr))
-    predator_low_q = safe_fraction(float(np.sum(w_arr[low_q_mask])), total_predator)
-    predator_high_gain = safe_fraction(float(np.sum(w_arr[high_gain_mask])), total_predator)
-    area_low_q = float(np.mean(low_q_mask))
-    area_high_gain = float(np.mean(high_gain_mask))
-    return {
-        "predator_fraction_in_low_q": predator_low_q,
-        "predator_fraction_in_high_gain": predator_high_gain,
-        "area_fraction_low_q": area_low_q,
-        "area_fraction_high_gain": area_high_gain,
-        "predator_low_q_enrichment": safe_fraction(predator_low_q, area_low_q),
-        "predator_high_gain_enrichment": safe_fraction(predator_high_gain, area_high_gain),
-    }
-
-
-def field_diagnostics(n: np.ndarray, w: np.ndarray, q: np.ndarray, stress: float) -> dict[str, float]:
-    n_arr = np.asarray(n, dtype=float)
-    w_arr = np.asarray(w, dtype=float)
-    q_arr = np.asarray(q, dtype=float)
-    z = free_space_evo(n_arr, w_arr, PARAMS)
-    b_q = b_of_q(q_arr, PARAMS)
-    prey_gain = b_q * n_arr * z
-    local_growth = predator_growth_factor_evo(n_arr, w_arr, q_arr, PARAMS, stress=stress)
-
-    mean_n = float(np.mean(n_arr))
-    mean_w = float(np.mean(w_arr))
-    mean_q = float(np.mean(q_arr))
-    mean_z = float(np.mean(z))
-    mean_bq = float(np.mean(b_q))
-    mean_prey_gain = float(np.mean(prey_gain))
-    meanfield_growth_factor = float(predator_growth_factor_evo(mean_n, mean_w, mean_q, PARAMS, stress=stress))
-    spatial_growth = float(np.mean(w_arr * local_growth))
-    meanfield_growth = mean_w * meanfield_growth_factor
-    centered_w = w_arr - mean_w
-    occupancy = patch_occupancy_metrics(w_arr, q_arr, prey_gain)
-    return {
-        "mean_n": mean_n,
-        "mean_w": mean_w,
-        "mean_q": mean_q,
-        "mean_z": mean_z,
-        "var_n": float(np.var(n_arr)),
-        "var_w": float(np.var(w_arr)),
-        "var_q": float(np.var(q_arr)),
-        "min_z": float(np.min(z)),
-        "min_n": float(np.min(n_arr)),
-        "min_w": float(np.min(w_arr)),
-        "min_q": float(np.min(q_arr)),
-        "max_q": float(np.max(q_arr)),
-        "spatial_growth": spatial_growth,
-        "meanfield_growth": float(meanfield_growth),
-        "spatial_covariance_bonus": float(spatial_growth - meanfield_growth),
-        "cov_w_q": float(np.mean(centered_w * (q_arr - mean_q))),
-        "cov_w_bq": float(np.mean(centered_w * (b_q - mean_bq))),
-        "cov_w_n": float(np.mean(centered_w * (n_arr - mean_n))),
-        "cov_w_prey_gain": float(np.mean(centered_w * (prey_gain - mean_prey_gain))),
-        **occupancy,
-    }
-
-
-def ode_timepoint_row(run: DiagnosticRun, time: float, state: np.ndarray, persistent_label: str) -> dict[str, object]:
-    n, w, q = [float(value) for value in state]
-    z = float(free_space_evo(n, w, PARAMS))
-    return {
-        "run_id": run.run_id,
-        "model_type": run.model_type,
-        "evolve": run.evolve,
-        "stress_label": run.stress_label,
-        "stress": run.stress,
-        "time": float(time),
-        "mean_n": n,
-        "mean_w": w,
-        "mean_q": q,
-        "mean_z": z,
-        "var_n": 0.0,
-        "var_w": 0.0,
-        "var_q": 0.0,
-        "min_z": z,
-        "spatial_growth": 0.0,
-        "meanfield_growth": 0.0,
-        "spatial_covariance_bonus": 0.0,
-        "cov_w_q": 0.0,
-        "cov_w_bq": 0.0,
-        "cov_w_n": 0.0,
-        "cov_w_prey_gain": 0.0,
-        "predator_fraction_in_low_q": float("nan"),
-        "predator_fraction_in_high_gain": float("nan"),
-        "area_fraction_low_q": float("nan"),
-        "area_fraction_high_gain": float("nan"),
-        "predator_low_q_enrichment": float("nan"),
-        "predator_high_gain_enrichment": float("nan"),
-        "persistent_tail_label": persistent_label,
-    }
-
-
-def simulate_ode_run(run: DiagnosticRun, initial_state: np.ndarray) -> tuple[list[dict[str, object]], dict[str, object]]:
-    result = simulate_ode_evo(PARAMS, initial_state, stress=run.stress, evolve=run.evolve, T=ODE_T, n_eval=501)
-    diagnostics = classify_evo_trajectory(result.t, result.y, epsilon=EPSILON, params=PARAMS)
-    persistent_label = "tail_persistent" if diagnostics["persistent_predator"] else "tail_not_persistent"
-    rows = [ode_timepoint_row(run, time, result.y[:, idx], persistent_label) for idx, time in enumerate(result.t)]
-    summary = summarize_timeseries(run, rows)
-    summary["persistent_predator"] = bool(diagnostics["persistent_predator"])
-    summary["tail_q_change"] = float(diagnostics["q_change_from_initial"])
-    summary["diagnosis"] = initial_run_diagnosis(summary)
-    return rows, summary
-
-
-def simulate_pde_diagnostic_run(
-    run: DiagnosticRun,
-    config: RoyEvoPDEConfig,
-    initial_state: tuple[np.ndarray, np.ndarray, np.ndarray],
-) -> tuple[list[dict[str, object]], dict[str, object]]:
-    _x, _y, dx, dy = grid_2d_evo(config)
-    n, w, q = (np.asarray(value, dtype=float).copy() for value in initial_state)
-    rows: list[dict[str, object]] = []
-    q_clip_count = 0
-    q_clip_max_violation = 0.0
-    nonphysical = False
-    min_n_global = float(np.min(n))
-    min_w_global = float(np.min(w))
-    min_q_global = float(np.min(q))
-    max_q_global = float(np.max(q))
-    min_z_global = float(np.min(free_space_evo(n, w, PARAMS)))
-
-    def record(t_value: float) -> None:
-        metrics = field_diagnostics(n, w, q, run.stress)
-        rows.append(
-            {
-                "run_id": run.run_id,
-                "model_type": run.model_type,
-                "evolve": run.evolve,
-                "stress_label": run.stress_label,
-                "stress": run.stress,
-                "time": float(t_value),
-                **{key: metrics[key] for key in TIMESERIES_FIELDNAMES if key in metrics},
-                "persistent_tail_label": "",
-            }
-        )
-
-    record(0.0)
-    n_steps = int(np.ceil(config.T / config.dt))
-    for step in range(1, n_steps + 1):
-        reactions = reaction_part_evo_pde(n, w, q, PARAMS, stress=run.stress, evolve=run.evolve)
-        n_next = n + config.dt * (config.D_n * laplacian_neumann_2d_evo(n, dx, dy) + reactions[0])
-        w_next = w + config.dt * (config.D_w * laplacian_neumann_2d_evo(w, dx, dy) + reactions[1])
-        if run.evolve:
-            q_next = q + config.dt * (config.D_q * laplacian_neumann_2d_evo(q, dx, dy) + reactions[2])
-        else:
-            q_next = q.copy()
-
-        if not (np.all(np.isfinite(n_next)) and np.all(np.isfinite(w_next)) and np.all(np.isfinite(q_next))):
-            nonphysical = True
-            break
-
-        q_violation = np.maximum(np.maximum(-q_next, 0.0), np.maximum(q_next - 1.0, 0.0))
-        max_violation = float(np.max(q_violation))
-        if max_violation > 0.0:
-            q_clip_count += int(np.count_nonzero(q_violation > 0.0))
-            q_clip_max_violation = max(q_clip_max_violation, max_violation)
-            if config.clip_q:
-                q_next = np.clip(q_next, 0.0, 1.0)
-
-        n, w, q = n_next, w_next, q_next
-        min_n_global = min(min_n_global, float(np.min(n)))
-        min_w_global = min(min_w_global, float(np.min(w)))
-        min_q_global = min(min_q_global, float(np.min(q)))
-        max_q_global = max(max_q_global, float(np.max(q)))
-        min_z_global = min(min_z_global, float(np.min(free_space_evo(n, w, PARAMS))))
-        if step % max(1, config.record_every) == 0 or step == n_steps:
-            record(min(step * config.dt, config.T))
-
-    if not rows:
-        raise RuntimeError(f"No rows recorded for {run.run_id}")
-
-    arrays = {
-        "time": np.array([float(row["time"]) for row in rows], dtype=float),
-        "mean_w": np.array([float(row["mean_w"]) for row in rows], dtype=float),
-        "min_z": np.array([float(row["min_z"]) for row in rows], dtype=float),
-    }
-    physical = (
-        not nonphysical
-        and all(np.isfinite(float(row["mean_w"])) for row in rows)
-        and min_z_global >= -1.0e-5
-        and min_n_global >= -1.0e-8
-        and min_w_global >= -1.0e-8
-        and min_q_global >= -1.0e-6
-        and max_q_global <= 1.0 + 1.0e-6
+    min_n = float(result.diagnostics.get("min_n", np.min(result.n)))
+    min_w = float(result.diagnostics.get("min_w", np.min(result.w)))
+    min_q = float(result.diagnostics.get("min_q", np.min(result.q)))
+    max_q = float(result.diagnostics.get("max_q", np.max(result.q)))
+    min_z = float(result.diagnostics.get("min_z", np.min(result.min_z_time)))
+    q_clip_max_violation = float(result.diagnostics.get("q_clip_max_violation", 0.0))
+    return bool(
+        result.diagnostics.get("completed", True)
+        and not result.diagnostics.get("nonfinite_detected", False)
+        and min_n >= -1.0e-8
+        and min_w >= -1.0e-8
+        and min_q >= -1.0e-6
+        and max_q <= 1.0 + 1.0e-6
+        and min_z >= -1.0e-5
         and q_clip_max_violation <= 1.0e-4
     )
-    persistent = persistent_from_tail(arrays["time"], arrays["mean_w"], physical=physical)
-    persistent_label = "tail_persistent" if persistent else "tail_not_persistent"
-    for row in rows:
-        row["persistent_tail_label"] = persistent_label
-
-    summary = summarize_timeseries(run, rows)
-    summary["persistent_predator"] = persistent
-    summary["diagnosis"] = initial_run_diagnosis(summary)
-    if q_clip_count > 0 and q_clip_max_violation > 1.0e-4:
-        summary["diagnosis"] = "inconclusive"
-    return rows, summary
 
 
-def summarize_timeseries(run: DiagnosticRun, rows: list[dict[str, object]]) -> dict[str, object]:
-    times = np.asarray([float(row["time"]) for row in rows], dtype=float)
-    mask = tail_mask(times)
-    values = {
-        field: np.asarray([float(row[field]) for row in rows], dtype=float)
-        for field in TIMESERIES_FIELDNAMES
-        if field in rows[0] and field not in {"run_id", "model_type", "evolve", "stress_label", "persistent_tail_label"}
-    }
-    slope_w = tail_slope(times, values["mean_w"], mask)
-    persistent = persistent_from_tail(times, values["mean_w"], physical=True)
-    initial_q = float(rows[0]["mean_q"])
-    low_q_enrichment_tail = values["predator_low_q_enrichment"][mask]
-    high_gain_enrichment_tail = values["predator_high_gain_enrichment"][mask]
-    low_q_enrichment = float("nan") if np.all(np.isnan(low_q_enrichment_tail)) else float(np.nanmean(low_q_enrichment_tail))
-    high_gain_enrichment = float("nan") if np.all(np.isnan(high_gain_enrichment_tail)) else float(np.nanmean(high_gain_enrichment_tail))
+def classify_tail_series(
+    times: np.ndarray,
+    mean_w: np.ndarray,
+    mean_q: np.ndarray,
+    var_q: np.ndarray,
+    min_z: np.ndarray,
+    initial_q: float,
+    physical: bool = True,
+    epsilon: float = EPSILON,
+    tail_fraction: float = 0.25,
+) -> dict[str, object]:
+    """Classify a scalar predator time series with and without the slope check."""
+    times = np.asarray(times, dtype=float)
+    mean_w = np.asarray(mean_w, dtype=float)
+    mean_q = np.asarray(mean_q, dtype=float)
+    var_q = np.asarray(var_q, dtype=float)
+    min_z = np.asarray(min_z, dtype=float)
+    if len(times) < 2 or any(len(array) != len(times) for array in (mean_w, mean_q, var_q, min_z)):
+        return {
+            "physical": False,
+            "persistent_predator": False,
+            "persistent_without_slope_check": False,
+            "tail_mean_w": float("nan"),
+            "tail_min_w": float("nan"),
+            "tail_slope_w": float("nan"),
+            "tail_slope_floor_w": float("nan"),
+            "tail_mean_q": float("nan"),
+            "tail_q_change": float("nan"),
+            "tail_mean_var_q": float("nan"),
+            "tail_mean_min_z": float("nan"),
+            "classification_note": "invalid_timeseries",
+        }
+    if any(not np.all(np.isfinite(array)) for array in (times, mean_w, mean_q, var_q, min_z)):
+        physical = False
+
+    mask = tail_mask(times, tail_fraction)
+    tail_t = times[mask]
+    tail_w = mean_w[mask]
+    tail_duration = max(float(tail_t[-1] - tail_t[0]), 1.0e-12)
+    tail_mean_w = float(np.mean(tail_w))
+    tail_min_w = float(np.min(tail_w))
+    slope_w = tail_slope(times, mean_w, mask)
+    slope_floor = -max(epsilon, 0.25 * tail_mean_w) / tail_duration
+    persistent_without_slope = bool(physical and tail_mean_w > epsilon and tail_min_w > 0.25 * epsilon)
+    persistent = bool(persistent_without_slope and slope_w >= slope_floor)
+    tail_mean_q = float(np.mean(mean_q[mask]))
+    near_tolerance = (
+        abs(tail_mean_w - epsilon) <= 0.25 * epsilon
+        or abs(tail_min_w - 0.25 * epsilon) <= 0.25 * epsilon
+        or abs(slope_w - slope_floor) <= max(1.0e-8, 0.05 * abs(slope_floor))
+    )
+    if not physical:
+        note = "nonphysical"
+    elif persistent:
+        note = "persistent"
+    elif persistent_without_slope:
+        note = "slope_check_rejects"
+    elif near_tolerance:
+        note = "near_classifier_tolerance"
+    else:
+        note = "not_persistent"
     return {
-        "run_id": run.run_id,
-        "model_type": run.model_type,
-        "evolve": run.evolve,
-        "stress_label": run.stress_label,
-        "stress": run.stress,
-        "tail_mean_w": float(np.mean(values["mean_w"][mask])),
-        "tail_min_w": float(np.min(values["mean_w"][mask])),
-        "tail_slope_w": slope_w,
+        "physical": bool(physical),
         "persistent_predator": persistent,
-        "tail_mean_q": float(np.mean(values["mean_q"][mask])),
-        "tail_q_change": float(np.mean(values["mean_q"][mask]) - initial_q),
-        "tail_mean_var_q": float(np.mean(values["var_q"][mask])),
-        "tail_mean_cov_w_q": float(np.mean(values["cov_w_q"][mask])),
-        "tail_mean_cov_w_bq": float(np.mean(values["cov_w_bq"][mask])),
-        "tail_mean_cov_w_n": float(np.mean(values["cov_w_n"][mask])),
-        "tail_mean_cov_w_prey_gain": float(np.mean(values["cov_w_prey_gain"][mask])),
-        "tail_mean_spatial_covariance_bonus": float(np.mean(values["spatial_covariance_bonus"][mask])),
-        "tail_mean_predator_low_q_enrichment": low_q_enrichment,
-        "tail_mean_predator_high_gain_enrichment": high_gain_enrichment,
-        "diagnosis": "inconclusive",
+        "persistent_without_slope_check": persistent_without_slope,
+        "tail_mean_w": tail_mean_w,
+        "tail_min_w": tail_min_w,
+        "tail_slope_w": slope_w,
+        "tail_slope_floor_w": slope_floor,
+        "tail_mean_q": tail_mean_q,
+        "tail_q_change": float(tail_mean_q - initial_q),
+        "tail_mean_var_q": float(np.mean(var_q[mask])),
+        "tail_mean_min_z": float(np.mean(min_z[mask])),
+        "classification_note": note,
     }
 
 
-def initial_run_diagnosis(summary: dict[str, object]) -> str:
-    persistent = bool(summary["persistent_predator"])
-    if summary["model_type"] == "ODE" and bool(summary["evolve"]) and persistent and float(summary["tail_q_change"]) < -1.0e-3:
-        return "ode_rescue_active"
-    if summary["model_type"] == "PDE" and bool(summary["evolve"]) and persistent and float(summary["tail_q_change"]) < -1.0e-3:
-        return "pde_rescue_active"
-    if not persistent:
-        return "no_rescue"
-    return "inconclusive"
+def classify_result_at_horizon(
+    result: RoyEvoPDEResult,
+    config: RoyEvoPDEConfig,
+    stress: float,
+    horizon: float,
+    tail_fraction: float,
+) -> dict[str, object]:
+    prefix = result.t <= horizon + 1.0e-9
+    if np.count_nonzero(prefix) < 2:
+        raise ValueError(f"Not enough recorded points for horizon T={horizon:g}.")
+    physical = physical_from_result(result)
+    initial_q = float(result.diagnostics.get("initial_mean_q", result.mean_q_time[0]))
+    metrics = classify_tail_series(
+        result.t[prefix],
+        result.mean_w_time[prefix],
+        result.mean_q_time[prefix],
+        result.var_q_time[prefix],
+        result.min_z_time[prefix],
+        initial_q=initial_q,
+        physical=physical,
+        tail_fraction=tail_fraction,
+    )
+    run_id = f"PDE_EVO_s{stress:.9g}_T{horizon:.0f}_tail{tail_fraction:.2f}".replace(".", "p")
+    return {
+        "run_id": run_id,
+        "stress": float(stress),
+        "T": float(horizon),
+        "n_x": int(config.n_x),
+        "n_y": int(config.n_y),
+        "seed": int(config.seed),
+        "tail_fraction": float(tail_fraction),
+        "physical": bool(metrics["physical"]),
+        "persistent_predator": bool(metrics["persistent_predator"]),
+        "persistent_without_slope_check": bool(metrics["persistent_without_slope_check"]),
+        "tail_mean_w": float(metrics["tail_mean_w"]),
+        "tail_min_w": float(metrics["tail_min_w"]),
+        "tail_slope_w": float(metrics["tail_slope_w"]),
+        "tail_slope_floor_w": float(metrics["tail_slope_floor_w"]),
+        "tail_mean_q": float(metrics["tail_mean_q"]),
+        "tail_q_change": float(metrics["tail_q_change"]),
+        "tail_mean_var_q": float(metrics["tail_mean_var_q"]),
+        "tail_mean_min_z": float(metrics["tail_mean_min_z"]),
+        "min_n": float(result.diagnostics.get("min_n", np.min(result.n))),
+        "min_w": float(result.diagnostics.get("min_w", np.min(result.w))),
+        "min_q": float(result.diagnostics.get("min_q", np.min(result.q))),
+        "max_q": float(result.diagnostics.get("max_q", np.max(result.q))),
+        "min_z": float(result.diagnostics.get("min_z", np.min(result.min_z_time))),
+        "q_clip_count": int(result.diagnostics.get("q_clip_count", 0)),
+        "q_clip_max_violation": float(result.diagnostics.get("q_clip_max_violation", 0.0)),
+        "classification_note": str(metrics["classification_note"]),
+    }
 
 
-def mismatch_signature(summary: dict[str, object], small: float = SMALL_COVARIANCE) -> bool:
-    cov_w_q = float(summary["tail_mean_cov_w_q"])
-    cov_w_bq = float(summary["tail_mean_cov_w_bq"])
-    cov_w_prey_gain = float(summary["tail_mean_cov_w_prey_gain"])
-    low_q_enrichment = float(summary["tail_mean_predator_low_q_enrichment"])
-    high_gain_enrichment = float(summary["tail_mean_predator_high_gain_enrichment"])
-    return (
-        cov_w_q > small
-        and cov_w_bq < -small
-        and cov_w_prey_gain <= small
-        and (low_q_enrichment < 1.0 or high_gain_enrichment < 1.0)
+def timeseries_rows_for_result(result: RoyEvoPDEResult, stress: float) -> list[dict[str, object]]:
+    run_id = f"PDE_EVO_s{stress:.9g}".replace(".", "p")
+    return [
+        {
+            "run_id": run_id,
+            "stress": float(stress),
+            "time": float(t),
+            "mean_n": float(mean_n),
+            "mean_w": float(mean_w),
+            "mean_q": float(mean_q),
+            "var_n": float(var_n),
+            "var_w": float(var_w),
+            "var_q": float(var_q),
+            "min_z": float(min_z),
+        }
+        for t, mean_n, mean_w, mean_q, var_n, var_w, var_q, min_z in zip(
+            result.t,
+            result.mean_n_time,
+            result.mean_w_time,
+            result.mean_q_time,
+            result.var_n_time,
+            result.var_w_time,
+            result.var_q_time,
+            result.min_z_time,
+        )
+    ]
+
+
+def sequence_for(rows: list[dict[str, object]], horizon: float, tail_fraction: float) -> list[bool]:
+    selected = [
+        row
+        for row in rows
+        if math.isclose(float(row["T"]), horizon) and math.isclose(float(row["tail_fraction"]), tail_fraction)
+    ]
+    selected.sort(key=lambda row: float(row["stress"]))
+    return [bool(row["persistent_predator"]) for row in selected]
+
+
+def has_persistence_reentry(sequence: Iterable[bool]) -> bool:
+    seen_persistent = False
+    seen_loss_after_persistent = False
+    for value in sequence:
+        if value:
+            if seen_loss_after_persistent:
+                return True
+            seen_persistent = True
+        elif seen_persistent:
+            seen_loss_after_persistent = True
+    return False
+
+
+def is_clean_monotone_transition(sequence: Iterable[bool]) -> bool:
+    values = list(sequence)
+    if not values or all(values) or not any(values):
+        return False
+    return not has_persistence_reentry(values)
+
+
+def count_tail_fraction_disagreements(rows: list[dict[str, object]]) -> int:
+    count = 0
+    for stress in sorted({float(row["stress"]) for row in rows}):
+        for horizon in sorted({float(row["T"]) for row in rows}):
+            values = {
+                bool(row["persistent_predator"])
+                for row in rows
+                if math.isclose(float(row["stress"]), stress) and math.isclose(float(row["T"]), horizon)
+            }
+            if len(values) > 1:
+                count += 1
+    return count
+
+
+def count_horizon_disagreements(rows: list[dict[str, object]]) -> int:
+    count = 0
+    for stress in sorted({float(row["stress"]) for row in rows}):
+        for tail_fraction in sorted({float(row["tail_fraction"]) for row in rows}):
+            values = {
+                bool(row["persistent_predator"])
+                for row in rows
+                if math.isclose(float(row["stress"]), stress) and math.isclose(float(row["tail_fraction"]), tail_fraction)
+            }
+            if len(values) > 1:
+                count += 1
+    return count
+
+
+def count_slope_rule_disagreements(rows: list[dict[str, object]]) -> int:
+    return sum(
+        1
+        for row in rows
+        if bool(row["persistent_predator"]) != bool(row["persistent_without_slope_check"])
+        and bool(row["physical"])
+        and float(row["tail_mean_w"]) > EPSILON
+        and float(row["tail_min_w"]) > 0.25 * EPSILON
     )
 
 
-def dilution_signature(summary: dict[str, object], small: float = SMALL_COVARIANCE) -> bool:
-    return (
-        abs(float(summary["tail_mean_cov_w_q"])) < small
-        and abs(float(summary["tail_mean_cov_w_bq"])) < small
-        and abs(float(summary["tail_mean_cov_w_prey_gain"])) < small
-        and float(summary["tail_mean_var_q"]) < SMALL_VAR_Q
-        and abs(float(summary["tail_mean_spatial_covariance_bonus"])) < small
+def count_near_tolerance_rows(rows: list[dict[str, object]]) -> int:
+    count = 0
+    for row in rows:
+        tail_mean_w = float(row["tail_mean_w"])
+        tail_min_w = float(row["tail_min_w"])
+        slope_w = float(row["tail_slope_w"])
+        slope_floor = float(row["tail_slope_floor_w"])
+        if (
+            abs(tail_mean_w - EPSILON) <= 0.25 * EPSILON
+            or abs(tail_min_w - 0.25 * EPSILON) <= 0.25 * EPSILON
+            or abs(slope_w - slope_floor) <= max(1.0e-8, 0.05 * abs(slope_floor))
+        ):
+            count += 1
+    return count
+
+
+def stability_flags(rows: list[dict[str, object]], horizons: Iterable[float], tail_fractions: Iterable[float]) -> StabilityFlags:
+    reentry_sequences = 0
+    clean_transition_sequences = 0
+    for horizon in horizons:
+        for tail_fraction in tail_fractions:
+            sequence = sequence_for(rows, horizon, tail_fraction)
+            if has_persistence_reentry(sequence):
+                reentry_sequences += 1
+            if is_clean_monotone_transition(sequence):
+                clean_transition_sequences += 1
+    return StabilityFlags(
+        physical_failures=sum(1 for row in rows if not bool(row["physical"])),
+        tail_fraction_disagreements=count_tail_fraction_disagreements(rows),
+        horizon_disagreements=count_horizon_disagreements(rows),
+        slope_rule_disagreements=count_slope_rule_disagreements(rows),
+        reentry_sequences=reentry_sequences,
+        clean_transition_sequences=clean_transition_sequences,
+        near_tolerance_rows=count_near_tolerance_rows(rows),
     )
 
 
-def final_step10_label(ode_s3: dict[str, object], pde_s3: dict[str, object]) -> tuple[str, str]:
-    if not bool(ode_s3["persistent_predator"]) or bool(pde_s3["persistent_predator"]):
+def decide_final_label(rows: list[dict[str, object]], horizons: Iterable[float], tail_fractions: Iterable[float]) -> tuple[str, str, StabilityFlags]:
+    horizons_tuple = tuple(horizons)
+    tail_fractions_tuple = tuple(tail_fractions)
+    flags = stability_flags(rows, horizons_tuple, tail_fractions_tuple)
+    total_sequences = len(horizons_tuple) * len(tail_fractions_tuple)
+    if flags.physical_failures:
         return (
-            "spatial_suppression_inconclusive",
-            "The focused S3 window did not reproduce ODE persistence with PDE failure.",
+            "pde_evo_threshold_inconclusive",
+            "At least one PDE-evo trajectory failed physicality checks, so threshold interpretation is unreliable.",
+            flags,
         )
-    if mismatch_signature(pde_s3):
+    if flags.tail_fraction_disagreements or flags.horizon_disagreements or flags.slope_rule_disagreements:
         return (
-            "predator_low_defense_spatial_mismatch",
-            "The PDE suppresses rescue because predator density is not sufficiently colocated with low-defense/high-gain prey states in the rescue window.",
+            "pde_evo_threshold_classifier_sensitive",
+            "Persistence classifications change with tail fraction, time horizon, or the tail-slope rule.",
+            flags,
         )
-    if dilution_signature(pde_s3):
+    if flags.reentry_sequences:
         return (
-            "diffusion_dilutes_evolutionary_rescue",
-            "The PDE suppresses rescue without forming a strong beneficial spatial covariance; spatial heterogeneity in q and prey gain remains too small or too transient to amplify predator recovery.",
+            "pde_evo_threshold_nonmonotone",
+            "PDE-evo persistence disappears and then reappears at higher stress under fixed classifier settings.",
+            flags,
+        )
+    if flags.clean_transition_sequences == total_sequences and flags.near_tolerance_rows == 0:
+        return (
+            "pde_evo_threshold_monotone_stable",
+            "Increasing stress gives a clean persistent-to-nonpersistent transition across horizons and tail fractions.",
+            flags,
         )
     return (
-        "spatial_suppression_inconclusive",
-        "The focused diagnostics do not distinguish mismatch from diffusion dilution.",
+        "pde_evo_threshold_inconclusive",
+        "The focused runs do not provide a stable monotone threshold boundary.",
+        flags,
     )
 
 
-def build_runs() -> list[DiagnosticRun]:
-    runs: list[DiagnosticRun] = []
-    for stress_label, stress in STRESSES:
-        runs.append(DiagnosticRun(f"ODE_EVO_{stress_label[:2]}", "ODE", True, stress_label, stress))
-        runs.append(DiagnosticRun(f"PDE_EVO_{stress_label[:2]}", "PDE", True, stress_label, stress))
-        if stress_label in NO_EVO_STRESS_LABELS:
-            runs.append(DiagnosticRun(f"ODE_NOEVO_{stress_label[:2]}", "ODE", False, stress_label, stress))
-            runs.append(DiagnosticRun(f"PDE_NOEVO_{stress_label[:2]}", "PDE", False, stress_label, stress))
-    return runs
+def summary_rows(monotonicity_rows: list[dict[str, object]], horizons: Iterable[float]) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    for stress in STRESS_GRID:
+        for horizon in horizons:
+            grouped = {
+                float(row["tail_fraction"]): row
+                for row in monotonicity_rows
+                if math.isclose(float(row["stress"]), stress) and math.isclose(float(row["T"]), horizon)
+            }
+            base = grouped[0.25]
+            notes = sorted({str(row["classification_note"]) for row in grouped.values()})
+            rows.append(
+                {
+                    "run_id": f"PDE_EVO_s{stress:.9g}_T{horizon:.0f}".replace(".", "p"),
+                    "stress": float(stress),
+                    "T": float(horizon),
+                    "persistent_tail_025": bool_text(grouped[0.25]["persistent_predator"]),
+                    "persistent_tail_035": bool_text(grouped[0.35]["persistent_predator"]),
+                    "persistent_tail_050": bool_text(grouped[0.50]["persistent_predator"]),
+                    "persistent_without_slope_tail_025": bool_text(base["persistent_without_slope_check"]),
+                    "tail_mean_w_tail_025": float(base["tail_mean_w"]),
+                    "tail_slope_w_tail_025": float(base["tail_slope_w"]),
+                    "tail_slope_floor_w_tail_025": float(base["tail_slope_floor_w"]),
+                    "tail_mean_q_tail_025": float(base["tail_mean_q"]),
+                    "tail_q_change_tail_025": float(base["tail_q_change"]),
+                    "tail_mean_var_q_tail_025": float(base["tail_mean_var_q"]),
+                    "classification_note": ";".join(notes),
+                }
+            )
+    return rows
+
+
+def markdown_table_for_base(rows: list[dict[str, object]], horizon: float) -> list[str]:
+    selected = [
+        row
+        for row in rows
+        if math.isclose(float(row["T"]), horizon) and math.isclose(float(row["tail_fraction"]), 0.25)
+    ]
+    selected.sort(key=lambda row: float(row["stress"]))
+    lines = [
+        "| stress | persistent | no-slope persistent | tail mean w | tail slope | slope floor | tail mean q | note |",
+        "|---:|---|---|---:|---:|---:|---:|---|",
+    ]
+    for row in selected:
+        lines.append(
+            "| "
+            + " | ".join(
+                [
+                    f"{float(row['stress']):.9g}",
+                    str(bool(row["persistent_predator"])),
+                    str(bool(row["persistent_without_slope_check"])),
+                    f"{float(row['tail_mean_w']):.8g}",
+                    f"{float(row['tail_slope_w']):.8g}",
+                    f"{float(row['tail_slope_floor_w']):.8g}",
+                    f"{float(row['tail_mean_q']):.8g}",
+                    f"`{row['classification_note']}`",
+                ]
+            )
+            + " |"
+        )
+    return lines
+
+
+def markdown_tail_sensitivity_table(summary: list[dict[str, object]]) -> list[str]:
+    lines = [
+        "| stress | T | tail 0.25 | tail 0.35 | tail 0.50 | no-slope tail 0.25 |",
+        "|---:|---:|---|---|---|---|",
+    ]
+    for row in summary:
+        lines.append(
+            "| "
+            + " | ".join(
+                [
+                    f"{float(row['stress']):.9g}",
+                    f"{float(row['T']):.0f}",
+                    str(row["persistent_tail_025"]),
+                    str(row["persistent_tail_035"]),
+                    str(row["persistent_tail_050"]),
+                    str(row["persistent_without_slope_tail_025"]),
+                ]
+            )
+            + " |"
+        )
+    return lines
 
 
 def write_note(
     profile: str,
+    horizons: tuple[float, ...],
+    monotonicity_rows: list[dict[str, object]],
+    summary: list[dict[str, object]],
     final_label: str,
-    final_interpretation: str,
-    summaries: list[dict[str, object]],
-    stage_c_summary: dict[str, object] | None,
+    interpretation: str,
+    flags: StabilityFlags,
 ) -> None:
-    summary_by_run = {str(row["run_id"]): row for row in summaries}
-    ode_s3 = summary_by_run["ODE_EVO_S3"]
-    pde_s3 = summary_by_run["PDE_EVO_S3"]
-    pde_s1 = summary_by_run["PDE_EVO_S1"]
-    pde_s2 = summary_by_run["PDE_EVO_S2"]
-    if bool(ode_s3["persistent_predator"]) and not bool(pde_s3["persistent_predator"]):
-        s3_sentence = "At S3, ODE evolution is persistent while PDE evolution is not persistent. This reproduces the requested suppression-window contrast without changing Step 09 thresholds."
+    NOTES_DIR.mkdir(exist_ok=True)
+    base_t500 = markdown_table_for_base(monotonicity_rows, 500.0) if 500.0 in horizons else []
+    base_t800 = markdown_table_for_base(monotonicity_rows, 800.0) if 800.0 in horizons else []
+    tail_table = markdown_tail_sensitivity_table(summary)
+    any_persistent_above_stage_b = any(
+        float(row["stress"]) > PDE_EVO_THRESHOLD_STAGE_B and bool(row["persistent_predator"])
+        for row in monotonicity_rows
+        if math.isclose(float(row["tail_fraction"]), 0.25)
+    )
+    stage_b_warning = (
+        "The earlier Stage B threshold should not be treated as a stable monotone boundary without additional checks."
+        if any_persistent_above_stage_b
+        else "The focused run did not find persistence above the earlier Stage B threshold under the base classifier."
+    )
+    if final_label == "pde_evo_threshold_classifier_sensitive":
+        implication = (
+            "The apparent threshold is classifier-sensitive; the next step should stabilize the persistence criterion before interpreting spatial mechanism."
+        )
+    elif final_label == "pde_evo_threshold_monotone_stable":
+        implication = "The mechanism analysis can proceed using the verified threshold region."
+    elif final_label == "pde_evo_threshold_nonmonotone":
+        implication = "The PDE-evo persistence boundary is not monotone on the focused stress grid."
     else:
-        s3_sentence = (
-            "At S3, the requested suppression-window contrast is not reproduced: "
-            f"ODE persistence is `{ode_s3['persistent_predator']}` and PDE persistence is `{pde_s3['persistent_predator']}`."
-        )
-    if final_label == "diffusion_dilutes_evolutionary_rescue":
-        diagnosis_detail = (
-            "The S3 PDE covariance magnitudes, spatial covariance bonus, and var(q) are all below the documented small thresholds, "
-            "so the focused run supports diffusion dilution rather than a strong predator-low-defense mismatch."
-        )
-        interpretation_detail = (
-            "q evolution is active in both ODE and PDE trajectories, but the PDE does not create a beneficial spatial covariance. "
-            "In the suppression window, predator persistence fails in the PDE while covariance and q heterogeneity remain near numerical zero at the tail."
-        )
-    elif final_label == "predator_low_defense_spatial_mismatch":
-        diagnosis_detail = (
-            "The S3 PDE has the expected mismatch signs and predator under-occupation of low-defense or high-gain patches."
-        )
-        interpretation_detail = (
-            "q evolution is active, but predator density is not sufficiently colocated with the low-defense or high-gain prey states that would support recovery."
-        )
-    else:
-        diagnosis_detail = (
-            "The S2 near-threshold PDE run has near-zero covariance diagnostics and fails persistence while ODE evolution persists, "
-            "but the specified S3 midpoint remains persistent in the PDE. The focused diagnostics therefore do not distinguish mismatch from diffusion dilution under the requested decision rule."
-        )
-        interpretation_detail = (
-            "q evolution is active, and spatial covariances remain near zero in the focused runs. However, because the specified S3 midpoint does not reproduce PDE failure, "
-            "this run should not be used to choose between mismatch and dilution."
-        )
-    next_step = {
-        "predator_low_defense_spatial_mismatch": "Next: test whether predator-prey spatial alignment changes under targeted initial perturbations, without scanning broad parameter grids.",
-        "diffusion_dilutes_evolutionary_rescue": "Next: compare ODE and PDE transient timing in the rescue window before considering any parameter-map work.",
-        "spatial_suppression_inconclusive": "Next: improve focused diagnostics or physicality checks before interpretation.",
-    }[final_label]
+        implication = "The threshold boundary remains insufficiently resolved for mechanism interpretation."
 
     lines = [
-        "# Research Note: Mechanism of Spatial Suppression in the Eco-Evolutionary Rescue Model",
+        "# Research Note: PDE-Evolution Threshold Monotonicity Check",
         "",
         "## Executive Summary",
         "",
         f"Final Step 10 label: `{final_label}`.",
         "",
-        final_interpretation,
+        interpretation,
         "",
-        "The ODE evolutionary rescue result remains intact, and the Step 09B conclusion is unchanged: the tested spatial PDE has a lower evolution threshold than the well-mixed ODE.",
+        stage_b_warning,
         "",
-        "## Question",
+        implication,
         "",
-        "Why does the spatial PDE suppress the indirect evolutionary rescue window relative to the well-mixed ODE?",
+        "## Why This Check Was Needed",
         "",
-        "The analysis compares ODE and PDE trajectories at a focused set of stresses: unstressed baseline, a shared rescue-window stress, the PDE evolution threshold, the suppression-window midpoint, and the ODE evolution threshold.",
+        "Step 10 originally tried to diagnose the spatial suppression mechanism. But the focused S3 run did not reproduce the expected ODE-persistent/PDE-failed contrast: PDE-evo also remained persistent at S3.",
+        "",
+        "Therefore mechanism diagnosis is premature. This note tests whether PDE-evo persistence is monotone and stable near the reported PDE and ODE thresholds.",
         "",
         "## Setup",
         "",
-        f"- profile: `{profile}`",
+        f"- profile run: `{profile}`",
+        "- model: PDE-evo only",
         "- parameters: `RoyEvoParams(b_u=0.08, b_v=0.02)`",
-        "- focused PDE config: `64x64`, `L=20`, `D_n=0.01`, `D_w=0.01`, `D_q=0.005`, `T=500`, seed `20260702`",
-        f"- ODE evolution threshold: `{ODE_EVO_THRESHOLD}`",
-        f"- PDE evolution threshold: `{PDE_EVO_THRESHOLD}`",
-        f"- suppression-window midpoint S3: `{SUPPRESSION_WINDOW_STRESS}`",
-        f"- small-covariance threshold used for dilution: `{SMALL_COVARIANCE}`",
-        f"- small var(q) threshold used for dilution: `{SMALL_VAR_Q}`",
+        "- initial state: unstressed Step 09A burn-in via `find_evo_equilibrium`",
+        "- grid: `64x64`, `L_x=L_y=20`, seed `20260702`",
+        "- diffusion: `D_n=0.01`, `D_w=0.01`, `D_q=0.005`",
+        "- integration: `dt=0.1`, `record_every=50`",
+        f"- evaluated horizons: `{', '.join(f'{h:.0f}' for h in horizons)}`",
+        "- tail fractions: `0.25`, `0.35`, `0.50`",
+        "- base persistence rule: physical trajectory, tail mean predator density above `1e-4`, tail minimum above `2.5e-5`, and tail slope no more negative than the tail-slope floor",
+        "- relaxed rule: same density thresholds but without the tail-slope check",
         "",
-        "## ODE-PDE Rescue Window Comparison",
+        "## Stress Grid",
         "",
-        "| run | stress | persistent | tail mean w | tail mean q | q change |",
-        "|---|---:|---|---:|---:|---:|",
+        "The focused grid was:",
+        "",
+        "```text",
+        ", ".join(f"{stress:.9g}" for stress in STRESS_GRID),
+        "```",
+        "",
+        "This covers the shared rescue region, the reported Stage B PDE threshold, the S3 midpoint, the Stage C/ODE-threshold region, and above the ODE threshold.",
+        "",
+        "## Persistence Classification Results",
+        "",
     ]
-    for row in [summary_by_run["ODE_EVO_S1"], pde_s1, summary_by_run["ODE_EVO_S2"], pde_s2, ode_s3, pde_s3, summary_by_run["ODE_EVO_S4"], summary_by_run["PDE_EVO_S4"]]:
-        lines.append(
-            f"| `{row['run_id']}` | {float(row['stress']):.8g} | {row['persistent_predator']} | "
-            f"{float(row['tail_mean_w']):.8g} | {float(row['tail_mean_q']):.8g} | {float(row['tail_q_change']):.8g} |"
-        )
+    if base_t500:
+        lines.extend(["Base classifier results for `T=500`, `tail_fraction=0.25`:", ""])
+        lines.extend(base_t500)
+        lines.append("")
+    if base_t800:
+        lines.extend(["Base classifier results for `T=800`, `tail_fraction=0.25`:", ""])
+        lines.extend(base_t800)
+        lines.append("")
     lines.extend(
         [
+            "## Classifier Sensitivity",
             "",
-            s3_sentence,
+            f"- tail-fraction disagreement groups: `{flags.tail_fraction_disagreements}`",
+            f"- horizon disagreement groups: `{flags.horizon_disagreements}`",
+            f"- slope-rule disagreement rows: `{flags.slope_rule_disagreements}`",
+            f"- near-tolerance rows: `{flags.near_tolerance_rows}`",
             "",
-            "## Spatial Covariance Diagnostics",
-            "",
-            "| PDE evo run | cov(w,q) | cov(w,b(q)) | cov(w,n) | cov(w,b(q)nz) | spatial covariance bonus | var(q) |",
-            "|---|---:|---:|---:|---:|---:|---:|",
         ]
     )
-    for row in [pde_s1, pde_s2, pde_s3, summary_by_run["PDE_EVO_S4"]]:
-        lines.append(
-            f"| `{row['run_id']}` | {float(row['tail_mean_cov_w_q']):.8g} | "
-            f"{float(row['tail_mean_cov_w_bq']):.8g} | {float(row['tail_mean_cov_w_n']):.8g} | "
-            f"{float(row['tail_mean_cov_w_prey_gain']):.8g} | "
-            f"{float(row['tail_mean_spatial_covariance_bonus']):.8g} | {float(row['tail_mean_var_q']):.8g} |"
-        )
+    lines.extend(tail_table)
     lines.extend(
         [
             "",
-            "## Low-Defense / High-Gain Patch Occupancy",
+            "## Monotonicity Diagnosis",
             "",
-            "| PDE evo run | predator low-q enrichment | predator high-gain enrichment | diagnosis |",
-            "|---|---:|---:|---|",
-        ]
-    )
-    for row in [pde_s1, pde_s2, pde_s3, summary_by_run["PDE_EVO_S4"]]:
-        lines.append(
-            f"| `{row['run_id']}` | {float(row['tail_mean_predator_low_q_enrichment']):.8g} | "
-            f"{float(row['tail_mean_predator_high_gain_enrichment']):.8g} | `{row['diagnosis']}` |"
-        )
-    lines.extend(
-        [
-            "",
-            "## Diagnosis",
+            f"- re-entry sequences: `{flags.reentry_sequences}`",
+            f"- clean transition sequences: `{flags.clean_transition_sequences}`",
+            f"- physical failures: `{flags.physical_failures}`",
             "",
             f"Final Step 10 label: `{final_label}`.",
             "",
-            final_interpretation,
+            interpretation,
             "",
-            diagnosis_detail,
-        ]
-    )
-    if stage_c_summary is not None:
-        lines.extend(
-            [
-                "",
-                "A Stage C-style 96x96 check was run under `--profile full`.",
-                f"Stage C S3 PDE evolution persistent: `{stage_c_summary['persistent_predator']}`; tail covariance bonus: `{float(stage_c_summary['tail_mean_spatial_covariance_bonus']):.8g}`.",
-            ]
-        )
-    else:
-        lines.extend(["", "The default focused profile did not run the optional Stage C-style check."])
-    lines.extend(
-        [
+            "## Implication for Spatial Suppression Mechanism",
             "",
-            "## Interpretation",
+            "The spatial suppression mechanism should not be claimed from the current Step 10 diagnostics.",
             "",
-            interpretation_detail,
+            implication,
             "",
-            "This result leaves the PR #3 conclusion unchanged: the spatial PDE did not amplify the ODE rescue window.",
+            "This check does not alter the PR #3 conclusions; it only shows that the PDE-evo threshold boundary used for mechanism localization needs a stability audit before mechanistic interpretation.",
             "",
             "## Files",
             "",
-            f"- `{TIMESERIES_CSV.relative_to(ROOT)}`",
-            f"- `{SUMMARY_CSV.relative_to(ROOT)}`",
+            "- `results/roy_spatial_suppression_monotonicity.csv`",
+            "- `results/roy_spatial_suppression_summary.csv`",
+            "- `results/roy_spatial_suppression_timeseries.csv`",
             "",
             "## Next Step",
             "",
-            next_step,
+            "Next: stabilize the PDE-evo persistence criterion and threshold boundary before interpreting spatial mechanism.",
         ]
     )
-    SUMMARY_MD.parent.mkdir(exist_ok=True)
     SUMMARY_MD.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def run(profile: str) -> None:
-    RESULTS_DIR.mkdir(exist_ok=True)
-    NOTES_DIR.mkdir(exist_ok=True)
-    equilibrium = find_evo_equilibrium(PARAMS, guesses=(BURN_IN_INITIAL,), burn_in_T=BURN_IN_T)
-    initial_ode = np.array([equilibrium["n"], equilibrium["w"], equilibrium["q"]], dtype=float)
-    focused_config = RoyEvoPDEConfig(
+def pde_config(max_horizon: float) -> RoyEvoPDEConfig:
+    return RoyEvoPDEConfig(
         n_x=64,
         n_y=64,
         L_x=20.0,
         L_y=20.0,
-        T=500.0,
         dt=0.1,
+        T=float(max_horizon),
         record_every=50,
         D_n=0.01,
         D_w=0.01,
         D_q=0.005,
         seed=20260702,
     )
-    initial_pde = initial_state_from_ode_equilibrium(initial_ode, focused_config)
 
-    all_timeseries: list[dict[str, object]] = []
-    summaries: list[dict[str, object]] = []
-    for diagnostic_run in build_runs():
-        print(f"{diagnostic_run.run_id}: {diagnostic_run.model_type} evolve={diagnostic_run.evolve} stress={diagnostic_run.stress:.8g}")
-        if diagnostic_run.model_type == "ODE":
-            rows, summary = simulate_ode_run(diagnostic_run, initial_ode)
-        else:
-            rows, summary = simulate_pde_diagnostic_run(diagnostic_run, focused_config, initial_pde)
-        all_timeseries.extend(rows)
-        summaries.append(summary)
 
-    summary_by_run = {str(row["run_id"]): row for row in summaries}
-    final_label, final_interpretation = final_step10_label(summary_by_run["ODE_EVO_S3"], summary_by_run["PDE_EVO_S3"])
-    summary_by_run["PDE_EVO_S3"]["diagnosis"] = (
-        "predator_low_defense_mismatch"
-        if final_label == "predator_low_defense_spatial_mismatch"
-        else "diffusion_dilution_signature"
-        if final_label == "diffusion_dilutes_evolutionary_rescue"
-        else "inconclusive"
-    )
-    summaries = list(summary_by_run.values())
+def horizons_for_profile(profile: str) -> tuple[float, ...]:
+    if profile == "minimal":
+        return MINIMAL_HORIZONS
+    return FOCUSED_HORIZONS
 
-    stage_c_summary = None
-    if profile == "full":
-        full_config = RoyEvoPDEConfig(
-            n_x=96,
-            n_y=96,
-            L_x=20.0,
-            L_y=20.0,
-            T=600.0,
-            dt=0.1,
-            record_every=60,
-            D_n=0.01,
-            D_w=0.01,
-            D_q=0.005,
-            seed=20260705,
-        )
-        full_initial = initial_state_from_ode_equilibrium(initial_ode, full_config)
-        full_run = DiagnosticRun("PDE_EVO_S3_STAGE_C", "PDE", True, "S3_suppression_window_midpoint", SUPPRESSION_WINDOW_STRESS)
-        rows, stage_c_summary = simulate_pde_diagnostic_run(full_run, full_config, full_initial)
-        all_timeseries.extend(rows)
-        summaries.append(stage_c_summary)
 
-    write_csv(all_timeseries, TIMESERIES_CSV, TIMESERIES_FIELDNAMES)
-    write_csv(summaries, SUMMARY_CSV, SUMMARY_FIELDNAMES)
-    write_note(profile, final_label, final_interpretation, summaries, stage_c_summary)
+def run(profile: str = "focused") -> tuple[str, str]:
+    horizons = horizons_for_profile(profile)
+    max_horizon = max(horizons)
+    config = pde_config(max_horizon)
+    RESULTS_DIR.mkdir(exist_ok=True)
+    NOTES_DIR.mkdir(exist_ok=True)
+    equilibrium = find_evo_equilibrium(PARAMS)
+    initial_state = initial_state_from_ode_equilibrium(equilibrium, config)
+
+    monotonicity_rows: list[dict[str, object]] = []
+    timeseries_rows: list[dict[str, object]] = []
+    for stress in STRESS_GRID:
+        print(f"PDE_EVO stress={stress:.9g} T={max_horizon:.0f}")
+        result = simulate_pde_evo_2d(PARAMS, config, initial_state, stress=stress, evolve=True)
+        timeseries_rows.extend(timeseries_rows_for_result(result, stress))
+        for horizon in horizons:
+            for tail_fraction in TAIL_FRACTIONS:
+                monotonicity_rows.append(classify_result_at_horizon(result, config, stress, horizon, tail_fraction))
+
+    summary = summary_rows(monotonicity_rows, horizons)
+    final_label, interpretation, flags = decide_final_label(monotonicity_rows, horizons, TAIL_FRACTIONS)
+    write_csv(monotonicity_rows, MONOTONICITY_CSV, MONOTONICITY_FIELDNAMES)
+    write_csv(summary, SUMMARY_CSV, SUMMARY_FIELDNAMES)
+    write_csv(timeseries_rows, TIMESERIES_CSV, TIMESERIES_FIELDNAMES)
+    write_note(profile, horizons, monotonicity_rows, summary, final_label, interpretation, flags)
     print(SUMMARY_MD.read_text(encoding="utf-8"))
+    return final_label, interpretation
 
 
 def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--profile", choices=["focused", "full"], default="focused")
+    parser.add_argument("--profile", choices=["minimal", "focused", "full"], default="focused")
     return parser.parse_args(argv)
 
 
