@@ -621,3 +621,172 @@ def test_step12_final_label_detects_nonmonotone_reentry():
 
     assert label == "pde_evo_threshold_nonmonotone"
     assert flags.reentry_sequences == 1
+
+
+def load_step13_module():
+    path = Path(__file__).resolve().parents[1] / "experiments" / "13_roy_pde_evo_persistence_stability.py"
+    spec = importlib.util.spec_from_file_location("step13_persistence", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_step13_horizon_status_persistent_like_for_stable_tail():
+    step13 = load_step13_module()
+    metrics = step13.TailMetrics(
+        physical=True,
+        persistent_with_slope_rule=True,
+        persistent_without_slope_rule=True,
+        tail_mean_w=0.5,
+        tail_min_w=0.49,
+        tail_slope_w=0.0,
+        tail_slope_floor_w=-0.01,
+        tail_mean_q=0.4,
+        tail_q_change=-0.2,
+        tail_mean_var_q=0.0,
+        tail_mean_min_z=1.0,
+    )
+
+    assert step13.classify_horizon_status(metrics) == "persistent_like"
+
+
+def test_step13_horizon_status_extinct_like_for_near_zero_tail():
+    step13 = load_step13_module()
+    metrics = step13.TailMetrics(
+        physical=True,
+        persistent_with_slope_rule=False,
+        persistent_without_slope_rule=False,
+        tail_mean_w=1.0e-6,
+        tail_min_w=5.0e-7,
+        tail_slope_w=0.0,
+        tail_slope_floor_w=-1.0e-6,
+        tail_mean_q=0.1,
+        tail_q_change=-0.5,
+        tail_mean_var_q=0.0,
+        tail_mean_min_z=1.0,
+    )
+
+    assert step13.classify_horizon_status(metrics) == "extinct_like"
+
+
+def test_step13_horizon_status_declining_transient_for_slope_rejection():
+    step13 = load_step13_module()
+    metrics = step13.TailMetrics(
+        physical=True,
+        persistent_with_slope_rule=False,
+        persistent_without_slope_rule=True,
+        tail_mean_w=0.5,
+        tail_min_w=0.4,
+        tail_slope_w=-0.02,
+        tail_slope_floor_w=-0.01,
+        tail_mean_q=0.3,
+        tail_q_change=-0.3,
+        tail_mean_var_q=0.0,
+        tail_mean_min_z=1.0,
+    )
+
+    assert step13.classify_horizon_status(metrics) == "declining_transient"
+
+
+def step13_row(stress, horizon, tail_fraction, status, tail_mean_w, physical=True):
+    return {
+        "stress": stress,
+        "T": horizon,
+        "tail_fraction": tail_fraction,
+        "physical": physical,
+        "horizon_status": status,
+        "tail_mean_w": tail_mean_w,
+        "persistent_with_slope_rule": status in {"persistent_like", "recovery_transient"},
+        "persistent_without_slope_rule": status not in {"extinct_like", "indeterminate"},
+    }
+
+
+def step13_rows_for_all_tails(stress, statuses, means):
+    rows = []
+    for tail_fraction in (0.25, 0.35, 0.50):
+        for horizon, status, mean_w in zip((500.0, 800.0, 1200.0), statuses, means):
+            rows.append(step13_row(stress, horizon, tail_fraction, status, mean_w))
+    return rows
+
+
+def test_step13_aggregate_status_persistent_confirmed_for_stable_latest_horizons():
+    step13 = load_step13_module()
+    rows = step13_rows_for_all_tails(
+        0.09,
+        ["persistent_like", "persistent_like", "persistent_like"],
+        [0.63, 0.64, 0.641],
+    )
+
+    summary = step13.aggregate_stress_status(rows)
+
+    assert summary["final_status"] == "persistent_confirmed"
+
+
+def test_step13_aggregate_status_extinct_confirmed_for_two_extinct_latest_horizons():
+    step13 = load_step13_module()
+    rows = step13_rows_for_all_tails(
+        0.175,
+        ["declining_transient", "extinct_like", "extinct_like"],
+        [0.1, 1.0e-6, 5.0e-7],
+    )
+
+    summary = step13.aggregate_stress_status(rows)
+
+    assert summary["final_status"] == "extinct_confirmed"
+
+
+def test_step13_aggregate_status_recovery_transient_after_earlier_decline():
+    step13 = load_step13_module()
+    rows = step13_rows_for_all_tails(
+        0.15,
+        ["extinct_like", "declining_transient", "persistent_like"],
+        [1.0e-6, 0.10, 0.20],
+    )
+
+    summary = step13.aggregate_stress_status(rows)
+
+    assert summary["final_status"] == "recovery_transient"
+
+
+def test_step13_final_label_long_transients_dominate():
+    step13 = load_step13_module()
+    summary_rows = []
+    detail_rows = []
+    for idx, stress in enumerate(np.linspace(0.09, 0.18, 10)):
+        status = "declining_transient" if idx < 4 else "indeterminate"
+        summary_rows.append(
+            {
+                "stress": float(stress),
+                "final_status": status,
+                "physical_failure": False,
+            }
+        )
+        latest_statuses = ["declining_transient", "declining_transient", "persistent_like"] if idx < 4 else ["persistent_like"] * 3
+        for tail_fraction, horizon_status in zip((0.25, 0.35, 0.50), latest_statuses):
+            detail_rows.append(
+                {
+                    "stress": float(stress),
+                    "T": 1200.0,
+                    "tail_fraction": tail_fraction,
+                    "horizon_status": horizon_status,
+                }
+            )
+
+    label, _interpretation = step13.final_step11_label(summary_rows, detail_rows, 1200.0)
+
+    assert label == "pde_evo_long_transients_dominate"
+
+
+def test_step13_final_label_boundary_nonmonotone():
+    step13 = load_step13_module()
+    summary_rows = [
+        {"stress": 0.1, "final_status": "persistent_confirmed", "physical_failure": False},
+        {"stress": 0.2, "final_status": "extinct_confirmed", "physical_failure": False},
+        {"stress": 0.3, "final_status": "persistent_confirmed", "physical_failure": False},
+    ]
+
+    label, _interpretation = step13.final_step11_label(summary_rows, [], 1200.0)
+
+    assert label == "pde_evo_boundary_nonmonotone"
