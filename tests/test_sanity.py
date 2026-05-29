@@ -1261,3 +1261,87 @@ def test_step21_selection_gradient_helper_matches_formula():
     gradient = step21.selection_gradient_value(n=n, w=w, q=q, params=params)
 
     assert np.isclose(gradient, expected)
+
+
+def load_step22_module():
+    path = Path(__file__).resolve().parents[1] / "experiments" / "22_roy_ode_compensation_robustness.py"
+    spec = importlib.util.spec_from_file_location("step22_ode_compensation", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_step22_analytic_branch_current_matches_known_stress_zero_values():
+    step22 = load_step22_module()
+    params = RoyEvoParams(b_u=0.08, b_v=0.02)
+
+    branch = step22.analytic_compensation_branch(params, 0.0)
+
+    assert branch.interior_exists
+    assert np.isclose(branch.n_star, 4.833333333333334)
+    assert np.isclose(branch.w_star, 0.6416666666666666)
+    assert np.isclose(branch.q_star, 0.672614741580259)
+
+
+def test_step22_branch_existence_rejects_invalid_selection_ratio():
+    step22 = load_step22_module()
+    params = RoyEvoParams(r_v=1.1, a_v=0.35, b_u=0.08, b_v=0.02)
+
+    branch = step22.analytic_compensation_branch(params, 0.0)
+
+    assert not branch.interior_exists
+    assert branch.existence_failure_reason == "invalid_selection_ratio"
+
+
+def test_step22_interval_is_positive_for_current_parameterization():
+    step22 = load_step22_module()
+    params = RoyEvoParams(b_u=0.08, b_v=0.02)
+
+    interval = step22.compensation_interval(params)
+
+    assert interval.valid
+    assert interval.interior_stress_interval_length > 0.0
+    assert interval.nonnegative_interval_length > 0.0
+
+
+def test_step22_branch_comparison_detects_small_delta_for_current_numerical_equilibria():
+    step22 = load_step22_module()
+    rows = step22.read_csv(step22.NUMERICAL_EQUILIBRIA_CSV)
+    branch = step22.analytic_compensation_branch(step22.PARAMS, 0.1584375)
+
+    numerical = step22.current_numerical_stable_branch(rows, 0.1584375, branch)
+
+    assert numerical is not None
+    assert abs(branch.q_star - float(numerical["q_star"])) < 1.0e-10
+
+
+def test_step22_final_label_rule_synthetic_inputs():
+    step22 = load_step22_module()
+
+    supported = step22.decide_final_label(
+        analytic_matches_current=True,
+        max_abs_delta_q=1.0e-8,
+        branch_present_fraction=0.5,
+        basin_maps_completed=True,
+        equilibria_completed=True,
+    )
+    sensitive = step22.decide_final_label(
+        analytic_matches_current=True,
+        max_abs_delta_q=1.0e-8,
+        branch_present_fraction=0.2,
+        basin_maps_completed=True,
+        equilibria_completed=True,
+    )
+    unresolved = step22.decide_final_label(
+        analytic_matches_current=False,
+        max_abs_delta_q=1.0e-8,
+        branch_present_fraction=0.5,
+        basin_maps_completed=True,
+        equilibria_completed=True,
+    )
+
+    assert supported == "ode_compensation_branch_supported"
+    assert sensitive == "ode_compensation_branch_parameter_sensitive"
+    assert unresolved == "ode_compensation_branch_unresolved"

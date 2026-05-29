@@ -1,0 +1,10 @@
+metric,value,interpretation
+analytic_matches_current_numerical_branch,True,analytic branch matches existing stable persistent numerical equilibria
+max_abs_delta_q_current_branch,7.688294445529209e-15,maximum q difference between analytic and numerical current-parameter branch
+focused_grid_total_parameter_sets,81,structured local trade-off combinations tested analytically
+focused_grid_branch_present_count,72,parameter sets with valid compensation interval overlapping nonnegative stress
+focused_grid_branch_present_fraction,0.8888888888888888,"local structured robustness fraction, not global generality"
+focused_grid_branch_present_at_target_stress_count,38,parameter sets with branch present at all target stress diagnostics
+selected_basin_maps_completed,True,selected ODE basin maps completed for three parameter sets
+selected_equilibria_completed,True,selected numerical equilibrium/stability diagnostics completed
+final_label,ode_compensation_branch_supported,allowed final label for homogeneous compensation robustness
