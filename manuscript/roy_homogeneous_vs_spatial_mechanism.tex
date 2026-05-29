@@ -145,6 +145,8 @@ The equilibrium scan suggests that the persistent homogeneous branch compensates
 
 The mechanism diagnosis points to a homogeneous compensation branch. The persistent branch is explained by the ODE equilibrium conditions, where \(q^*(s)\) shifts downward as stress increases and restores predator growth balance. A follow-up local trade-off check supports this branch in the current parameterization and nearby structured trade-off settings, with supporting diagnostics in Figures 33, 34, and 37 of the main report. The robustness claim remains local and parameter-dependent.
 
+A subsequent conditions analysis makes this mechanism more explicit. For the linear trade-off ODE, the interior branch exists when \(c=(r_v-r_u)/(a_v-a_u)>0\), \(r_u-ca_u>0\), the implied \(z^*,w^*,n^*\) are positive, and the predator-balance value \(q^*(s)\) lies in \((0,1)\). In the current parameterization, these feasibility inequalities hold over the tested stresses, the analytic branch matches the numerical persistent equilibria to machine precision, and the analytic Jacobian is locally stable at the tested target stresses. This strengthens the homogeneous mechanism diagnosis while keeping it conditional on the tested linear trade-offs.
+
 \section{Limitations}
 
 The conclusion is restricted to the tested parameterization. The analysis does not test diffusion coefficients, trade-off forms, evolutionary rates, grid convergence, or longer horizons for all transient basin points. Transient classifications remain lower-confidence than the persistent and extinct steady cases. No general claim is made that spatial structure cannot mediate bistability in other parameter regimes.

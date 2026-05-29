@@ -1,0 +1,13 @@
+metric,value,interpretation
+current_branch_conditions_all_satisfied,True,all current feasibility and target-stress interior conditions are satisfied
+analytic_matches_current_numerical_branch,True,analytic branch matches the existing numerical branch within tolerance
+current_branch_stable_at_all_target_stresses,True,analytic Jacobian has negative max real eigenvalue at all target stresses
+current_stress_interval_low,-0.11313888888888887,lower endpoint of open interval for 0<q*(s)<1
+current_stress_interval_high,0.23244444444444454,upper endpoint of open interval for 0<q*(s)<1
+current_interval_length,0.3455833333333334,length of current branch interior stress interval
+condition_grid_total,225,structured analytic condition grid size
+condition_grid_valid_branch_count,225,grid rows with valid branch geometry and interval
+condition_grid_valid_stable_target_count,107,grid rows stable at the two target rescue stresses
+condition_grid_invalid_geometry_count,0,grid rows failing c>0 trade-off geometry
+condition_grid_invalid_feasibility_count,0,grid rows failing positivity or interval feasibility
+final_label,compensation_conditions_derived_and_supported,allowed final label for compensation-condition derivation
