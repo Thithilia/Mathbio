@@ -94,7 +94,7 @@ Bistability appears where persistent and extinct basin outcomes coexist across i
 
 ## Basin-Boundary Update
 
-PR #9 quantified the basin boundary by scanning initial defense frequency `q0` and predator abundance scale `w0_scale`.
+PR #9 quantified the basin boundary by scanning initial defense frequency `q0` and predator abundance scale `w0_scale` at two focused stresses. The result was:
 
 ```text
 PR #9: basin_boundary_mapped
@@ -107,7 +107,7 @@ PR #9: basin_boundary_mapped
 
 ![PDE-evolution basin boundary scan](../figures/roy_evo_spatial/17_basin_boundary_heatmap.png)
 
-The basin-boundary scan sharpened the Step 13 result. Persistent basins concentrate at low-to-intermediate `q0`, while initial predator abundance modulates whether trajectories enter predator-persistent, transient, or extinct regions.
+The basin-boundary scan sharpened the Step 13 result: basin entry depends on initial defense frequency and predator abundance. Persistent basins concentrate at low-to-intermediate `q0`, with predator initial abundance modulating whether trajectories settle into predator persistence or remain transient.
 
 ## Current Scientific Conclusion
 
@@ -115,7 +115,7 @@ ODE prey defense evolution supports indirect evolutionary rescue. In the spatial
 
 A single scalar PDE-evo threshold is inappropriate in the mapped stress range. The PDE eco-evolutionary model has stress-response regimes, including persistent/transient mixed regimes and bistable persistent/extinct regimes. PR #9 further shows that basin entry is organized in `q0`-`w0_scale` initial-condition space.
 
-The next research direction is adaptive refinement of the basin boundary, not another threshold scan. The next quantitative question is how the separatrix in q0-w0 space changes with stress.
+The next research direction is adaptive refinement of the basin boundary, not another threshold scan. The next quantitative question is how the separatrix in `q0`-`w0` space changes with stress.
 
 ## Files
 
@@ -158,4 +158,4 @@ experiments/16_plot_roy_basin_regime_map.py
 
 ## Next Research Direction
 
-The next research direction is adaptive refinement of the basin boundary, not another threshold scan. The next quantitative question is how the separatrix in q0-w0 space changes with stress.
+The next research direction is adaptive refinement of the basin boundary, not another threshold scan. The next quantitative question is how the separatrix in `q0`-`w0` space changes with stress.

@@ -172,9 +172,9 @@ Therefore, threshold language must be replaced by stress-regime and basin langua
 
 ## Updated Interpretation After Basin-Boundary Mapping
 
-PR #9 quantified basin boundaries in initial-condition space. The scan varied initial defense frequency `q0` and initial predator abundance scale `w0_scale` at target stresses `0.1584375` and `0.16486816`.
+PR #9 quantified basin boundaries in initial-condition space. The scan varied initial defense frequency `q0` and initial predator abundance scale `w0_scale` at stresses `0.1584375` and `0.16486816`.
 
-Both target stresses were classified as `bistable_persistent_extinct`:
+Both stresses showed `bistable_persistent_extinct` outcomes:
 
 ```text
 0.1584375: persistent = 20, extinct = 7, transient = 43, unresolved = 0, nonphysical = 0

@@ -58,7 +58,13 @@ This established that predator-persistent and predator-extinct outcomes can both
 
 ## Basin-Boundary Scan
 
-PR #9 quantified the basin boundary by varying `q0` and `w0_scale` at two stresses inside the bistable interval.
+PR #9 scanned `q0` and `w0_scale` at two stresses inside the bistable interval. The final Step 15 label was:
+
+```text
+basin_boundary_mapped
+```
+
+The stress-level summary was:
 
 | stress | persistent | extinct | transient | unresolved | nonphysical | regime |
 |---:|---:|---:|---:|---:|---:|---|
@@ -107,4 +113,4 @@ figures/roy_evo_spatial/17_basin_boundary_heatmap.png
 
 ## Next Research Direction
 
-The next research direction is adaptive refinement of the basin boundary, not another threshold scan. The next quantitative question is how the separatrix in q0-w0 space changes with stress.
+The next research direction is adaptive refinement of the basin boundary, not another threshold scan. The next quantitative question is how the separatrix in `q0`-`w0` space changes with stress.
