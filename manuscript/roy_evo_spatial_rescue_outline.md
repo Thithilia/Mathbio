@@ -1,8 +1,24 @@
 # Outline: Eco-Evolutionary Rescue and Spatial Bistability in a Roy-Style Predator–Prey Model
 
+## Final mechanism after verification
+
+The manuscript should now be built around the homogeneous compensation branch. The PDE section should be framed as spatial stability and perturbation testing of that branch. The final story is not spatial-pattern-mediated rescue.
+
+Proposed manuscript structure:
+
+1. Introduction
+2. Model
+3. Homogeneous compensation branch
+4. Existence conditions
+5. Local stability
+6. PDE spatial stability
+7. Non-homogeneous perturbation tests
+8. Biological interpretation
+9. Limitations
+
 ## Working Abstract
 
-This report studies indirect evolutionary rescue in a Roy-style predator-prey model with prey defense evolution. The fixed-defense spatial route did not produce robust predator rescue. The well-mixed eco-evolutionary ODE did support indirect evolutionary rescue through a decrease in prey defense frequency. In the spatial PDE, the current result is not a simple spatial suppression result. It is a bistability and basin-structure result: the same stress can lead to predator persistence or extinction depending on initial defense frequency and predator abundance.
+This report studies indirect evolutionary rescue in a Roy-style predator-prey model with prey defense evolution. The fixed-defense spatial route did not produce robust predator rescue. The well-mixed eco-evolutionary ODE supports indirect evolutionary rescue through a homogeneous compensation branch in which prey defense frequency decreases as predator mortality stress increases. The spatial PDE preserves this reaction-level mechanism in the tested setup; spatial-pattern-mediated rescue is not supported by the current evidence.
 
 ## 1. Introduction
 
