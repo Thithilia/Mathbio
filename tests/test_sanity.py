@@ -1496,3 +1496,92 @@ def test_step24_final_label_supported_for_stable_current_and_no_disagreements():
     )
 
     assert label == "routh_hurwitz_conditions_supported"
+
+
+def load_step25_module():
+    path = Path(__file__).resolve().parents[1] / "experiments" / "25_roy_pde_spatial_stability_and_nonhomogeneous_tests.py"
+    spec = importlib.util.spec_from_file_location("step25_pde_spatial_stability", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_step25_neumann_eigenvalue_zero_mode_is_zero():
+    step25 = load_step25_module()
+
+    assert np.isclose(step25.neumann_eigenvalue(0, 0, L_x=20.0, L_y=20.0), 0.0)
+
+
+def test_step25_neumann_eigenvalue_first_x_mode_matches_formula():
+    step25 = load_step25_module()
+    L_x = 20.0
+
+    assert np.isclose(step25.neumann_eigenvalue(1, 0, L_x=L_x, L_y=20.0), (np.pi / L_x) ** 2)
+
+
+def test_step25_modal_matrix_zero_mode_equals_ode_jacobian():
+    step25 = load_step25_module()
+    jacobian = np.array(
+        [
+            [-1.0, 0.2, 0.0],
+            [0.1, -2.0, 0.3],
+            [0.0, -0.4, -3.0],
+        ],
+        dtype=float,
+    )
+
+    modal = step25.modal_matrix(jacobian, lambda_mn=0.0, diffusion=(0.01, 0.02, 0.03))
+
+    assert np.allclose(modal, jacobian)
+
+
+def test_step25_modal_matrix_zero_diffusion_equals_ode_jacobian_for_any_mode():
+    step25 = load_step25_module()
+    jacobian = np.array(
+        [
+            [-1.0, 0.2, 0.0],
+            [0.1, -2.0, 0.3],
+            [0.0, -0.4, -3.0],
+        ],
+        dtype=float,
+    )
+
+    modal = step25.modal_matrix(jacobian, lambda_mn=5.0, diffusion=(0.0, 0.0, 0.0))
+
+    assert np.allclose(modal, jacobian)
+
+
+def test_step25_spatial_stability_label_detects_stable_growths():
+    step25 = load_step25_module()
+
+    label = step25.spatial_stability_label_from_growths(np.array([-0.1, -0.01, -1.0e-5]))
+
+    assert label == "linearly_spatially_stable"
+
+
+def test_step25_spatial_stability_label_detects_positive_growth():
+    step25 = load_step25_module()
+
+    label = step25.spatial_stability_label_from_growths(np.array([-0.1, 1.0e-4]))
+
+    assert label == "linear_spatial_instability_detected"
+
+
+def test_step25_basin_changed_detects_nonhomogeneous_basin_switch():
+    step25 = load_step25_module()
+
+    assert step25.basin_changed("transient_basin", "persistent_basin")
+    assert not step25.basin_changed("persistent_basin", "persistent_basin")
+
+
+def test_step25_cv_helper_returns_finite_value_and_detects_decay():
+    step25 = load_step25_module()
+    field = np.array([[1.0, 1.1], [0.9, 1.0]], dtype=float)
+
+    cv = step25.coefficient_of_variation(field)
+
+    assert np.isfinite(cv)
+    assert cv > 0.0
+    assert step25.cv_decay_below_threshold(initial_cv=0.2, final_cv=5.0e-4, threshold=1.0e-3)
