@@ -1,0 +1,9 @@
+metric,value,interpretation
+followed_cases_count,2,PR #23 basin-changing non-homogeneous cases followed
+horizons_tested,1600;3200;6400,PDE horizons used for each followed case and matched homogeneous control
+cases_resolved_to_homogeneous_control,2,followed cases matching the homogeneous-control basin at the longest horizon
+cases_persist_different_basin_without_pattern,0,followed cases with a different steady-like basin and no final spatial pattern
+cases_persist_different_basin_with_pattern,0,followed cases with different basin and final spatial CV above threshold
+cases_unresolved,0,followed cases still transient or near-boundary at the longest horizon
+max_final_cv_at_longest_horizon,1.8280766825877938e-14,"maximum final CV across n,w,q among followed cases at the longest horizon"
+final_label,nonhomogeneous_basin_changes_resolve_to_homogeneous_control,allowed final label for the long-horizon follow-up
