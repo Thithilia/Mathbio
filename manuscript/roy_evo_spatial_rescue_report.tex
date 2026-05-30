@@ -339,6 +339,8 @@ For the current diffusion coefficients, all tested nonzero Neumann modes were st
 
 Linear stability does not rule out finite-amplitude basin effects, so targeted nonlinear PDE tests used localized predator patches, localized defense patches, sinusoidal modes, random heterogeneity, and basin-boundary heterogeneity. These tests were compared with matched homogeneous controls. The final decision was spatial stability of the homogeneous branch with finite-amplitude basin effects: two local-defense perturbations from basin-boundary mean states changed the finite-horizon basin label from persistent to transient, while final spatial CV values decayed below threshold and no sustained spatial pattern persisted. Thus the finite-amplitude result qualifies the reaction-dominated interpretation near basin boundaries, but it does not support a persistent spatial-pattern-mediated rescue mechanism in the tested setup (Figures~\ref{fig:nonhomogeneous-initial-fields}--\ref{fig:pde-mechanism-decision}).
 
+Long-horizon follow-up showed that the finite-amplitude heterogeneous basin changes resolve to the homogeneous-control outcome. The two basin-changing local-defense perturbations reproduced the transient label at \(T=1600\), but both matched their homogeneous-control persistent basin by \(T=3200\) and \(T=6400\), with final spatial CV values below threshold. This clarifies that the PR~\#23 basin-changing local-defense perturbations were finite-horizon transients rather than persistent basin changes or spatial-pattern-mediated outcomes (Figures~\ref{fig:long-horizon-mean-timeseries}--\ref{fig:long-horizon-decision}).
+
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.92\linewidth]{figures/roy_evo_spatial/report/fig45_pde_mode_growth_rates.png}
@@ -404,6 +406,34 @@ Linear stability does not rule out finite-amplitude basin effects, so targeted n
 
 \begin{figure}[htbp]
   \centering
+  \includegraphics[width=0.92\linewidth]{figures/roy_evo_spatial/report/fig54_long_horizon_mean_timeseries.png}
+  \caption{Long-horizon mean trajectories for the PR~\#23 basin-changing non-homogeneous cases and their matched homogeneous controls.}
+  \label{fig:long-horizon-mean-timeseries}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.92\linewidth]{figures/roy_evo_spatial/report/fig55_long_horizon_spatial_metrics.png}
+  \caption{Spatial CV diagnostics for the long-horizon follow-up. Final spatial variation decays below the pattern-persistence threshold.}
+  \label{fig:long-horizon-spatial-metrics}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.88\linewidth]{figures/roy_evo_spatial/report/fig56_long_horizon_final_fields.png}
+  \caption{Final fields for the followed heterogeneous cases at the longest focused horizon.}
+  \label{fig:long-horizon-final-fields}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.82\linewidth]{figures/roy_evo_spatial/report/fig57_long_horizon_decision.png}
+  \caption{Decision summary for the long-horizon follow-up of the PR~\#23 basin-changing non-homogeneous cases.}
+  \label{fig:long-horizon-decision}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
   \includegraphics[width=0.98\linewidth]{figures/roy_evo_spatial/report/fig28_ode_representative_timeseries.png}
   \caption{Representative homogeneous ODE trajectories for predator density \(w\), defense frequency \(q\), selection gradient, and predator growth factor. The cases use the same initial means as the representative PDE comparisons.}
   \label{fig:ode-representative-timeseries}
@@ -458,7 +488,7 @@ Strongly supported in the tested parameterization:
 Moderately supported:
 \begin{itemize}
   \item initial defense frequency \(q_0\) and predator abundance \(w_0\) influence basin entry.
-  \item finite-amplitude local-defense heterogeneity can shift finite-horizon basin assignment near tested basin-boundary states without leaving a persistent spatial pattern.
+  \item finite-amplitude local-defense heterogeneity can shift finite-horizon basin assignment near tested basin-boundary states, but the followed cases resolve to the homogeneous-control basin by longer horizons.
 \end{itemize}
 
 Unresolved:
@@ -474,7 +504,7 @@ Unresolved:
 
 The current analysis has several limitations. It uses one trade-off parameterization, with \(b_u=0.08\) and \(b_v=0.02\). Transient outcomes remain common near the basin boundary. The \(q_0\)--\(w_0\) basin boundary has not yet been adaptively refined. The diffusion-ratio analysis is linear, and the nonlinear spatial perturbation tests are targeted rather than exhaustive. The model has also not been externally calibrated to a particular biological system.
 
-The next numerical task is to follow up the basin-boundary finite-amplitude cases with longer-horizon or locally refined diagnostics, while keeping that work separate from broad PDE scanning. Further PDE basin refinement may be useful later, but it should follow the current mechanism correction rather than replace it.
+The next numerical task, if needed, is locally refined basin-boundary diagnosis rather than broad PDE scanning. Further PDE basin refinement may be useful later, but it should follow the current mechanism correction rather than replace it.
 
 In the well-mixed system, prey defense evolution supports indirect evolutionary rescue. In the spatially extended system, the same eco-evolutionary reaction mechanism does not reduce to a single persistence threshold. Instead, the PDE preserves basin-dependent outcomes, with basin entry controlled in part by initial prey defense frequency and predator abundance. Persistent spatial patterning is not currently supported as the mechanism in this parameterization.
 

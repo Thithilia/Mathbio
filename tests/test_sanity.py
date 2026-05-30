@@ -1585,3 +1585,78 @@ def test_step25_cv_helper_returns_finite_value_and_detects_decay():
     assert np.isfinite(cv)
     assert cv > 0.0
     assert step25.cv_decay_below_threshold(initial_cv=0.2, final_cv=5.0e-4, threshold=1.0e-3)
+
+
+def load_step26_module():
+    path = Path(__file__).resolve().parents[1] / "experiments" / "26_roy_pde_nonhomogeneous_long_horizon_followup.py"
+    spec = importlib.util.spec_from_file_location("step26_pde_long_horizon_followup", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_step26_select_followup_cases_uses_only_basin_changes():
+    step26 = load_step26_module()
+    rows = [
+        {
+            "case_label": "changed",
+            "stress": "0.1584375",
+            "baseline_state": "basin_boundary_state",
+            "perturbation_type": "local_defense_patch",
+            "seed": "20260702",
+            "basin_changed_relative_to_homogeneous_control": "True",
+        },
+        {
+            "case_label": "unchanged",
+            "stress": "0.1584375",
+            "baseline_state": "basin_boundary_state",
+            "perturbation_type": "local_predator_patch",
+            "seed": "20260702",
+            "basin_changed_relative_to_homogeneous_control": "False",
+        },
+    ]
+
+    cases = step26.select_followup_cases(rows)
+
+    assert [case.case_label for case in cases] == ["changed"]
+
+
+def test_step26_decision_resolves_when_all_longest_rows_match_control():
+    step26 = load_step26_module()
+    rows = [
+        {"T": 6400.0, "resolved_relative_to_pr23": "resolved_to_control"},
+        {"T": 6400.0, "resolved_relative_to_pr23": "resolved_to_control"},
+    ]
+
+    assert step26.decide_final_label(rows) == "nonhomogeneous_basin_changes_resolve_to_homogeneous_control"
+
+
+def test_step26_decision_detects_persistent_difference_without_pattern():
+    step26 = load_step26_module()
+    rows = [
+        {"T": 6400.0, "resolved_relative_to_pr23": "resolved_to_control"},
+        {"T": 6400.0, "resolved_relative_to_pr23": "persistent_basin_change"},
+    ]
+
+    assert step26.decide_final_label(rows) == "nonhomogeneous_basin_changes_persist_without_spatial_pattern"
+
+
+def test_step26_decision_detects_persistent_difference_with_pattern():
+    step26 = load_step26_module()
+    rows = [
+        {"T": 6400.0, "resolved_relative_to_pr23": "persistent_spatial_pattern"},
+    ]
+
+    assert step26.decide_final_label(rows) == "nonhomogeneous_basin_changes_persist_with_spatial_pattern"
+
+
+def test_step26_cv_helper_handles_homogeneous_fields():
+    step26 = load_step26_module()
+    field = np.full((4, 5), 2.0)
+
+    cv = step26.coefficient_of_variation(field)
+
+    assert np.isfinite(cv)
+    assert np.isclose(cv, 0.0)
