@@ -13,12 +13,13 @@ Proposed manuscript structure:
 5. Local stability
 6. PDE spatial stability
 7. Non-homogeneous perturbation tests
-8. Biological interpretation
-9. Limitations
+8. Nonlinear trade-off extension
+9. Biological interpretation
+10. Limitations
 
 ## Working Abstract
 
-This report studies indirect evolutionary rescue in a Roy-style predator-prey model with prey defense evolution. The fixed-defense spatial route did not produce robust predator rescue. The well-mixed eco-evolutionary ODE supports indirect evolutionary rescue through a homogeneous compensation branch in which prey defense frequency decreases as predator mortality stress increases. The spatial PDE preserves this reaction-level mechanism in the tested setup; spatial-pattern-mediated rescue is not supported by the current evidence.
+This report studies indirect evolutionary rescue in a Roy-style predator-prey model with prey defense evolution. The fixed-defense spatial route did not produce robust predator rescue. The well-mixed eco-evolutionary ODE supports indirect evolutionary rescue through a homogeneous compensation branch in which prey defense frequency decreases as predator mortality stress increases. The spatial PDE preserves this reaction-level mechanism in the tested setup; spatial-pattern-mediated rescue is not supported by the current evidence. A controlled nonlinear trade-off extension recovers the linear branch and supports selected concave, convex, and mixed nonlinear compensation branches, while preserving the caveat that this is not a global result over all trade-off forms.
 
 ## 1. Introduction
 
@@ -73,7 +74,15 @@ This report studies indirect evolutionary rescue in a Roy-style predator-prey mo
 - Initial predator abundance modulates basin entry within that `q0` range.
 - Transient outcomes remain common, so the basin boundary is not fully sharp at the current horizon.
 
-## 8. Discussion
+## 8. Nonlinear Trade-Off Extension
+
+- Endpoint-preserving nonlinear trade-offs use `q^gamma` shape functions for growth, attack, and conversion.
+- The nonlinear compensation branch is parameterized by `q`, with `s(q)` replacing the explicit linear `q*(s)` formula.
+- The linear case is recovered when all shape exponents are 1.
+- The controlled shape grid supports selected concave, convex, and mixed nonlinear branches but does not prove global robustness over all trade-off forms.
+- Targeted nonlinear PDE checks remain consistent with no persistent spatial-pattern-mediated rescue in the selected cases.
+
+## 9. Discussion
 
 - The ODE result supports indirect evolutionary rescue through prey defense evolution.
 - The spatial PDE result is not a simple amplification or suppression result.
@@ -81,7 +90,7 @@ This report studies indirect evolutionary rescue in a Roy-style predator-prey mo
 - Basin structure should be treated as the primary spatial result.
 - Future claims about spatial mechanism should be made only after the basin boundary is adaptively refined.
 
-## 9. Figures Needed
+## 10. Figures Needed
 
 - Figure 1: Model schematic for ODE/PDE eco-evolutionary variables `n`, `w`, `q`.
 - Figure 2: ODE rescue threshold comparison.
@@ -90,21 +99,21 @@ This report studies indirect evolutionary rescue in a Roy-style predator-prey mo
 - Figure 5: Basin regime map from PR #7.
 - Figure 6: q0-w0 basin-boundary heatmap from PR #9.
 
-## 10. Tables Needed
+## 11. Tables Needed
 
 - Table 1: Parameter values.
 - Table 2: Threshold quantities from ODE and early PDE screening.
 - Table 3: Stress-regime map from bistability analysis.
 - Table 4: Basin-boundary counts from q0-w0 scan.
 
-## 11. Open Technical Checks
+## 12. Open Technical Checks
 
 - Need adaptive refinement of q0-w0 separatrix.
 - Need longer horizon checks for transient grid points.
 - Need sensitivity to diffusion coefficients after basin boundary is quantified.
 - Need paper-quality figure generation.
 
-## 12. Next Simulation Step
+## 13. Next Simulation Step
 
 Adaptive refinement of the basin boundary in q0-w0 space for stresses `0.1584375` and `0.16486816`.
 
