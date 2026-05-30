@@ -1,0 +1,16 @@
+metric,value,interpretation
+linear_branch_recovered,True,generalized nonlinear formulation recovers gamma=1 branch
+max_linear_recovery_abs_delta_q,3.1633029529132273e-13,maximum q difference versus closed-form linear branch
+shape_grid_total,27,"controlled gamma_r,gamma_a,gamma_b shape combinations"
+shape_grid_robust_count,11,shape combinations stable at all target stresses
+shape_grid_partial_count,11,shape combinations stable at some target stresses
+shape_grid_no_compensation_count,4,shape combinations with no feasible target branch
+selected_ode_basin_maps_completed,True,selected nonlinear ODE q0-w0 basin maps generated
+selected_pde_spatial_stability_completed,16,selected stable branch stress rows tested for PDE spatial modes
+selected_pde_spatial_instability_count,0,selected nonlinear branch rows with positive nonzero spatial mode
+selected_nonhomogeneous_runs_total,22,targeted nonlinear PDE nonhomogeneous runs including controls
+selected_nonhomogeneous_finite_horizon_basin_change_count,1,all recorded heterogeneous rows changing basin label before terminal-horizon filtering
+selected_nonhomogeneous_finite_horizon_persistent_pattern_count,1,all recorded heterogeneous rows with final spatial CV above threshold before terminal-horizon filtering
+selected_nonhomogeneous_basin_change_count,0,terminal-horizon heterogeneous cases changing basin label relative to matched control
+selected_nonhomogeneous_persistent_pattern_count,0,terminal-horizon heterogeneous cases with final spatial CV above threshold
+final_label,nonlinear_tradeoff_compensation_supported,allowed nonlinear trade-off extension label
