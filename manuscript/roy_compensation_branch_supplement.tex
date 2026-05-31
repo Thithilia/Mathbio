@@ -1,8 +1,9 @@
 \documentclass[11pt]{article}
 
-\usepackage{amsmath,amssymb,graphicx,booktabs,geometry,hyperref,array,longtable}
+\usepackage{amsmath,amssymb,graphicx,booktabs,geometry,hyperref,array,longtable,pdflscape}
 
 \geometry{margin=1in}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 \hypersetup{
   colorlinks=true,
   linkcolor=blue,
@@ -245,10 +246,12 @@ The nonlinear extension uses endpoint-preserving shape functions \(f_\gamma(q)=q
 
 \section*{S6. Additional figure list and CSV source mapping}
 
-Table~\ref{tab:script-source-map} maps the main analysis scripts to the CSV outputs used by the manuscript package. Table~\ref{tab:claim-source-map} maps the main claims to source CSVs and representative figures. The status column records whether each item is a main result or supporting diagnostic evidence.
+\begin{landscape}
+
+Table~\ref{tab:script-source-map} maps the main analysis scripts to the CSV outputs used by the manuscript package. Table~\ref{tab:claim-source-map} maps the main claims to source CSVs and representative figures. The status column records whether each item is a main result or supporting diagnostic evidence. All script names in these tables are relative to \texttt{experiments/}; all CSV names are relative to \texttt{results/}. For readability, the tables use numbered script short names and compact CSV names; the full paths are present in the repository.
 
 \scriptsize
-\begin{longtable}{p{0.34\linewidth}p{0.50\linewidth}}
+\begin{longtable}{L{0.25\linewidth}L{0.65\linewidth}}
   \caption{Script-to-CSV mapping for reproducibility.}\label{tab:script-source-map}\\
   \toprule
   Script & CSV outputs used here \\
@@ -258,18 +261,17 @@ Table~\ref{tab:script-source-map} maps the main analysis scripts to the CSV outp
   Script & CSV outputs used here \\
   \midrule
   \endhead
-  \texttt{experiments/23\_roy\_ode\_compensation\_conditions.py} & \texttt{roy\_ode\_compensation\_conditions\_summary.csv}; \texttt{roy\_ode\_compensation\_condition\_grid.csv} \\
-  \texttt{experiments/24\_roy\_ode\_compensation\_routh\_hurwitz.py} & \texttt{roy\_ode\_compensation\_routh\_hurwitz\_current.csv}; \texttt{roy\_ode\_compensation\_routh\_hurwitz\_summary.csv} \\
-  \texttt{experiments/25\_roy\_pde\_spatial\_stability\_and\_nonhomogeneous\_tests.py} & \texttt{roy\_pde\_compensation\_spatial\_modes\_current.csv}; \texttt{roy\_pde\_spatial\_nonlinear\_mechanism\_decision.csv} \\
-  \texttt{experiments/26\_roy\_pde\_nonhomogeneous\_long\_horizon\_followup.py} & \texttt{roy\_pde\_nonhomogeneous\_long\_horizon\_decision.csv}; long-horizon summary and time-series CSVs \\
-  \texttt{experiments/27\_roy\_nonlinear\_tradeoff\_compensation.py} & \texttt{roy\_nonlinear\_tradeoff\_compensation\_decision.csv}; \texttt{roy\_nonlinear\_tradeoff\_shape\_summary.csv}; \texttt{roy\_nonlinear\_tradeoff\_branch\_recovery\_linear.csv} \\
-  \texttt{experiments/28\_roy\_counterfactual\_and\_spatial\_evidence.py} & \texttt{roy\_ode\_no\_evolution\_counterfactual\_summary.csv}; stress-sweep and time-series CSVs; \texttt{roy\_pde\_compensation\_lambda\_scan\_summary.csv}; \texttt{roy\_ode\_compensation\_routh\_hurwitz\_margins.csv} \\
+  Step 23: compensation conditions & \texttt{compensation\_conditions\_summary}; \texttt{compensation\_condition\_grid} \\
+  Step 24: Routh--Hurwitz & \texttt{routh\_hurwitz\_current}; \texttt{routh\_hurwitz\_summary} \\
+  Step 25: PDE spatial and heterogeneous tests & \texttt{pde\_spatial\_modes\_current}; \texttt{pde\_spatial\_nonlinear\_decision} \\
+  Step 26: long-horizon follow-up & \texttt{pde\_long\_horizon\_decision}; summary and time-series CSVs \\
+  Step 27: nonlinear trade-offs & \texttt{nonlinear\_compensation\_decision}; \texttt{nonlinear\_shape\_summary}; \texttt{nonlinear\_branch\_recovery} \\
+  Step 28: counterfactual and modal scan & \texttt{no\_evolution\_counterfactual\_summary}; stress-sweep and time-series CSVs; \texttt{pde\_lambda\_scan\_summary}; \texttt{rh\_margins} \\
   \bottomrule
 \end{longtable}
-\normalsize
 
 \scriptsize
-\begin{longtable}{p{0.23\linewidth}p{0.29\linewidth}p{0.22\linewidth}p{0.11\linewidth}}
+\begin{longtable}{L{0.28\linewidth}L{0.33\linewidth}L{0.22\linewidth}L{0.10\linewidth}}
   \caption{Claim-to-source mapping for the manuscript package.}\label{tab:claim-source-map}\\
   \toprule
   Claim & Source CSV & Representative figure & Status \\
@@ -279,16 +281,18 @@ Table~\ref{tab:script-source-map} maps the main analysis scripts to the CSV outp
   Claim & Source CSV & Representative figure & Status \\
   \midrule
   \endhead
-  Frozen-\(q\) counterfactual verifies indirect rescue over a finite stress window & \texttt{roy\_ode\_no\_evolution}\newline\texttt{\_counterfactual}\newline\texttt{\_summary.csv}; stress-sweep CSV & Main no-evolution figure & Main claim \\
-  Linear compensation branch conditions are satisfied in the current parameterization & \texttt{roy\_ode\_compensation}\newline\texttt{\_conditions\_summary.csv} & Fig.~\ref{fig:supp-ode-phase-equilibria}; main branch figure & Main claim \\
-  Routh--Hurwitz stability holds at target stresses & \texttt{roy\_ode\_compensation}\newline\texttt{\_routh\_hurwitz}\newline\texttt{\_summary.csv} & Main Routh--Hurwitz figure & Main claim \\
-  Spatial modes are stable for the current PDE coefficients over the tested range & \texttt{roy\_pde\_spatial}\newline\texttt{\_nonlinear\_mechanism}\newline\texttt{\_decision.csv}; \texttt{roy\_pde\_compensation}\newline\texttt{\_lambda\_scan\_summary.csv} & Main spatial-stability figure; Fig.~\ref{fig:supp-pde-linear}; Fig.~\ref{fig:supp-pde-lambda} & Main claim \\
-  Long-horizon non-homogeneous basin changes resolve to homogeneous controls & \texttt{roy\_pde\_nonhomogeneous}\newline\texttt{\_long\_horizon}\newline\texttt{\_decision.csv} & Main long-horizon decision panel; Fig.~\ref{fig:supp-pde-long-horizon} & Main claim \\
-  Linear branch is recovered by nonlinear branch formulation & \texttt{roy\_nonlinear\_tradeoff}\newline\texttt{\_branch\_recovery}\newline\texttt{\_linear.csv} & Fig.~\ref{fig:supp-nonlinear-branches} & Supporting \\
-  Nonlinear shape grid includes robust, partial, no-compensation, and unresolved cases & \texttt{roy\_nonlinear\_tradeoff}\newline\texttt{\_shape\_summary.csv};\newline\texttt{roy\_nonlinear\_tradeoff}\newline\texttt{\_compensation\_decision.csv} & Main nonlinear decision figure; Fig.~\ref{fig:supp-nonlinear-branches} & Main claim \\
+  Frozen-\(q\) counterfactual verifies indirect rescue over a finite stress window & \texttt{no\_evolution\_counterfactual\_summary}; stress-sweep CSV & Main no-evolution figure & Main claim \\
+  Linear compensation branch conditions are satisfied in the current parameterization & \texttt{compensation\_conditions\_summary} & Main branch figure; Fig.~\ref{fig:supp-ode-phase-equilibria} & Main claim \\
+  Routh--Hurwitz stability holds at target stresses & \texttt{routh\_hurwitz\_summary} & Main Routh--Hurwitz figure & Main claim \\
+  Spatial modes are stable for the current PDE coefficients over the tested range & \texttt{pde\_spatial\_nonlinear\_decision}; \texttt{pde\_lambda\_scan\_summary} & Main spatial-stability figure; Fig.~\ref{fig:supp-pde-linear}; Fig.~\ref{fig:supp-pde-lambda} & Main claim \\
+  Long-horizon non-homogeneous basin changes resolve to homogeneous controls & \texttt{pde\_long\_horizon\_decision} & Main long-horizon decision panel; Fig.~\ref{fig:supp-pde-long-horizon} & Main claim \\
+  Linear branch is recovered by nonlinear branch formulation & \texttt{nonlinear\_branch\_recovery} & Fig.~\ref{fig:supp-nonlinear-branches} & Supporting \\
+  Nonlinear shape grid includes robust, partial, no-compensation, and unresolved cases & \texttt{nonlinear\_shape\_summary}; \texttt{nonlinear\_compensation\_decision} & Main nonlinear heatmap; Fig.~\ref{fig:supp-nonlinear-branches} & Main claim \\
   \bottomrule
 \end{longtable}
 \normalsize
+
+\end{landscape}
 
 \begin{figure}[htbp]
   \centering
