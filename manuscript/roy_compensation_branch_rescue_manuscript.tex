@@ -244,8 +244,8 @@ For the current parameterization, these inequalities hold at all target stresses
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.90\linewidth]{figures/roy_evo_spatial/report/fig42_routh_hurwitz_terms.png}
-  \caption{Routh--Hurwitz coefficient terms along the compensation branch. The plotted quantities are \(A_1\), \(A_2\), \(A_3\), and \(A_1A_2-A_3\). Their positivity supports local stability at the tested stresses; it does not establish global basin attraction or rule out other attractors.}
+  \includegraphics[width=0.92\linewidth]{figures/roy_evo_spatial/report/fig68_routh_hurwitz_margin_eigenvalue.png}
+  \caption{Local stability margins along the compensation branch. Panel A shows the minimum Routh--Hurwitz margin across \(A_1\), \(A_2\), \(A_3\), and \(A_1A_2-A_3\). Panel B shows the maximum real part of the reaction-Jacobian eigenvalues. Positive margins and negative eigenvalue real parts support local stability at the tested stresses; they do not establish global basin attraction or rule out other attractors.}
   \label{fig:rh-terms}
 \end{figure}
 
@@ -269,24 +269,7 @@ The spatial interpretation is therefore specific: in the tested PDE, spatial het
 
 \begin{figure}[htbp]
   \centering
-  \begin{minipage}{0.49\linewidth}
-    \centering
-    \textbf{A}\par\vspace{0.2em}
-    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig45_pde_mode_growth_rates.png}
-  \end{minipage}
-  \hfill
-  \begin{minipage}{0.49\linewidth}
-    \centering
-    \textbf{B}\par\vspace{0.2em}
-    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig66_pde_continuous_lambda_scan.png}
-  \end{minipage}
-  \vspace{0.8em}
-
-  \begin{minipage}{0.70\linewidth}
-    \centering
-    \textbf{C}\par\vspace{0.2em}
-    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig57_long_horizon_decision.png}
-  \end{minipage}
+  \includegraphics[width=0.98\linewidth]{figures/roy_evo_spatial/report/fig67_pde_spatial_stability_long_horizon_summary.png}
   \caption{Spatial-mode and finite-amplitude PDE tests. Panel A plots maximum real growth rates for tested discrete Neumann modes, computed from \(J_F(U^*)-\lambda_{ij}D\). Panel B shows the continuous \(\lambda\)-scan over 600 equally spaced values in the mode-equivalent range corresponding to \(i,j=0,\ldots,64\). Panels A and B support tested-range linear spatial stability for the current diffusion coefficients. Panel C summarizes long-horizon follow-up of the two finite-amplitude heterogeneous cases that changed finite-horizon basin labels; both resolved to their matched homogeneous controls without persistent spatial patterning. These diagnostics do not exhaust all possible modes, diffusion coefficients, or heterogeneous initial conditions.}
   \label{fig:pde-spatial-nonlinear}
 \end{figure}

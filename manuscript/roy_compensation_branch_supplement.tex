@@ -96,6 +96,13 @@ Table~\ref{tab:rh-margins} reports the Routh--Hurwitz terms and the minimum marg
   \end{tabular}
 \end{table}
 
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.92\linewidth]{figures/roy_evo_spatial/report/fig42_routh_hurwitz_terms.png}
+  \caption{Full Routh--Hurwitz coefficient diagnostics for the linear compensation branch. The main text shows the minimum margin and maximum eigenvalue real part; this supporting figure keeps the individual \(A_1\), \(A_2\), \(A_3\), and \(A_1A_2-A_3\) terms visible for reproducibility.}
+  \label{fig:supp-rh-terms}
+\end{figure}
+
 \section*{S3. Additional ODE basin maps}
 
 The main text focuses on the derived compensation branch and its stability. Additional ODE diagnostics support the basin interpretation and the homogeneous reaction-level mechanism. Figure~\ref{fig:supp-ode-timeseries} shows representative ODE time series and selection/growth diagnostics. Figure~\ref{fig:supp-ode-basin-map} shows the ODE \(q_0\)--\(w_0\) basin map used to relate initial defense and predator density to persistent, extinct, and transient outcomes. Figure~\ref{fig:supp-ode-phase-equilibria} shows selection-growth phase diagnostics and numerical equilibrium stability.
@@ -283,7 +290,7 @@ Table~\ref{tab:script-source-map} maps the main analysis scripts to the CSV outp
   \endhead
   Frozen-\(q\) counterfactual verifies indirect rescue over a finite stress window & \texttt{no\_evolution\_counterfactual\_summary}; stress-sweep CSV & Main no-evolution figure & Main claim \\
   Linear compensation branch conditions are satisfied in the current parameterization & \texttt{compensation\_conditions\_summary} & Main branch figure; Fig.~\ref{fig:supp-ode-phase-equilibria} & Main claim \\
-  Routh--Hurwitz stability holds at target stresses & \texttt{routh\_hurwitz\_summary} & Main Routh--Hurwitz figure & Main claim \\
+  Routh--Hurwitz stability holds at target stresses & \texttt{routh\_hurwitz\_summary} & Main Routh--Hurwitz figure; Fig.~\ref{fig:supp-rh-terms} & Main claim \\
   Spatial modes are stable for the current PDE coefficients over the tested range & \texttt{pde\_spatial\_nonlinear\_decision}; \texttt{pde\_lambda\_scan\_summary} & Main spatial-stability figure; Fig.~\ref{fig:supp-pde-linear}; Fig.~\ref{fig:supp-pde-lambda} & Main claim \\
   Long-horizon non-homogeneous basin changes resolve to homogeneous controls & \texttt{pde\_long\_horizon\_decision} & Main long-horizon decision panel; Fig.~\ref{fig:supp-pde-long-horizon-timeseries}; Fig.~\ref{fig:supp-pde-long-horizon-metrics}; Fig.~\ref{fig:supp-pde-long-horizon-fields} & Main claim \\
   Linear branch is recovered by nonlinear branch formulation & \texttt{nonlinear\_branch\_recovery} & Fig.~\ref{fig:supp-nonlinear-branches} & Supporting \\

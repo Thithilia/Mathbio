@@ -14,7 +14,10 @@
 - Polished the main compensation-branch figure to remove axis-offset ambiguity and replaced the nonlinear trade-off summary with a faceted shape-grid heatmap matching the 11/11/4/1 class counts.
 - Removed process/revision language from the main paper, replaced placeholder authors with a clearer draft author-list placeholder, and added an external-review version tag to the data/code statement.
 - Redesigned the main PDE evidence figure as a three-panel discrete-mode, continuous-\(\lambda\), and long-horizon-decision figure.
-- Split crowded supplement PDE and nonlinear diagnostic mosaics into larger, one-message-per-figure panels with updated figure references and claim-source mapping.
+- Polished the no-evolution counterfactual figure with direct \(s_{\mathrm{fixed}}\), rescue-window, and representative \(q^*(s)\) annotations.
+- Replaced the main Routh--Hurwitz figure with a clearer margin/eigenvalue summary and moved the full four-term coefficient plot to the supplement.
+- Split crowded supplement PDE and nonlinear diagnostic mosaics into larger, one-message-per-figure panels with updated figure references and claim-source mapping; regenerated PDE diagnostics with larger fonts, external legends, and clearer colorbars.
+- Made the nonlinear shape-grid heatmap grayscale-safe with larger R/P/N/U cell letters and explicit legend labels.
 - Reformatted supplement source-map tables in landscape with compact path names for readability.
 - Strengthened the biological interpretation around lower prey defense, predator conversion opportunity, indirect evolutionary rescue, and the stylized nature of the assumptions.
 - Added a Claims and scope section separating established results, controlled extensions, and claims not made.

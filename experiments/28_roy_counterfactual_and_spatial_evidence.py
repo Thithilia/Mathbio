@@ -73,9 +73,29 @@ BRANCH_CURRENT_CSV = RESULTS_DIR / "roy_ode_compensation_branch_current.csv"
 NONLINEAR_SHAPE_SUMMARY_CSV = RESULTS_DIR / "roy_nonlinear_tradeoff_shape_summary.csv"
 
 FIG33_PATH = FIG_DIR / "fig33_compensation_branch_current.png"
+FIG49_PATH = FIG_DIR / "fig49_nonhomogeneous_initial_conditions.png"
+FIG50_PATH = FIG_DIR / "fig50_nonhomogeneous_final_fields.png"
+FIG51_PATH = FIG_DIR / "fig51_nonhomogeneous_mean_timeseries.png"
+FIG52_PATH = FIG_DIR / "fig52_nonhomogeneous_spatial_metrics.png"
+FIG54_PATH = FIG_DIR / "fig54_long_horizon_mean_timeseries.png"
+FIG55_PATH = FIG_DIR / "fig55_long_horizon_spatial_metrics.png"
+FIG56_PATH = FIG_DIR / "fig56_long_horizon_final_fields.png"
+FIG62_PATH = FIG_DIR / "fig62_nonlinear_pde_spatial_stability.png"
+FIG63_PATH = FIG_DIR / "fig63_nonlinear_nonhomogeneous_pde_tests.png"
 FIG64_PATH = FIG_DIR / "fig64_nonlinear_tradeoff_final_decision.png"
 FIG65_PATH = FIG_DIR / "fig65_no_evolution_counterfactual.png"
 FIG66_PATH = FIG_DIR / "fig66_pde_continuous_lambda_scan.png"
+FIG67_PATH = FIG_DIR / "fig67_pde_spatial_stability_long_horizon_summary.png"
+FIG68_PATH = FIG_DIR / "fig68_routh_hurwitz_margin_eigenvalue.png"
+
+SPATIAL_MODES_CSV = RESULTS_DIR / "roy_pde_compensation_spatial_modes_current.csv"
+LONG_HORIZON_DECISION_CSV = RESULTS_DIR / "roy_pde_nonhomogeneous_long_horizon_decision.csv"
+NONHOMOG_MEAN_CSV = RESULTS_DIR / "roy_pde_nonhomogeneous_mean_timeseries.csv"
+NONHOMOG_SPATIAL_CSV = RESULTS_DIR / "roy_pde_nonhomogeneous_spatial_metrics.csv"
+LONG_HORIZON_MEAN_CSV = RESULTS_DIR / "roy_pde_nonhomogeneous_long_horizon_mean_timeseries.csv"
+LONG_HORIZON_SPATIAL_CSV = RESULTS_DIR / "roy_pde_nonhomogeneous_long_horizon_spatial_metrics.csv"
+NONLINEAR_PDE_STABILITY_CSV = RESULTS_DIR / "roy_nonlinear_tradeoff_pde_spatial_stability.csv"
+NONLINEAR_PDE_NONHOMOG_SUMMARY_CSV = RESULTS_DIR / "roy_nonlinear_tradeoff_pde_nonhomogeneous_summary.csv"
 
 ODE_T = 3000.0
 ODE_N_EVAL = 1201
@@ -191,6 +211,20 @@ def format_float(value: float, digits: int = 8) -> str:
     if not np.isfinite(value):
         return "nan"
     return f"{value:.{digits}g}"
+
+
+def as_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"true", "1", "yes"}
+
+
+def metric_dict(path: Path) -> dict[str, str]:
+    return {row["metric"]: row["value"] for row in read_csv(path)}
+
+
+def clean_label(value: str) -> str:
+    return str(value).replace("_", " ")
 
 
 def eigen_text(values: np.ndarray) -> tuple[str, str]:
@@ -482,7 +516,17 @@ def make_counterfactual_figure(
     ax_q.plot([row["time"] for row in evo_rows], [row["q"] for row in evo_rows], color=colors["evolving_q"], lw=2.0)
     if frozen_rows:
         ax_q.axhline(float(frozen_rows[0]["q"]), color=colors["frozen_q"], lw=1.5, ls="--", label="frozen q")
-        ax_q.legend(frameon=False)
+    q_rep = branch_state_at(representative)[2]
+    ax_q.axhline(q_rep, color="#222222", lw=1.3, ls=":", label=rf"$q^*({representative:.4f})$")
+    ax_q.annotate(
+        rf"$q^*={q_rep:.3f}$",
+        xy=(0.70 * ODE_T, q_rep),
+        xytext=(0.70 * ODE_T, q_rep + 0.08),
+        arrowprops={"arrowstyle": "->", "lw": 0.8, "color": "#222222"},
+        fontsize=8,
+        ha="left",
+    )
+    ax_q.legend(frameon=False, fontsize=8)
     ax_q.set_title("B. Defense response in evolving-q run")
     ax_q.set_xlabel("time")
     ax_q.set_ylabel("q(t)")
@@ -494,6 +538,14 @@ def make_counterfactual_figure(
         ax_final.plot([row["stress"] for row in rows], tail_means, marker="o", ms=2.8, lw=1.6, color=colors[treatment], label=labels[treatment])
     ax_final.axhline(EXTINCTION_EPSILON, color="#444444", lw=1.0, ls=":", label="extinction threshold")
     ax_final.axvline(fixed_q_threshold, color="#6b4c9a", lw=1.4, ls="-.", label=r"$s_{\mathrm{fixed}}$")
+    ax_final.annotate(
+        rf"$s_{{\mathrm{{fixed}}}}={fixed_q_threshold:.4f}$",
+        xy=(fixed_q_threshold, EXTINCTION_EPSILON * 1.4),
+        xytext=(fixed_q_threshold + 0.018, EXTINCTION_EPSILON * 20),
+        arrowprops={"arrowstyle": "->", "lw": 0.8, "color": "#6b4c9a"},
+        fontsize=8,
+        color="#4f3677",
+    )
     ax_final.set_title("C. Tail predator density across stress")
     ax_final.set_xlabel("stress s")
     ax_final.set_ylabel("tail mean w")
@@ -506,6 +558,15 @@ def make_counterfactual_figure(
     if rescue["exists"]:
         ax_window.axvspan(float(rescue["low"]), float(rescue["high"]), color="#f0c419", alpha=0.35, label="verified rescue window")
         ax_window.axvline(representative, color="#111111", lw=1.0, ls="--", label="representative stress")
+        ax_window.text(
+            0.5 * (float(rescue["low"]) + float(rescue["high"])),
+            0.55,
+            "verified\nrescue window",
+            ha="center",
+            va="center",
+            fontsize=8,
+            bbox={"boxstyle": "round,pad=0.25", "facecolor": "white", "edgecolor": "#d8b000", "alpha": 0.9},
+        )
     ax_window.axvline(fixed_q_threshold, color="#6b4c9a", lw=1.4, ls="-.", label=r"$s_{\mathrm{fixed}}$")
     ax_window.set_title("D. Frozen-q extinct, evolving-q persistent")
     ax_window.set_xlabel("stress s")
@@ -585,12 +646,12 @@ def make_nonlinear_tradeoff_figure() -> None:
         "unresolved_shape",
     ]
     class_to_code = {name: idx for idx, name in enumerate(class_order)}
-    colors = ["#2f7d57", "#f0b44c", "#c95b59", "#8b8b8b"]
+    colors = ["#222222", "#707070", "#d0d0d0", "#ffffff"]
     labels = {
-        "robust_compensation_shape": "robust",
-        "partial_compensation_shape": "partial",
-        "no_compensation_shape": "no compensation",
-        "unresolved_shape": "unresolved",
+        "robust_compensation_shape": "R robust compensation",
+        "partial_compensation_shape": "P partial compensation",
+        "no_compensation_shape": "N no compensation",
+        "unresolved_shape": "U unresolved",
     }
     counts = {name: 0 for name in class_order}
     lookup: dict[tuple[float, float, float], str] = {}
@@ -623,14 +684,20 @@ def make_nonlinear_tradeoff_figure() -> None:
         for y_idx in range(len(gamma_values)):
             for x_idx in range(len(gamma_values)):
                 code = int(matrix[y_idx, x_idx])
-                ax.text(x_idx, y_idx, labels[class_order[code]][0].upper(), ha="center", va="center", color="white", fontsize=11, fontweight="bold")
+                letter = labels[class_order[code]][0]
+                text_color = "white" if code in (0, 1) else "black"
+                ax.text(x_idx, y_idx, letter, ha="center", va="center", color=text_color, fontsize=17, fontweight="bold")
+        ax.set_xticks(np.arange(-0.5, len(gamma_values), 1), minor=True)
+        ax.set_yticks(np.arange(-0.5, len(gamma_values), 1), minor=True)
+        ax.grid(which="minor", color="white", linewidth=1.5)
+        ax.tick_params(which="minor", bottom=False, left=False)
         ax.set_xlim(-0.5, len(gamma_values) - 0.5)
         ax.set_ylim(-0.5, len(gamma_values) - 0.5)
 
-    handles = [Patch(facecolor=colors[idx], edgecolor="none", label=f"{labels[name]} ({counts.get(name, 0)})") for idx, name in enumerate(class_order)]
+    handles = [Patch(facecolor=colors[idx], edgecolor="#222222", label=f"{labels[name]}: {counts.get(name, 0)} shapes") for idx, name in enumerate(class_order)]
     fig.legend(handles=handles, loc="lower center", ncol=4, frameon=False, fontsize=8)
     fig.suptitle("Controlled nonlinear trade-off shape grid", fontsize=13)
-    fig.text(0.5, 0.06, "Cell letters: R robust, P partial, N no compensation, U unresolved", ha="center", fontsize=8)
+    fig.text(0.5, 0.06, "Grayscale-safe cell letters identify each class: R, P, N, U", ha="center", fontsize=8)
     fig.tight_layout(rect=[0, 0.14, 1, 0.92])
     fig.savefig(FIG64_PATH, dpi=240, bbox_inches="tight")
     plt.close(fig)
@@ -723,6 +790,386 @@ def make_lambda_figure(rows: list[dict[str, Any]], summary_rows: list[dict[str, 
     plt.close(fig)
 
 
+def make_rh_margin_eigenvalue_figure(rows: list[dict[str, Any]]) -> None:
+    stress = np.asarray([float(row["stress"]) for row in rows])
+    min_margin = np.asarray([float(row["minimum_rh_margin"]) for row in rows])
+    max_real = np.asarray([float(row["max_real_eigenvalue"]) for row in rows])
+
+    fig, axes = plt.subplots(1, 2, figsize=(8.8, 3.8), sharex=True)
+    ax_margin, ax_eig = axes
+    ax_margin.plot(stress, min_margin, marker="o", color="#2f6fbb", lw=2.2)
+    ax_margin.axhline(0.0, color="#222222", lw=1.0, ls="--")
+    ax_margin.set_title("A. Minimum Routh-Hurwitz margin")
+    ax_margin.set_xlabel("stress s")
+    ax_margin.set_ylabel(r"$\min(A_1,A_2,A_3,A_1A_2-A_3)$")
+    ax_margin.grid(alpha=0.25)
+
+    ax_eig.plot(stress, max_real, marker="s", color="#9b4a97", lw=2.2)
+    ax_eig.axhline(0.0, color="#222222", lw=1.0, ls="--")
+    ax_eig.set_title("B. Maximum eigenvalue real part")
+    ax_eig.set_xlabel("stress s")
+    ax_eig.set_ylabel(r"$\max \Re(\lambda_J)$")
+    ax_eig.grid(alpha=0.25)
+
+    fig.suptitle("Local stability margins along the compensation branch", fontsize=13)
+    fig.tight_layout(rect=[0, 0, 1, 0.91])
+    fig.savefig(FIG68_PATH, dpi=260, bbox_inches="tight")
+    plt.close(fig)
+
+
+def make_main_pde_evidence_figure() -> None:
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes, mark_inset
+
+    mode_rows = read_csv(SPATIAL_MODES_CSV)
+    lambda_rows = read_csv(LAMBDA_SCAN_CSV)
+    decision = metric_dict(LONG_HORIZON_DECISION_CSV)
+    stresses = list(LAMBDA_TARGET_STRESSES)
+    colors = plt.cm.viridis(np.linspace(0.12, 0.88, len(stresses)))
+
+    fig, axes = plt.subplots(1, 3, figsize=(13.2, 4.0), gridspec_kw={"width_ratios": [1.25, 1.25, 0.95]})
+    ax_modes, ax_lambda, ax_decision = axes
+
+    for stress, color in zip(stresses, colors):
+        subset = [row for row in mode_rows if abs(float(row["stress"]) - stress) < 1.0e-12 and not as_bool(row["zero_mode"])]
+        ax_modes.scatter(
+            [float(row["lambda_mn"]) for row in subset],
+            [float(row["max_real_growth"]) for row in subset],
+            s=5,
+            alpha=0.32,
+            color=color,
+            edgecolors="none",
+            label=f"s={stress:g}",
+        )
+    ax_modes.axhline(0.0, color="#111111", lw=1.0, ls="--")
+    ax_modes.set_title("A. Discrete Neumann modes", loc="left", fontweight="bold")
+    ax_modes.set_xlabel(r"mode eigenvalue $\lambda_{ij}$")
+    ax_modes.set_ylabel("max real growth")
+    ax_modes.grid(alpha=0.22)
+    ax_modes.legend(frameon=False, fontsize=7, loc="upper right")
+
+    for stress, color in zip(stresses, colors):
+        subset = [row for row in lambda_rows if abs(float(row["stress"]) - stress) < 1.0e-12]
+        ax_lambda.plot(
+            [float(row["lambda_value"]) for row in subset],
+            [float(row["max_real_growth"]) for row in subset],
+            lw=2.0,
+            color=color,
+            label=f"s={stress:g}",
+        )
+    ax_lambda.axhline(0.0, color="#111111", lw=1.0, ls="--")
+    ax_lambda.set_title(r"B. Continuous $\lambda$ scan", loc="left", fontweight="bold")
+    ax_lambda.set_xlabel(r"continuous $\lambda$")
+    ax_lambda.set_ylabel("max real growth")
+    ax_lambda.grid(alpha=0.22)
+
+    inset = inset_axes(ax_lambda, width="46%", height="46%", loc="upper right", borderpad=1.1)
+    for stress, color in zip(stresses, colors):
+        subset = [row for row in lambda_rows if abs(float(row["stress"]) - stress) < 1.0e-12]
+        inset.plot([float(row["lambda_value"]) for row in subset], [float(row["max_real_growth"]) for row in subset], lw=1.3, color=color)
+    inset.axhline(0.0, color="#111111", lw=0.8, ls="--")
+    inset.set_xlim(0.0, 2.0)
+    inset.set_ylim(-0.045, -0.010)
+    inset.set_title(r"near $\lambda=0$", fontsize=8)
+    inset.tick_params(labelsize=7)
+    inset.grid(alpha=0.18)
+    mark_inset(ax_lambda, inset, loc1=2, loc2=4, fc="none", ec="#777777", lw=0.8)
+
+    categories = [
+        ("resolved", int(float(decision.get("cases_resolved_to_homogeneous_control", 0)))),
+        ("different\nno pattern", int(float(decision.get("cases_persist_different_basin_without_pattern", 0)))),
+        ("different\nwith pattern", int(float(decision.get("cases_persist_different_basin_with_pattern", 0)))),
+        ("unresolved", int(float(decision.get("cases_unresolved", 0)))),
+    ]
+    followed = int(float(decision.get("followed_cases_count", 0)))
+    bars = ax_decision.bar(
+        [label for label, _ in categories],
+        [value for _, value in categories],
+        color=["#2f6fbb", "#aaaaaa", "#777777", "#cccccc"],
+        edgecolor="#222222",
+        linewidth=0.8,
+    )
+    for bar, (_, value) in zip(bars, categories):
+        ax_decision.text(bar.get_x() + bar.get_width() / 2, value + 0.04, str(value), ha="center", va="bottom", fontsize=9)
+    resolved = int(float(decision.get("cases_resolved_to_homogeneous_control", 0)))
+    ax_decision.text(
+        0.5,
+        0.86,
+        f"{resolved}/{followed} resolved",
+        transform=ax_decision.transAxes,
+        ha="center",
+        va="center",
+        fontsize=13,
+        fontweight="bold",
+        bbox={"boxstyle": "round,pad=0.35", "facecolor": "white", "edgecolor": "#2f6fbb", "linewidth": 1.1},
+    )
+    ax_decision.set_title("C. Long-horizon decision", loc="left", fontweight="bold")
+    ax_decision.set_ylabel("followed cases")
+    ax_decision.set_ylim(0, max(2.4, followed + 0.5))
+    ax_decision.tick_params(axis="x", labelsize=8)
+    ax_decision.grid(axis="y", alpha=0.22)
+
+    fig.suptitle("PDE spatial stability and finite-amplitude follow-up", fontsize=13.5)
+    fig.tight_layout(rect=[0, 0, 1, 0.92])
+    fig.savefig(FIG67_PATH, dpi=260, bbox_inches="tight")
+    plt.close(fig)
+
+
+def nonhomogeneous_field_paths() -> list[Path]:
+    names = [
+        "local_predator_patch",
+        "local_defense_patch",
+        "sinusoidal_mode",
+        "random_heterogeneity",
+        "basin_boundary_heterogeneity",
+    ]
+    return [RESULTS_DIR / f"roy_pde_nonhomogeneous_fields_{name}.npz" for name in names]
+
+
+def make_field_snapshot_figure(path: Path, snapshot_index: int, output_path: Path, title: str) -> None:
+    files = nonhomogeneous_field_paths()
+    variables = [("n", "n_snapshots"), ("w", "w_snapshots"), ("q", "q_snapshots")]
+    arrays_by_var: dict[str, list[np.ndarray]] = {key: [] for _, key in variables}
+    labels: list[str] = []
+    for file_path in files:
+        data = np.load(file_path)
+        labels.append(clean_label(str(data["perturbation_type"])))
+        for _, key in variables:
+            arrays_by_var[key].append(np.asarray(data[key][snapshot_index], dtype=float))
+
+    fig, axes = plt.subplots(len(files), len(variables), figsize=(10.8, 12.0), constrained_layout=True)
+    for col, (var_label, key) in enumerate(variables):
+        vmin = min(float(np.min(arr)) for arr in arrays_by_var[key])
+        vmax = max(float(np.max(arr)) for arr in arrays_by_var[key])
+        for row, arr in enumerate(arrays_by_var[key]):
+            ax = axes[row, col]
+            im = ax.imshow(arr, origin="lower", cmap="viridis", vmin=vmin, vmax=vmax)
+            ax.set_xticks([])
+            ax.set_yticks([])
+            if row == 0:
+                ax.set_title(var_label, fontsize=12, fontweight="bold")
+            if col == 0:
+                ax.set_ylabel(labels[row], fontsize=10)
+        cbar = fig.colorbar(im, ax=axes[:, col], fraction=0.028, pad=0.015)
+        cbar.ax.tick_params(labelsize=8)
+    fig.suptitle(title, fontsize=14, fontweight="bold")
+    fig.savefig(output_path, dpi=260, bbox_inches="tight")
+    plt.close(fig)
+
+
+def selected_nonhomogeneous_case_rows(path: Path) -> list[dict[str, str]]:
+    rows = read_csv(path)
+    selected_types = {
+        "homogeneous_control",
+        "local_predator_patch",
+        "local_defense_patch",
+        "sinusoidal_mode",
+        "random_heterogeneity",
+        "basin_boundary_heterogeneity",
+    }
+    selected = [
+        row
+        for row in rows
+        if row["stress"] == "0.1584375"
+        and row["baseline_state"] == "basin_boundary_state"
+        and row["perturbation_type"] in selected_types
+        and row["seed"] == "20260702"
+    ]
+    return sorted(selected, key=lambda row: (row["perturbation_type"], float(row["time"])))
+
+
+def make_nonhomogeneous_mean_figure() -> None:
+    rows = selected_nonhomogeneous_case_rows(NONHOMOG_MEAN_CSV)
+    types = sorted({row["perturbation_type"] for row in rows})
+    colors = plt.cm.tab10(np.linspace(0, 1, len(types)))
+    color_map = dict(zip(types, colors))
+    fig, axes = plt.subplots(1, 2, figsize=(10.4, 4.2), sharex=True)
+    for perturbation in types:
+        subset = [row for row in rows if row["perturbation_type"] == perturbation]
+        label = clean_label(perturbation)
+        axes[0].plot([float(row["time"]) for row in subset], [float(row["mean_w"]) for row in subset], lw=1.9, color=color_map[perturbation], label=label)
+        axes[1].plot([float(row["time"]) for row in subset], [float(row["mean_q"]) for row in subset], lw=1.9, color=color_map[perturbation], label=label)
+    axes[0].set_title("A. Mean predator density")
+    axes[1].set_title("B. Mean defense frequency")
+    for ax in axes:
+        ax.set_xlabel("time")
+        ax.grid(alpha=0.25)
+    axes[0].set_ylabel(r"$\bar w(t)$")
+    axes[1].set_ylabel(r"$\bar q(t)$")
+    axes[1].legend(frameon=False, fontsize=8, bbox_to_anchor=(1.02, 1.0), loc="upper left")
+    fig.suptitle("Targeted non-homogeneous PDE mean dynamics", fontsize=13)
+    fig.tight_layout(rect=[0, 0, 0.84, 0.92])
+    fig.savefig(FIG51_PATH, dpi=260, bbox_inches="tight")
+    plt.close(fig)
+
+
+def make_nonhomogeneous_cv_figure() -> None:
+    rows = selected_nonhomogeneous_case_rows(NONHOMOG_SPATIAL_CSV)
+    types = sorted({row["perturbation_type"] for row in rows})
+    colors = plt.cm.tab10(np.linspace(0, 1, len(types)))
+    color_map = dict(zip(types, colors))
+    fig, ax = plt.subplots(figsize=(8.8, 4.4))
+    floor = 1.0e-14
+    for perturbation in types:
+        subset = [row for row in rows if row["perturbation_type"] == perturbation]
+        max_cv = [max(float(row["cv_n"]), float(row["cv_w"]), float(row["cv_q"]), floor) for row in subset]
+        ax.plot([float(row["time"]) for row in subset], max_cv, lw=2.0, color=color_map[perturbation], label=clean_label(perturbation))
+    ax.axhline(1.0e-3, color="#222222", lw=1.0, ls="--", label="final pattern threshold")
+    ax.set_yscale("log")
+    ax.set_xlabel("time")
+    ax.set_ylabel("max CV across n, w, q")
+    ax.set_title("Spatial heterogeneity decay in targeted PDE tests")
+    ax.grid(alpha=0.25, which="both")
+    ax.legend(frameon=False, fontsize=8, bbox_to_anchor=(1.02, 1.0), loc="upper left")
+    fig.tight_layout(rect=[0, 0, 0.80, 1])
+    fig.savefig(FIG52_PATH, dpi=260, bbox_inches="tight")
+    plt.close(fig)
+
+
+def make_long_horizon_mean_figure() -> None:
+    rows = read_csv(LONG_HORIZON_MEAN_CSV)
+    fig, axes = plt.subplots(1, 2, figsize=(10.6, 4.2), sharex=True)
+    colors = {"0.1584375": "#2f6fbb", "0.16486816": "#9b4a97"}
+    styles = {"homogeneous_control": "--", "local_defense_patch": "-"}
+    for stress in sorted({row["stress"] for row in rows}, key=float):
+        for role in ("homogeneous_control", "local_defense_patch"):
+            subset = [row for row in rows if row["stress"] == stress and row["perturbation_type"] == role]
+            if not subset:
+                continue
+            label = f"s={float(stress):.4f}, {clean_label(role)}"
+            axes[0].plot([float(row["time"]) for row in subset], [float(row["mean_w"]) for row in subset], color=colors[stress], ls=styles[role], lw=1.9, label=label)
+            axes[1].plot([float(row["time"]) for row in subset], [float(row["mean_q"]) for row in subset], color=colors[stress], ls=styles[role], lw=1.9, label=label)
+    axes[0].set_title("A. Long-horizon mean predator density")
+    axes[1].set_title("B. Long-horizon mean defense frequency")
+    for ax in axes:
+        ax.set_xlabel("time")
+        ax.grid(alpha=0.25)
+    axes[0].set_ylabel(r"$\bar w(t)$")
+    axes[1].set_ylabel(r"$\bar q(t)$")
+    axes[1].legend(frameon=False, fontsize=8, bbox_to_anchor=(1.02, 1.0), loc="upper left")
+    fig.tight_layout(rect=[0, 0, 0.80, 1])
+    fig.savefig(FIG54_PATH, dpi=260, bbox_inches="tight")
+    plt.close(fig)
+
+
+def make_long_horizon_cv_figure() -> None:
+    rows = read_csv(LONG_HORIZON_SPATIAL_CSV)
+    fig, ax = plt.subplots(figsize=(8.8, 4.4))
+    colors = {"0.1584375": "#2f6fbb", "0.16486816": "#9b4a97"}
+    styles = {"homogeneous_control": "--", "local_defense_patch": "-"}
+    floor = 1.0e-14
+    for stress in sorted({row["stress"] for row in rows}, key=float):
+        for role in ("homogeneous_control", "local_defense_patch"):
+            subset = [row for row in rows if row["stress"] == stress and row["perturbation_type"] == role]
+            if not subset:
+                continue
+            max_cv = [max(float(row["cv_n"]), float(row["cv_w"]), float(row["cv_q"]), floor) for row in subset]
+            ax.plot([float(row["time"]) for row in subset], max_cv, color=colors[stress], ls=styles[role], lw=2.0, label=f"s={float(stress):.4f}, {clean_label(role)}")
+    ax.axhline(1.0e-3, color="#222222", lw=1.0, ls="--", label="final pattern threshold")
+    ax.set_yscale("log")
+    ax.set_xlabel("time")
+    ax.set_ylabel("max CV across n, w, q")
+    ax.set_title("Long-horizon spatial heterogeneity decay")
+    ax.grid(alpha=0.25, which="both")
+    ax.legend(frameon=False, fontsize=8, bbox_to_anchor=(1.02, 1.0), loc="upper left")
+    fig.tight_layout(rect=[0, 0, 0.78, 1])
+    fig.savefig(FIG55_PATH, dpi=260, bbox_inches="tight")
+    plt.close(fig)
+
+
+def make_long_horizon_final_fields() -> None:
+    files = sorted(RESULTS_DIR.glob("roy_pde_nonhomogeneous_long_horizon_fields_*.npz"))
+    variables = [("n", "n_snapshots"), ("w", "w_snapshots"), ("q", "q_snapshots")]
+    arrays_by_var: dict[str, list[np.ndarray]] = {key: [] for _, key in variables}
+    row_labels: list[str] = []
+    for path in files:
+        data = np.load(path)
+        row_labels.append(f"s={float(data['stress']):.4f}")
+        for _, key in variables:
+            arrays_by_var[key].append(np.asarray(data[key][-1], dtype=float))
+    fig, axes = plt.subplots(len(files), len(variables), figsize=(10.2, 5.4), constrained_layout=True)
+    for col, (var_label, key) in enumerate(variables):
+        vmin = min(float(np.min(arr)) for arr in arrays_by_var[key])
+        vmax = max(float(np.max(arr)) for arr in arrays_by_var[key])
+        for row, arr in enumerate(arrays_by_var[key]):
+            ax = axes[row, col]
+            im = ax.imshow(arr, origin="lower", cmap="viridis", vmin=vmin, vmax=vmax)
+            ax.set_xticks([])
+            ax.set_yticks([])
+            if row == 0:
+                ax.set_title(var_label, fontsize=12, fontweight="bold")
+            if col == 0:
+                ax.set_ylabel(row_labels[row], fontsize=10)
+        cbar = fig.colorbar(im, ax=axes[:, col], fraction=0.035, pad=0.018)
+        cbar.ax.tick_params(labelsize=8)
+    fig.suptitle("Long-horizon final fields for followed basin-changing cases", fontsize=13, fontweight="bold")
+    fig.savefig(FIG56_PATH, dpi=260, bbox_inches="tight")
+    plt.close(fig)
+
+
+def make_nonlinear_pde_stability_figure() -> None:
+    rows = read_csv(NONLINEAR_PDE_STABILITY_CSV)
+    shapes = list(dict.fromkeys(row["shape_label"] for row in rows))
+    colors = plt.cm.tab10(np.linspace(0, 1, len(shapes)))
+    fig, ax = plt.subplots(figsize=(8.8, 4.4))
+    for shape, color in zip(shapes, colors):
+        subset = sorted([row for row in rows if row["shape_label"] == shape], key=lambda row: float(row["stress"]))
+        ax.plot([float(row["stress"]) for row in subset], [float(row["max_nonzero_mode_growth"]) for row in subset], marker="o", lw=2.0, color=color, label=clean_label(shape))
+    ax.axhline(0.0, color="#222222", lw=1.0, ls="--")
+    ax.set_xlabel("stress s")
+    ax.set_ylabel("max nonzero spatial-mode growth")
+    ax.set_title("Selected nonlinear PDE spatial-stability diagnostics")
+    ax.grid(alpha=0.25)
+    ax.legend(frameon=False, fontsize=8, bbox_to_anchor=(1.02, 1.0), loc="upper left")
+    fig.tight_layout(rect=[0, 0, 0.78, 1])
+    fig.savefig(FIG62_PATH, dpi=260, bbox_inches="tight")
+    plt.close(fig)
+
+
+def make_nonlinear_nonhomogeneous_figure() -> None:
+    rows = read_csv(NONLINEAR_PDE_NONHOMOG_SUMMARY_CSV)
+    shapes = list(dict.fromkeys(row["shape_label"] for row in rows))
+    max_final_cv = []
+    basin_change_counts = []
+    for shape in shapes:
+        subset = [row for row in rows if row["shape_label"] == shape]
+        max_final_cv.append(max(max(float(row["final_cv_n"]), float(row["final_cv_w"]), float(row["final_cv_q"])) for row in subset))
+        basin_change_counts.append(sum(1 for row in subset if as_bool(row["basin_changed_relative_to_control"])))
+    x = np.arange(len(shapes))
+    fig, axes = plt.subplots(1, 2, figsize=(10.2, 4.2))
+    axes[0].bar(x, basin_change_counts, color="#6b6b6b", edgecolor="#222222")
+    axes[0].set_title("A. Basin changes vs control")
+    axes[0].set_ylabel("count")
+    axes[0].set_xticks(x)
+    axes[0].set_xticklabels([clean_label(shape) for shape in shapes], rotation=25, ha="right", fontsize=8)
+    axes[0].grid(axis="y", alpha=0.25)
+
+    axes[1].bar(x, np.maximum(max_final_cv, 1.0e-14), color="#2f6fbb", edgecolor="#222222")
+    axes[1].axhline(1.0e-3, color="#222222", lw=1.0, ls="--", label="pattern threshold")
+    axes[1].set_yscale("log")
+    axes[1].set_title("B. Max final spatial CV")
+    axes[1].set_ylabel("max final CV")
+    axes[1].set_xticks(x)
+    axes[1].set_xticklabels([clean_label(shape) for shape in shapes], rotation=25, ha="right", fontsize=8)
+    axes[1].grid(axis="y", alpha=0.25, which="both")
+    axes[1].legend(frameon=False, fontsize=8, loc="upper right")
+    fig.suptitle("Selected nonlinear non-homogeneous PDE diagnostics", fontsize=13)
+    fig.tight_layout(rect=[0, 0, 1, 0.91])
+    fig.savefig(FIG63_PATH, dpi=260, bbox_inches="tight")
+    plt.close(fig)
+
+
+def make_publication_supplement_figures() -> None:
+    make_field_snapshot_figure(FIG49_PATH, 0, FIG49_PATH, "Initial fields for targeted non-homogeneous PDE perturbations")
+    make_field_snapshot_figure(FIG50_PATH, -1, FIG50_PATH, "Final fields for targeted non-homogeneous PDE perturbations")
+    make_nonhomogeneous_mean_figure()
+    make_nonhomogeneous_cv_figure()
+    make_long_horizon_mean_figure()
+    make_long_horizon_cv_figure()
+    make_long_horizon_final_fields()
+    make_nonlinear_pde_stability_figure()
+    make_nonlinear_nonhomogeneous_figure()
+
+
 def run_rh_margin_export() -> list[dict[str, Any]]:
     source_rows = read_csv(RH_CURRENT_CSV)
     rows: list[dict[str, Any]] = []
@@ -744,6 +1191,7 @@ def run_rh_margin_export() -> list[dict[str, Any]]:
             }
         )
     write_csv(RH_MARGINS_CSV, rows, RH_MARGIN_FIELDS)
+    make_rh_margin_eigenvalue_figure(rows)
     return rows
 
 
@@ -756,6 +1204,8 @@ def run(profile: str) -> None:
     run_rh_margin_export()
     make_compensation_branch_figure()
     make_nonlinear_tradeoff_figure()
+    make_main_pde_evidence_figure()
+    make_publication_supplement_figures()
 
 
 def parse_args() -> argparse.Namespace:
