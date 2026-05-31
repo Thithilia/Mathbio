@@ -19,7 +19,7 @@
 \maketitle
 
 \begin{abstract}
-We study whether spatial structure can alter indirect evolutionary rescue in a predator--prey model with evolving prey defense. A fixed-defense spatial control did not produce robust predator persistence beyond the well-mixed reference. Introducing prey defense evolution in the well-mixed model increased the predator mortality stress tolerated by the system, consistent with indirect evolutionary rescue through a decline in defense frequency. In the spatial eco-evolutionary model, however, persistence was not organized by a single monotone stress threshold. Multi-horizon, continuation, and basin analyses showed path-dependent dynamics and bistability: at the same mortality stress, predator-persistent and predator-extinct outcomes were both reachable from different initial conditions. A focused basin-boundary scan showed that initial defense frequency and predator abundance influence basin entry. Subsequent ODE-PDE comparison showed that this basin dependence is primarily reaction-dominated: representative PDE solutions remained nearly homogeneous and matched ODE trajectories from the same initial means. These results suggest that spatially extended eco-evolutionary rescue should be analyzed in terms of reachable outcome basins rather than scalar persistence thresholds, while spatial-pattern-mediated rescue is not currently supported in this tested parameterization.
+We study whether spatial structure can alter indirect evolutionary rescue in a predator--prey model with evolving prey defense. A fixed-defense spatial control did not produce robust predator persistence beyond the well-mixed reference. Introducing prey defense evolution in the well-mixed model increased the predator mortality stress tolerated by the system, consistent with indirect evolutionary rescue through a decline in defense frequency. In the spatial eco-evolutionary model, however, persistence was not organized by a single monotone stress threshold. Multi-horizon, continuation, and basin analyses showed path-dependent dynamics and bistability: at the same mortality stress, predator-persistent and predator-extinct outcomes were both reachable from different initial conditions. A focused basin-boundary scan showed that initial defense frequency and predator abundance influence basin entry. Subsequent ODE-PDE comparison showed that this basin dependence is primarily reaction-dominated: representative PDE solutions remained nearly homogeneous and matched ODE trajectories from the same initial means. A controlled nonlinear trade-off extension recovers the linear compensation branch and supports selected concave, convex, and mixed nonlinear branches, but remains a local structured test rather than a global theorem. These results suggest that spatially extended eco-evolutionary rescue should be analyzed in terms of reachable outcome basins rather than scalar persistence thresholds, while spatial-pattern-mediated rescue is not currently supported in this tested parameterization.
 \end{abstract}
 
 \section{Introduction}
@@ -341,6 +341,63 @@ Linear stability does not rule out finite-amplitude basin effects, so targeted n
 
 Long-horizon follow-up showed that the finite-amplitude heterogeneous basin changes resolve to the homogeneous-control outcome. The two basin-changing local-defense perturbations reproduced the transient label at \(T=1600\), but both matched their homogeneous-control persistent basin by \(T=3200\) and \(T=6400\), with final spatial CV values below threshold. This clarifies that the PR~\#23 basin-changing local-defense perturbations were finite-horizon transients rather than persistent basin changes or spatial-pattern-mediated outcomes (Figures~\ref{fig:long-horizon-mean-timeseries}--\ref{fig:long-horizon-decision}).
 
+\subsection{Extension to nonlinear trade-off forms}
+
+The compensation-branch calculation also extends to endpoint-preserving nonlinear trade-offs of the form \(r(q)=r_u+(r_v-r_u)q^{\gamma_r}\), \(a(q)=a_u+(a_v-a_u)q^{\gamma_a}\), and \(b(q)=b_u+(b_v-b_u)q^{\gamma_b}\). In this case the branch is parameterized by \(q\), with
+\[
+c(q)=\frac{r'(q)}{a'(q)},\qquad
+z(q)=\frac{\xi}{r(q)-a(q)c(q)},\qquad
+w(q)=c(q)z(q),\qquad
+n(q)=\kappa^{-1}-z(q)-w(q),
+\]
+and
+\[
+s(q)=b(q)n(q)z(q)-m-\mu w(q).
+\]
+The linear case is recovered when all exponents are one. In the controlled shape grid with \(\gamma\in\{0.5,1,2\}\), 11 of 27 shape combinations were stable at all target stresses, 11 were stable at some target stresses, 4 had no feasible target branch, and 1 was unresolved. Selected PDE spatial-mode checks found no nonzero-mode instability, and targeted nonlinear non-homogeneous PDE tests produced one finite-horizon all-convex basin-boundary transient that resolved at the longer horizon. The final label for this controlled extension is \texttt{nonlinear\_tradeoff\_compensation\_supported}, with the caveat that nonlinear shape effects remain local and parameter-dependent rather than globally established (Figures~\ref{fig:nonlinear-branch-curves}--\ref{fig:nonlinear-final-decision}).
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\linewidth]{figures/roy_evo_spatial/report/fig59_nonlinear_branch_curves.png}
+  \caption{Generalized nonlinear compensation branch curves \(s(q)\) for selected endpoint-preserving trade-off shapes. Target stresses are marked for comparison.}
+  \label{fig:nonlinear-branch-curves}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.82\linewidth]{figures/roy_evo_spatial/report/fig60_nonlinear_shape_grid_summary.png}
+  \caption{Controlled nonlinear shape-grid classification across \(\gamma_r,\gamma_a,\gamma_b\in\{0.5,1,2\}\). The grid is structured and local, not a broad nonlinear trade-off scan.}
+  \label{fig:nonlinear-shape-grid}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.92\linewidth]{figures/roy_evo_spatial/report/fig61_nonlinear_selected_ode_basin_maps.png}
+  \caption{Selected homogeneous ODE basin maps for linear, concave, convex, mixed, and weak/failed nonlinear shape cases.}
+  \label{fig:nonlinear-ode-basin-maps}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.88\linewidth]{figures/roy_evo_spatial/report/fig62_nonlinear_pde_spatial_stability.png}
+  \caption{Maximum nonzero Neumann spatial-mode growth for selected nonlinear branch states. No selected stable branch case showed positive nonzero spatial growth.}
+  \label{fig:nonlinear-pde-spatial-stability}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.84\linewidth]{figures/roy_evo_spatial/report/fig63_nonlinear_nonhomogeneous_pde_tests.png}
+  \caption{Targeted nonlinear PDE non-homogeneous test summary. The finite-horizon all-convex boundary transient resolved at longer horizon and did not support persistent spatial-pattern-mediated rescue.}
+  \label{fig:nonlinear-nonhomogeneous-tests}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.84\linewidth]{figures/roy_evo_spatial/report/fig64_nonlinear_tradeoff_final_decision.png}
+  \caption{Final nonlinear trade-off extension decision summary. The supported label is conditional on the controlled shape grid and targeted PDE checks.}
+  \label{fig:nonlinear-final-decision}
+\end{figure}
+
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.92\linewidth]{figures/roy_evo_spatial/report/fig45_pde_mode_growth_rates.png}
@@ -502,11 +559,11 @@ Unresolved:
 
 \section{Limitations and future work}
 
-The current analysis has several limitations. It uses one trade-off parameterization, with \(b_u=0.08\) and \(b_v=0.02\). Transient outcomes remain common near the basin boundary. The \(q_0\)--\(w_0\) basin boundary has not yet been adaptively refined. The diffusion-ratio analysis is linear, and the nonlinear spatial perturbation tests are targeted rather than exhaustive. The model has also not been externally calibrated to a particular biological system.
+The current analysis has several limitations. It uses one baseline trade-off parameterization, with \(b_u=0.08\) and \(b_v=0.02\), plus a small controlled nonlinear shape grid. Transient outcomes remain common near the basin boundary. The \(q_0\)--\(w_0\) basin boundary has not yet been adaptively refined. The diffusion-ratio analysis is linear, and the nonlinear spatial perturbation tests are targeted rather than exhaustive. The model has also not been externally calibrated to a particular biological system.
 
 The next numerical task, if needed, is locally refined basin-boundary diagnosis rather than broad PDE scanning. Further PDE basin refinement may be useful later, but it should follow the current mechanism correction rather than replace it.
 
-In the well-mixed system, prey defense evolution supports indirect evolutionary rescue through a homogeneous compensation branch. In the spatially extended system, the same eco-evolutionary reaction mechanism does not reduce to a single persistence threshold. Instead, the PDE preserves reaction-level basin structure, with basin entry controlled in part by initial prey defense frequency and predator abundance. After the long-horizon follow-up of the non-homogeneous basin-changing cases, the apparent basin changes caused by local-defense heterogeneity resolved to the matched homogeneous-control basin. This supports the interpretation that the tested PDE preserves the homogeneous compensation mechanism rather than producing persistent spatial-pattern-mediated rescue.
+In the well-mixed system, prey defense evolution supports indirect evolutionary rescue through a homogeneous compensation branch. In the spatially extended system, the same eco-evolutionary reaction mechanism does not reduce to a single persistence threshold. Instead, the PDE preserves reaction-level basin structure, with basin entry controlled in part by initial prey defense frequency and predator abundance. After the long-horizon follow-up of the non-homogeneous basin-changing cases, the apparent basin changes caused by local-defense heterogeneity resolved to the matched homogeneous-control basin. The controlled nonlinear trade-off extension recovers the linear branch and supports selected nonlinear compensation branches, while showing that branch feasibility and stability depend on trade-off shape. Together, these results support the interpretation that the tested PDE preserves the homogeneous compensation mechanism rather than producing persistent spatial-pattern-mediated rescue.
 
 \bibliographystyle{plainnat}
 \bibliography{manuscript/references}

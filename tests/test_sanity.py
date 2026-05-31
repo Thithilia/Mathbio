@@ -1660,3 +1660,108 @@ def test_step26_cv_helper_handles_homogeneous_fields():
 
     assert np.isfinite(cv)
     assert np.isclose(cv, 0.0)
+
+
+def load_step27_module():
+    path = Path(__file__).resolve().parents[1] / "experiments" / "27_roy_nonlinear_tradeoff_compensation.py"
+    spec = importlib.util.spec_from_file_location("step27_nonlinear_tradeoff", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_step27_shape_function_linear_returns_q():
+    step27 = load_step27_module()
+    q = np.array([0.1, 0.5, 0.9])
+
+    assert np.allclose(step27.shape_function(q, 1.0), q)
+
+
+def test_step27_generalized_linear_branch_recovers_reference():
+    step27 = load_step27_module()
+    stress = 0.1584375
+
+    generalized = step27.find_branch_state_at_stress(step27.PARAMS, 1.0, 1.0, 1.0, stress)
+    reference = step27.linear_reference_branch(step27.PARAMS, stress)
+
+    assert generalized["branch_found"]
+    assert np.isclose(generalized["q_star"], reference["q"], atol=1.0e-5)
+    assert np.isclose(generalized["n_star"], reference["n"], atol=1.0e-5)
+    assert np.isclose(generalized["w_star"], reference["w"], atol=1.0e-5)
+
+
+def test_step27_branch_state_finder_matches_linear_q_at_rescue_stress():
+    step27 = load_step27_module()
+    stress = 0.1584375
+
+    branch = step27.find_branch_state_at_stress(step27.PARAMS, 1.0, 1.0, 1.0, stress)
+
+    assert branch["branch_found"]
+    assert np.isclose(branch["q_star"], 0.21421875, atol=1.0e-4)
+
+
+def test_step27_finite_difference_jacobian_is_finite_3x3():
+    step27 = load_step27_module()
+    state = np.array([4.8333333, 0.6416667, 0.21421875])
+
+    jacobian = step27.generalized_jacobian_fd(state, step27.PARAMS, 1.0, 1.0, 1.0, 0.1584375)
+
+    assert jacobian.shape == (3, 3)
+    assert np.all(np.isfinite(jacobian))
+
+
+def test_step27_basin_label_mapping_for_synthetic_classifications():
+    step27 = load_step27_module()
+
+    assert step27.basin_label_from_classification("persistent_steady") == "persistent_basin"
+    assert step27.basin_label_from_classification("extinct_steady") == "extinct_basin"
+    assert step27.basin_label_from_classification("declining_transient") == "transient_basin"
+
+
+def test_step27_final_decision_synthetic_labels():
+    step27 = load_step27_module()
+
+    supported = step27.decide_final_label(
+        linear_branch_recovered=True,
+        has_concave_stable=True,
+        has_convex_stable=True,
+        pde_spatial_instability_count=0,
+        persistent_pattern_count=0,
+    )
+    sensitive = step27.decide_final_label(
+        linear_branch_recovered=True,
+        has_concave_stable=True,
+        has_convex_stable=False,
+        pde_spatial_instability_count=0,
+        persistent_pattern_count=0,
+    )
+    unresolved = step27.decide_final_label(
+        linear_branch_recovered=False,
+        has_concave_stable=True,
+        has_convex_stable=True,
+        pde_spatial_instability_count=0,
+        persistent_pattern_count=0,
+    )
+
+    assert supported == "nonlinear_tradeoff_compensation_supported"
+    assert sensitive == "nonlinear_tradeoff_compensation_parameter_sensitive"
+    assert unresolved == "nonlinear_tradeoff_compensation_unresolved"
+
+
+def test_step27_pde_spatial_helper_detects_synthetic_instability():
+    step27 = load_step27_module()
+
+    assert step27.pde_spatial_stability_detects_instability(np.array([-0.1, 1.0e-4]))
+    assert not step27.pde_spatial_stability_detects_instability(np.array([-0.1, -1.0e-4]))
+
+
+def test_step27_cv_helper_handles_homogeneous_fields():
+    step27 = load_step27_module()
+    field = np.full((3, 4), 5.0)
+
+    cv = step27.coefficient_of_variation(field)
+
+    assert np.isfinite(cv)
+    assert np.isclose(cv, 0.0)

@@ -153,6 +153,18 @@ A subsequent PDE spatial-stability analysis treats the homogeneous ODE branch as
 
 Long-horizon follow-up of those finite-amplitude heterogeneous cases showed resolution to the homogeneous-control outcome. The local-defense perturbations that changed finite-horizon basin labels at \(T=1600\) matched their homogeneous-control persistent basin by \(T=3200\) and \(T=6400\), with final spatial CV values below threshold. This clarifies that the basin-changing perturbations were finite-horizon transients rather than persistent basin changes.
 
+A controlled nonlinear trade-off extension keeps the same endpoint values but replaces the linear interpolation with \(q^\gamma\) shape functions. For nonlinear trade-offs, the compensation branch is parameterized by \(q\):
+\[
+c(q)=\frac{r'(q)}{a'(q)},\quad
+z(q)=\frac{\xi}{r(q)-a(q)c(q)},\quad
+w(q)=c(q)z(q),\quad
+n(q)=\kappa^{-1}-z(q)-w(q),
+\]
+\[
+s(q)=b(q)n(q)z(q)-m-\mu w(q).
+\]
+The linear branch is recovered when all shape exponents equal one. In the controlled \(\gamma\in\{0.5,1,2\}\) grid, selected concave, convex, and mixed nonlinear shapes support feasible locally stable compensation branches, and targeted PDE checks did not produce persistent spatial-pattern-mediated rescue. The resulting nonlinear extension label is \texttt{nonlinear\_tradeoff\_compensation\_supported}, with the caveat that the result is local and shape-dependent rather than globally general.
+
 \section{Limitations}
 
 The conclusion is restricted to the tested parameterization. The analysis tests the current diffusion coefficients and a controlled linear diffusion-ratio grid, but it does not establish global results over diffusion coefficients, trade-off forms, evolutionary rates, grid convergence, or longer horizons for all transient basin points. Transient classifications remain lower-confidence than the persistent and extinct steady cases. No general claim is made that spatial structure cannot mediate bistability in other parameter regimes.
