@@ -24,6 +24,7 @@ MANUSCRIPT_DIR = ROOT / "manuscript"
 
 VALUE_AUDIT_CSV = RESULTS_DIR / "roy_compensation_branch_value_audit.csv"
 DOI_AUDIT_CSV = RESULTS_DIR / "roy_compensation_branch_reference_doi_audit.csv"
+NONLINEAR_FAILURE_MODES_CSV = RESULTS_DIR / "roy_nonlinear_tradeoff_failure_modes.csv"
 
 BRANCH_CURRENT_CSV = RESULTS_DIR / "roy_ode_compensation_branch_current.csv"
 COUNTERFACTUAL_SUMMARY_CSV = RESULTS_DIR / "roy_ode_no_evolution_counterfactual_summary.csv"
@@ -213,6 +214,75 @@ def run_value_audit() -> list[dict[str, Any]]:
     return rows
 
 
+def classify_nonlinear_failure_mode(row: dict[str, str]) -> tuple[str, str]:
+    shape_class = row["shape_class"]
+    branches = int(float(row["target_stresses_with_branch"]))
+    stable = int(float(row["target_stresses_stable"]))
+    interval_low = float(row["stress_interval_low_estimate"])
+    interval_high = float(row["stress_interval_high_estimate"])
+
+    if shape_class == "no_compensation_shape" and branches == 0:
+        return (
+            "no_target_stress_feasible_branch",
+            "No feasible branch was found at the four target stresses; the estimated interval does not cover the tested rescue stresses.",
+        )
+    if branches > 0 and stable == 0:
+        return (
+            "branch_found_but_not_stable_at_targets",
+            "A branch was detected for some target stresses, but no target stress was classified as stable in the existing diagnostics.",
+        )
+    if interval_high <= interval_low or not (math.isfinite(interval_low) and math.isfinite(interval_high)):
+        return (
+            "infeasible_or_unresolved_interval",
+            "The existing interval estimate is non-finite or not ordered, so compensation cannot be assigned from the current diagnostics.",
+        )
+    return (
+        "unresolved_classification",
+        "Existing shape-grid diagnostics do not cleanly separate feasibility, stability, and basin outcome for this case.",
+    )
+
+
+def run_nonlinear_failure_mode_audit() -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for row in read_csv(NONLINEAR_SHAPE_SUMMARY_CSV):
+        if row["shape_class"] not in {"no_compensation_shape", "unresolved_shape"}:
+            continue
+        reason, interpretation = classify_nonlinear_failure_mode(row)
+        rows.append(
+            {
+                "gamma_r": row["gamma_r"],
+                "gamma_a": row["gamma_a"],
+                "gamma_b": row["gamma_b"],
+                "shape_class": row["shape_class"],
+                "target_stresses_total": row["target_stresses_total"],
+                "target_stresses_with_branch": row["target_stresses_with_branch"],
+                "target_stresses_stable": row["target_stresses_stable"],
+                "stress_interval_low_estimate": row["stress_interval_low_estimate"],
+                "stress_interval_high_estimate": row["stress_interval_high_estimate"],
+                "failure_or_unresolved_reason": reason,
+                "interpretation": interpretation,
+            }
+        )
+    write_csv(
+        NONLINEAR_FAILURE_MODES_CSV,
+        rows,
+        [
+            "gamma_r",
+            "gamma_a",
+            "gamma_b",
+            "shape_class",
+            "target_stresses_total",
+            "target_stresses_with_branch",
+            "target_stresses_stable",
+            "stress_interval_low_estimate",
+            "stress_interval_high_estimate",
+            "failure_or_unresolved_reason",
+            "interpretation",
+        ],
+    )
+    return rows
+
+
 def parse_bib_entries(text: str) -> list[dict[str, str]]:
     entries: list[dict[str, str]] = []
     for match in re.finditer(r"@(?P<type>\w+)\s*\{\s*(?P<key>[^,]+),(?P<body>.*?)(?=\n@|\Z)", text, re.DOTALL):
@@ -234,19 +304,33 @@ def run_doi_audit() -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for entry in entries:
         doi_present = bool(entry["doi"])
+        if entry["key"] == "RoyEtAl2026" and entry["doi"] == "10.1038/s42005-025-02434-1":
+            resolver_status = "manual_article_record_check"
+            manual_check_required = False
+            notes = (
+                "Manual article PDF/page record check recorded: Communications Physics 9, Article 4 (2026), "
+                "DOI 10.1038/s42005-025-02434-1. The script checks fields and does not perform live resolver validation."
+            )
+        elif doi_present:
+            resolver_status = "doi_field_present_not_resolved_by_script"
+            manual_check_required = True
+            notes = "DOI field present; resolver validation should still be checked before journal submission."
+        else:
+            resolver_status = "missing_doi"
+            manual_check_required = True
+            notes = "Missing DOI field; verify manually before journal submission."
         rows.append(
             {
                 "key": entry["key"],
                 "entry_type": entry["entry_type"],
                 "doi_present": doi_present,
                 "doi": entry["doi"],
-                "manual_check_required": True,
-                "notes": "DOI field present; resolver validation still requires manual or network check before journal submission."
-                if doi_present
-                else "Missing DOI field; verify manually before journal submission.",
+                "resolver_status": resolver_status,
+                "manual_check_required": manual_check_required,
+                "notes": notes,
             }
         )
-    write_csv(DOI_AUDIT_CSV, rows, ["key", "entry_type", "doi_present", "doi", "manual_check_required", "notes"])
+    write_csv(DOI_AUDIT_CSV, rows, ["key", "entry_type", "doi_present", "doi", "resolver_status", "manual_check_required", "notes"])
     return rows
 
 
@@ -259,10 +343,12 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     parse_args()
     value_rows = run_value_audit()
+    failure_rows = run_nonlinear_failure_mode_audit()
     doi_rows = run_doi_audit()
     failed = [row for row in value_rows if row["status"] != "PASS"]
     missing_doi = [row for row in doi_rows if not row["doi_present"]]
     print(f"Wrote {VALUE_AUDIT_CSV.relative_to(ROOT)} with {len(value_rows)} checks.")
+    print(f"Wrote {NONLINEAR_FAILURE_MODES_CSV.relative_to(ROOT)} with {len(failure_rows)} nonlinear failure/unresolved rows.")
     print(f"Wrote {DOI_AUDIT_CSV.relative_to(ROOT)} with {len(doi_rows)} references.")
     if missing_doi:
         print(f"References missing DOI fields: {len(missing_doi)}")

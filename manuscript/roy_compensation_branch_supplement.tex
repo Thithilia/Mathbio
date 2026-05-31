@@ -151,7 +151,7 @@ The main manuscript reports the conclusion from spatial-mode stability and long-
     \centering
     \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig47_pde_diffusion_ratio_stability.png}
   \end{minipage}
-  \caption{Additional linear PDE spatial-stability diagnostics. These figures support stability for the tested branch states and diffusion-ratio grid, not a theorem over all diffusion coefficients.}
+  \caption{Additional linear PDE spatial-stability diagnostics for the tested branch states and diffusion-ratio grid.}
   \label{fig:supp-pde-linear}
 \end{figure}
 
@@ -160,7 +160,7 @@ The main manuscript reports the conclusion from spatial-mode stability and long-
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.78\linewidth]{figures/roy_evo_spatial/report/fig66_pde_continuous_lambda_scan.png}
-  \caption{Sampled continuous-\(\lambda\) scan for \(J_F(U^*)-\lambda D\) over 600 equally spaced \(\lambda\) values in the mode-equivalent range corresponding to \(i,j=0,\ldots,64\). This scan strengthens the tested spatial-mode result over that range, but it is still a tested-range diagnostic rather than a proof for all possible modes or diffusion coefficients.}
+  \caption{Sampled continuous-\(\lambda\) scan for \(J_F(U^*)-\lambda D\) over 600 equally spaced \(\lambda\) values in the mode-equivalent range corresponding to \(i,j=0,\ldots,64\).}
   \label{fig:supp-pde-lambda}
 \end{figure}
 
@@ -169,28 +169,28 @@ The main manuscript reports the conclusion from spatial-mode stability and long-
 \begin{figure}[p]
   \centering
   \includegraphics[width=0.96\linewidth]{figures/roy_evo_spatial/report/fig49_nonhomogeneous_initial_conditions.png}
-  \caption{Representative non-homogeneous initial PDE fields for targeted finite-amplitude perturbations. Color scales are variable-specific and shared across rows within this figure; initial and final field figures are scaled independently, so color alone should not be used for direct magnitude comparison across variables or between figures. This diagnostic figure documents the tested perturbation classes and is not an exhaustive set of heterogeneous initial conditions.}
+  \caption{Representative non-homogeneous initial PDE fields for targeted finite-amplitude perturbations. Color scales are variable-specific and shared across rows within this figure; initial and final field figures are scaled independently.}
   \label{fig:supp-pde-initial-fields}
 \end{figure}
 
 \begin{figure}[p]
   \centering
   \includegraphics[width=0.96\linewidth]{figures/roy_evo_spatial/report/fig50_nonhomogeneous_final_fields.png}
-  \caption{Final PDE fields for representative targeted non-homogeneous perturbation tests. Color scales are variable-specific and shared across rows within this figure; initial and final field figures are scaled independently, so color alone should not be used for direct magnitude comparison across variables or between figures. This diagnostic figure supports the absence of persistent spatial patterning in the displayed cases, but it is not a proof for all heterogeneous initial conditions.}
+  \caption{Final PDE fields for representative targeted non-homogeneous perturbation tests. Color scales are variable-specific and shared across rows within this figure; initial and final field figures are scaled independently.}
   \label{fig:supp-pde-final-fields}
 \end{figure}
 
 \begin{figure}[p]
   \centering
   \includegraphics[width=0.96\linewidth]{figures/roy_evo_spatial/report/fig51_nonhomogeneous_mean_timeseries.png}
-  \caption{Mean dynamics for targeted finite-amplitude non-homogeneous PDE tests. These diagnostic trajectories support comparison with matched homogeneous controls; they do not establish global basin behavior.}
+  \caption{Mean dynamics for targeted finite-amplitude non-homogeneous PDE tests and matched homogeneous controls.}
   \label{fig:supp-pde-timeseries}
 \end{figure}
 
 \begin{figure}[p]
   \centering
   \includegraphics[width=0.96\linewidth]{figures/roy_evo_spatial/report/fig52_nonhomogeneous_spatial_metrics.png}
-  \caption{Spatial coefficient-of-variation diagnostics for targeted finite-amplitude non-homogeneous PDE tests. These diagnostics track heterogeneity decay in the tested runs and are not a theorem for all finite-amplitude perturbations.}
+  \caption{Spatial coefficient-of-variation diagnostics for targeted finite-amplitude non-homogeneous PDE tests.}
   \label{fig:supp-pde-cv}
 \end{figure}
 
@@ -222,6 +222,26 @@ The main manuscript reports the conclusion from spatial-mode stability and long-
 
 The nonlinear extension uses endpoint-preserving shape functions \(f_\gamma(q)=q^\gamma\) with \(\gamma\in\{0.5,1,2\}\). The purpose is to test whether the compensation mechanism survives selected concave, convex, and mixed trade-off shapes, not to scan all possible nonlinear functions. Figure~\ref{fig:supp-nonlinear-branches} shows selected nonlinear branch curves and shape-grid summaries. Figures~\ref{fig:supp-nonlinear-ode-basin}--\ref{fig:supp-nonlinear-pde-heterogeneity} show selected nonlinear ODE basin maps, PDE spatial-stability diagnostics, and non-homogeneous PDE diagnostics.
 
+The no-compensation and unresolved shape classes identify trade-off geometries where the existing diagnostics did not support the compensation mechanism. Table~\ref{tab:nonlinear-failure-modes} lists these cases from \texttt{results/roy\_nonlinear\_tradeoff\_failure\_modes.csv}. Four shapes had no feasible branch at the four target stresses. One shape had branches at three target stresses but no target stress was classified as stable in the existing diagnostics. These failure modes show dependence on trade-off geometry; they are not expanded into a broader nonlinear scan here.
+
+\begin{table}[htbp]
+  \centering
+  \caption{No-compensation and unresolved nonlinear trade-off shapes from the existing shape-grid diagnostics.}
+  \label{tab:nonlinear-failure-modes}
+  \small
+  \begin{tabular}{ccccl}
+    \toprule
+    \(\gamma_r\) & \(\gamma_a\) & \(\gamma_b\) & Class & Reason from existing diagnostics \\
+    \midrule
+    0.5 & 1.0 & 0.5 & no compensation & No feasible branch at target stresses \\
+    0.5 & 2.0 & 0.5 & no compensation & No feasible branch at target stresses \\
+    1.0 & 2.0 & 0.5 & no compensation & No feasible branch at target stresses \\
+    1.0 & 2.0 & 1.0 & no compensation & No feasible branch at target stresses \\
+    2.0 & 1.0 & 0.5 & unresolved & Branch found at three target stresses, but no stable target stress \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
 \clearpage
 
 \begin{figure}[p]
@@ -244,7 +264,7 @@ The nonlinear extension uses endpoint-preserving shape functions \(f_\gamma(q)=q
 \begin{figure}[p]
   \centering
   \includegraphics[width=0.90\linewidth]{figures/roy_evo_spatial/report/fig61_nonlinear_selected_ode_basin_maps.png}
-  \caption{Selected nonlinear ODE basin maps. This diagnostic figure supports the controlled nonlinear extension for selected shapes and is not an exhaustive nonlinear basin scan.}
+  \caption{Selected nonlinear ODE basin maps for the controlled shape-grid extension.}
   \label{fig:supp-nonlinear-ode-basin}
 \end{figure}
 
@@ -253,7 +273,7 @@ The nonlinear extension uses endpoint-preserving shape functions \(f_\gamma(q)=q
 \begin{figure}[p]
   \centering
   \includegraphics[width=0.96\linewidth]{figures/roy_evo_spatial/report/fig62_nonlinear_pde_spatial_stability.png}
-  \caption{Selected nonlinear PDE spatial-stability diagnostics. This supporting figure reports targeted spatial-stability checks for selected nonlinear branches and does not prove stability for all nonlinear trade-off shapes.}
+  \caption{Selected nonlinear PDE spatial-stability diagnostics for selected nonlinear branches.}
   \label{fig:supp-nonlinear-pde-stability}
 \end{figure}
 
@@ -262,7 +282,7 @@ The nonlinear extension uses endpoint-preserving shape functions \(f_\gamma(q)=q
 \begin{figure}[p]
   \centering
   \includegraphics[width=0.96\linewidth]{figures/roy_evo_spatial/report/fig63_nonlinear_nonhomogeneous_pde_tests.png}
-  \caption{Selected nonlinear non-homogeneous PDE diagnostics. This supporting figure reports targeted finite-amplitude checks for selected nonlinear branches and does not establish global robustness to heterogeneous initial conditions.}
+  \caption{Selected nonlinear non-homogeneous PDE diagnostics for targeted finite-amplitude checks.}
   \label{fig:supp-nonlinear-pde-heterogeneity}
 \end{figure}
 
@@ -292,7 +312,7 @@ Table~\ref{tab:script-source-map} maps the main analysis scripts to the CSV outp
   Step 26: long-horizon basin-resolution analysis & \texttt{pde\_long\_horizon\_decision}; summary and time-series CSVs \\
   Step 27: nonlinear trade-offs & \texttt{nonlinear\_compensation\_decision}; \texttt{nonlinear\_shape\_summary}; \texttt{nonlinear\_branch\_recovery} \\
   Step 28: counterfactual and modal scan & \texttt{no\_evolution\_counterfactual\_summary}; stress-sweep and time-series CSVs; \texttt{pde\_lambda\_scan\_summary}; \texttt{rh\_margins} \\
-  Step 29: manuscript audit & \texttt{compensation\_branch\_value\_audit}; \texttt{compensation\_branch\_reference\_doi\_audit} \\
+  Step 29: manuscript audit & \texttt{compensation\_branch\_value\_audit}; \texttt{compensation\_branch\_reference\_doi\_audit}; \texttt{nonlinear\_tradeoff\_failure\_modes} \\
   \bottomrule
 \end{longtable}
 
@@ -313,7 +333,7 @@ Table~\ref{tab:script-source-map} maps the main analysis scripts to the CSV outp
   Spatial modes are stable for the current PDE coefficients over the tested range & \texttt{pde\_spatial\_nonlinear\_decision}; \texttt{pde\_lambda\_scan\_summary} & Main spatial-stability figure; Fig.~\ref{fig:supp-pde-linear}; Fig.~\ref{fig:supp-pde-lambda} & Main claim \\
   Long-horizon non-homogeneous basin changes resolve to homogeneous controls & \texttt{pde\_long\_horizon\_decision} & Main long-horizon decision panel; Fig.~\ref{fig:supp-pde-long-horizon-timeseries}; Fig.~\ref{fig:supp-pde-long-horizon-metrics}; Fig.~\ref{fig:supp-pde-long-horizon-fields} & Main claim \\
   Linear branch is recovered by nonlinear branch formulation & \texttt{nonlinear\_branch\_recovery} & Fig.~\ref{fig:supp-nonlinear-branches} & Supporting \\
-  Nonlinear shape grid includes robust, partial, no-compensation, and unresolved cases & \texttt{nonlinear\_shape\_summary}; \texttt{nonlinear\_compensation\_decision}; \texttt{compensation\_branch\_value\_audit} & Main nonlinear heatmap; Fig.~\ref{fig:supp-nonlinear-branches}; Fig.~\ref{fig:supp-nonlinear-ode-basin} & Main claim \\
+  Nonlinear shape grid includes robust, partial, no-compensation, and unresolved cases & \texttt{nonlinear\_shape\_summary}; \texttt{nonlinear\_tradeoff\_failure\_modes}; \texttt{compensation\_branch\_value\_audit} & Main nonlinear heatmap; Table~\ref{tab:nonlinear-failure-modes}; Fig.~\ref{fig:supp-nonlinear-branches} & Main claim \\
   \bottomrule
 \end{longtable}
 \normalsize
