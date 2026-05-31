@@ -1,0 +1,16 @@
+audit_item,reported_value,expected_or_target,tolerance,status,source,notes
+q_star_at_s0,0.672614741580259,approximately 0.6726,5e-05,PASS,results/roy_ode_compensation_branch_current.csv,Manuscript reports q*(0) approximately 0.6726.
+n_star_branch,4.833333333333334,approximately 4.8333,5e-05,PASS,results/roy_ode_compensation_branch_current.csv,Manuscript reports n* approximately 4.8333.
+w_star_branch,0.6416666666666666,approximately 0.6417,5e-05,PASS,results/roy_ode_compensation_branch_current.csv,Manuscript reports w* approximately 0.6417.
+fixed_q_invasion_threshold,0.06960015299997596,approximately 0.0696,5e-05,PASS,results/roy_ode_no_evolution_counterfactual_summary.csv,Manuscript reports s_fixed approximately 0.0696.
+rescue_window_low_grid,0.07263576388888891,approximately 0.0726,5e-05,PASS,results/roy_ode_no_evolution_counterfactual_summary.csv,Manuscript reports verified rescue window lower endpoint approximately 0.0726.
+rescue_window_high_grid,0.16560954166666672,approximately 0.1656,5e-05,PASS,results/roy_ode_no_evolution_counterfactual_summary.csv,Manuscript reports verified rescue window upper endpoint approximately 0.1656.
+branch_interval_low,-0.11313888888888887,approximately -0.1131,5e-05,PASS,results/roy_ode_compensation_interval_current.csv,Manuscript reports branch interval lower endpoint approximately -0.1131.
+branch_interval_high,0.23244444444444454,approximately 0.2324,5e-05,PASS,results/roy_ode_compensation_interval_current.csv,Manuscript reports branch interval upper endpoint approximately 0.2324.
+nonlinear_count_robust_compensation_shape,11,11,exact,PASS,results/roy_nonlinear_tradeoff_shape_summary.csv,Nonlinear shape-grid class count reported in manuscript.
+nonlinear_count_partial_compensation_shape,11,11,exact,PASS,results/roy_nonlinear_tradeoff_shape_summary.csv,Nonlinear shape-grid class count reported in manuscript.
+nonlinear_count_no_compensation_shape,4,4,exact,PASS,results/roy_nonlinear_tradeoff_shape_summary.csv,Nonlinear shape-grid class count reported in manuscript.
+nonlinear_count_unresolved_shape,1,1,exact,PASS,results/roy_nonlinear_tradeoff_shape_summary.csv,Nonlinear shape-grid class count reported in manuscript.
+lambda_scan_points,600,600,exact,PASS,results/roy_pde_compensation_lambda_scan_summary.csv,Sampled continuous-lambda scan point count.
+lambda_scan_mode_range,0..64,0..64,exact,PASS,results/roy_pde_compensation_lambda_scan_summary.csv,Mode-equivalent lambda range used by sampled continuous-lambda scan.
+discrete_neumann_mode_range,m=0..64;n=0..64,m=0..64;n=0..64,exact,PASS,results/roy_pde_compensation_spatial_modes_current.csv,Discrete Neumann mode range reported in manuscript.

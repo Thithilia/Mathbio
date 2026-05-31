@@ -550,7 +550,16 @@ def make_counterfactual_figure(
     ax_final.set_xlabel("stress s")
     ax_final.set_ylabel("tail mean w")
     ax_final.set_yscale("log")
-    ax_final.legend(frameon=False, fontsize=8)
+    ax_final.text(
+        0.02,
+        0.04,
+        f"log plot floor = {plot_floor:g}",
+        transform=ax_final.transAxes,
+        fontsize=7,
+        color="#444444",
+        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "#dddddd", "alpha": 0.9},
+    )
+    ax_final.legend(frameon=False, fontsize=8, bbox_to_anchor=(1.02, 1.0), loc="upper left")
 
     for treatment, rows in by_treatment.items():
         persistent = [1.0 if row["persistent_predator"] else 0.0 for row in rows]
@@ -573,10 +582,10 @@ def make_counterfactual_figure(
     ax_window.set_yticks([0, 1])
     ax_window.set_yticklabels(["not persistent", "persistent"])
     ax_window.set_ylim(-0.12, 1.12)
-    ax_window.legend(frameon=False, fontsize=8, loc="center right")
+    ax_window.legend(frameon=False, fontsize=8, bbox_to_anchor=(1.02, 0.5), loc="center left")
 
     fig.suptitle("No-evolution counterfactual for indirect evolutionary rescue", fontsize=13)
-    fig.tight_layout(rect=[0, 0, 1, 0.96])
+    fig.tight_layout(rect=[0, 0, 0.88, 0.96])
     FIG65_PATH.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(FIG65_PATH, dpi=240, bbox_inches="tight")
     plt.close(fig)
@@ -585,6 +594,10 @@ def make_counterfactual_figure(
 def make_compensation_branch_figure() -> None:
     rows = read_csv(BRANCH_CURRENT_CSV)
     interval = branch_interval()
+    summary = metric_dict(COUNTERFACTUAL_SUMMARY_CSV) if COUNTERFACTUAL_SUMMARY_CSV.exists() else {}
+    fixed_threshold = float(summary.get("fixed_q_invasion_threshold", math.nan))
+    rescue_low = float(summary.get("rescue_window_low_grid", math.nan))
+    rescue_high = float(summary.get("rescue_window_high_grid", math.nan))
     stress_values = np.linspace(interval["low"], interval["high"], 300)
     branch_states = np.asarray([branch_state_at(float(stress)) for stress in stress_values])
     n_values = branch_states[:, 0]
@@ -593,8 +606,13 @@ def make_compensation_branch_figure() -> None:
     n_mean = float(np.mean(n_values))
     w_mean = float(np.mean(w_values))
 
-    fig, axes = plt.subplots(1, 2, figsize=(10.5, 4.2), sharex=True)
-    ax_q, ax_levels = axes
+    fig, axes = plt.subplots(
+        1,
+        3,
+        figsize=(13.2, 4.3),
+        gridspec_kw={"width_ratios": [1.08, 1.08, 1.0]},
+    )
+    ax_q, ax_levels, ax_summary = axes
     ax_q.axvspan(interval["low"], interval["high"], color="#e8eef7", alpha=0.7, label="interior interval")
     ax_q.plot(stress_values, q_values, color="#1f5f9f", lw=2.2, label=r"analytic $q^*(s)$")
     numeric_stress = np.asarray([float(row["stress"]) for row in rows])
@@ -630,6 +648,48 @@ def make_compensation_branch_figure() -> None:
     )
     ax_levels.legend(frameon=False, fontsize=8, loc="upper right")
 
+    ax_summary.set_title("C. Stress-axis summary")
+    ax_summary.set_xlabel("stress s")
+    ax_summary.set_yticks([])
+    ax_summary.set_ylim(0, 1)
+    pad = 0.05 * (interval["high"] - interval["low"])
+    ax_summary.set_xlim(interval["low"] - pad, interval["high"] + pad)
+    ax_summary.hlines(0.72, interval["low"], interval["high"], color="#1f5f9f", lw=7, alpha=0.75, label="interior branch interval")
+    ax_summary.text(
+        0.5 * (interval["low"] + interval["high"]),
+        0.80,
+        "analytic branch interval",
+        ha="center",
+        va="bottom",
+        fontsize=8,
+        color="#174a7c",
+    )
+    ax_summary.scatter([interval["low"], interval["high"]], [0.72, 0.72], color="#1f5f9f", edgecolor="white", zorder=4)
+    if np.isfinite(fixed_threshold):
+        ax_summary.axvline(fixed_threshold, color="#6b4c9a", lw=1.6, ls="-.", label=r"$s_{\mathrm{fixed}}$")
+        ax_summary.annotate(
+            rf"$s_{{\mathrm{{fixed}}}}={fixed_threshold:.4f}$",
+            xy=(fixed_threshold, 0.35),
+            xytext=(fixed_threshold + 0.026, 0.42),
+            arrowprops={"arrowstyle": "->", "lw": 0.8, "color": "#6b4c9a"},
+            fontsize=8,
+            color="#4f3677",
+        )
+    if np.isfinite(rescue_low) and np.isfinite(rescue_high):
+        ax_summary.axvspan(rescue_low, rescue_high, ymin=0.10, ymax=0.28, color="#f0c419", alpha=0.45)
+        ax_summary.hlines(0.19, rescue_low, rescue_high, color="#9a7a00", lw=4)
+        ax_summary.text(
+            0.5 * (rescue_low + rescue_high),
+            0.05,
+            "verified rescue window",
+            ha="center",
+            va="bottom",
+            fontsize=8,
+            color="#6f5800",
+        )
+    ax_summary.axvline(0.0, color="#333333", lw=0.9, ls=":")
+    ax_summary.grid(axis="x", alpha=0.22)
+
     fig.suptitle("Linear compensation branch: defense changes while positive densities stay fixed", fontsize=12.5)
     fig.tight_layout(rect=[0, 0, 1, 0.93])
     fig.savefig(FIG33_PATH, dpi=240, bbox_inches="tight")
@@ -648,10 +708,10 @@ def make_nonlinear_tradeoff_figure() -> None:
     class_to_code = {name: idx for idx, name in enumerate(class_order)}
     colors = ["#222222", "#707070", "#d0d0d0", "#ffffff"]
     labels = {
-        "robust_compensation_shape": "R robust compensation",
-        "partial_compensation_shape": "P partial compensation",
-        "no_compensation_shape": "N no compensation",
-        "unresolved_shape": "U unresolved",
+        "robust_compensation_shape": "R = robust compensation",
+        "partial_compensation_shape": "P = partial compensation",
+        "no_compensation_shape": "N = no compensation",
+        "unresolved_shape": "U = unresolved",
     }
     counts = {name: 0 for name in class_order}
     lookup: dict[tuple[float, float, float], str] = {}
@@ -686,7 +746,7 @@ def make_nonlinear_tradeoff_figure() -> None:
                 code = int(matrix[y_idx, x_idx])
                 letter = labels[class_order[code]][0]
                 text_color = "white" if code in (0, 1) else "black"
-                ax.text(x_idx, y_idx, letter, ha="center", va="center", color=text_color, fontsize=17, fontweight="bold")
+                ax.text(x_idx, y_idx, letter, ha="center", va="center", color=text_color, fontsize=19, fontweight="bold")
         ax.set_xticks(np.arange(-0.5, len(gamma_values), 1), minor=True)
         ax.set_yticks(np.arange(-0.5, len(gamma_values), 1), minor=True)
         ax.grid(which="minor", color="white", linewidth=1.5)
@@ -695,10 +755,9 @@ def make_nonlinear_tradeoff_figure() -> None:
         ax.set_ylim(-0.5, len(gamma_values) - 0.5)
 
     handles = [Patch(facecolor=colors[idx], edgecolor="#222222", label=f"{labels[name]}: {counts.get(name, 0)} shapes") for idx, name in enumerate(class_order)]
-    fig.legend(handles=handles, loc="lower center", ncol=4, frameon=False, fontsize=8)
+    fig.legend(handles=handles, loc="lower center", ncol=2, frameon=False, fontsize=8)
     fig.suptitle("Controlled nonlinear trade-off shape grid", fontsize=13)
-    fig.text(0.5, 0.06, "Grayscale-safe cell letters identify each class: R, P, N, U", ha="center", fontsize=8)
-    fig.tight_layout(rect=[0, 0.14, 1, 0.92])
+    fig.tight_layout(rect=[0, 0.17, 1, 0.92])
     fig.savefig(FIG64_PATH, dpi=240, bbox_inches="tight")
     plt.close(fig)
 
@@ -798,17 +857,17 @@ def make_rh_margin_eigenvalue_figure(rows: list[dict[str, Any]]) -> None:
     fig, axes = plt.subplots(1, 2, figsize=(8.8, 3.8), sharex=True)
     ax_margin, ax_eig = axes
     ax_margin.plot(stress, min_margin, marker="o", color="#2f6fbb", lw=2.2)
-    ax_margin.axhline(0.0, color="#222222", lw=1.0, ls="--")
+    ax_margin.axhline(0.0, color="#111111", lw=1.4, ls="--")
     ax_margin.set_title("A. Minimum Routh-Hurwitz margin")
     ax_margin.set_xlabel("stress s")
-    ax_margin.set_ylabel(r"$\min(A_1,A_2,A_3,A_1A_2-A_3)$")
+    ax_margin.set_ylabel("minimum RH margin")
     ax_margin.grid(alpha=0.25)
 
     ax_eig.plot(stress, max_real, marker="s", color="#9b4a97", lw=2.2)
-    ax_eig.axhline(0.0, color="#222222", lw=1.0, ls="--")
+    ax_eig.axhline(0.0, color="#111111", lw=1.4, ls="--")
     ax_eig.set_title("B. Maximum eigenvalue real part")
     ax_eig.set_xlabel("stress s")
-    ax_eig.set_ylabel(r"$\max \Re(\lambda_J)$")
+    ax_eig.set_ylabel("max Re eigenvalue")
     ax_eig.grid(alpha=0.25)
 
     fig.suptitle("Local stability margins along the compensation branch", fontsize=13)
@@ -826,7 +885,7 @@ def make_main_pde_evidence_figure() -> None:
     stresses = list(LAMBDA_TARGET_STRESSES)
     colors = plt.cm.viridis(np.linspace(0.12, 0.88, len(stresses)))
 
-    fig, axes = plt.subplots(1, 3, figsize=(13.2, 4.0), gridspec_kw={"width_ratios": [1.25, 1.25, 0.95]})
+    fig, axes = plt.subplots(1, 3, figsize=(13.6, 4.8), gridspec_kw={"width_ratios": [1.25, 1.25, 0.95]})
     ax_modes, ax_lambda, ax_decision = axes
 
     for stress, color in zip(stresses, colors):
@@ -857,7 +916,7 @@ def make_main_pde_evidence_figure() -> None:
             label=f"s={stress:g}",
         )
     ax_lambda.axhline(0.0, color="#111111", lw=1.0, ls="--")
-    ax_lambda.set_title(r"B. Continuous $\lambda$ scan", loc="left", fontweight="bold")
+    ax_lambda.set_title(r"B. Sampled continuous $\lambda$ scan", loc="left", fontweight="bold")
     ax_lambda.set_xlabel(r"continuous $\lambda$")
     ax_lambda.set_ylabel("max real growth")
     ax_lambda.grid(alpha=0.22)
@@ -908,7 +967,7 @@ def make_main_pde_evidence_figure() -> None:
     ax_decision.tick_params(axis="x", labelsize=8)
     ax_decision.grid(axis="y", alpha=0.22)
 
-    fig.suptitle("PDE spatial stability and finite-amplitude follow-up", fontsize=13.5)
+    fig.suptitle("PDE spatial stability and finite-amplitude resolution", fontsize=13.5)
     fig.tight_layout(rect=[0, 0, 1, 0.92])
     fig.savefig(FIG67_PATH, dpi=260, bbox_inches="tight")
     plt.close(fig)
@@ -1027,7 +1086,7 @@ def make_nonhomogeneous_cv_figure() -> None:
 
 def make_long_horizon_mean_figure() -> None:
     rows = read_csv(LONG_HORIZON_MEAN_CSV)
-    fig, axes = plt.subplots(1, 2, figsize=(10.6, 4.2), sharex=True)
+    fig, axes = plt.subplots(2, 1, figsize=(8.8, 7.2), sharex=True)
     colors = {"0.1584375": "#2f6fbb", "0.16486816": "#9b4a97"}
     styles = {"homogeneous_control": "--", "local_defense_patch": "-"}
     for stress in sorted({row["stress"] for row in rows}, key=float):
@@ -1046,7 +1105,7 @@ def make_long_horizon_mean_figure() -> None:
     axes[0].set_ylabel(r"$\bar w(t)$")
     axes[1].set_ylabel(r"$\bar q(t)$")
     axes[1].legend(frameon=False, fontsize=8, bbox_to_anchor=(1.02, 1.0), loc="upper left")
-    fig.tight_layout(rect=[0, 0, 0.80, 1])
+    fig.tight_layout(rect=[0, 0, 0.78, 1])
     fig.savefig(FIG54_PATH, dpi=260, bbox_inches="tight")
     plt.close(fig)
 
