@@ -1,6 +1,6 @@
-# Compensation Branch Submission Readiness
+# Compensation Branch External-Review Package Status
 
-This note records the final submission-package status for the compensation-branch manuscript.
+This note records the external-review package status for the compensation-branch manuscript.
 
 ## Package contents
 
