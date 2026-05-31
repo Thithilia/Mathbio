@@ -1,0 +1,5 @@
+stress,lambda_min,lambda_max,lambda_points,mode_range_i_j,zero_mode_growth,max_growth_for_positive_lambda,lambda_at_max_positive_growth,positive_lambda_stable,positive_growth_count,notes
+0.11765625,0.0,202.12949813431004,600,0..64,-0.023581704072263975,-0.026112471628892908,0.33744490506562613,True,0,continuous scan supports tested lambda range
+0.1584375,0.0,202.12949813431004,600,0..64,-0.015893894916853914,-0.01842468334130465,0.33744490506562613,True,0,continuous scan supports tested lambda range
+0.16486816,0.0,202.12949813431004,600,0..64,-0.01465247062034078,-0.017183262776200504,0.33744490506562613,True,0,continuous scan supports tested lambda range
+0.175,0.0,202.12949813431004,600,0..64,-0.012681581449417077,-0.015212379694428934,0.33744490506562613,True,0,continuous scan supports tested lambda range

@@ -1,0 +1,13 @@
+metric,value,interpretation
+initial_state,4.833333333;0.6416666667;0.6726147416,"pre-stress branch state n*,w*,q*(s=0); q is frozen at this value in the no-evolution treatment"
+stress_grid_points,81,stress values swept from s=0 to just below the branch upper endpoint
+branch_interval_low,-0.11313888888888887,lower endpoint for 0<q*(s)<1
+branch_interval_high,0.23244444444444454,upper endpoint for 0<q*(s)<1
+rescue_window_exists,True,True when frozen-q is extinct but evolving-q persists on at least one stress-grid point
+rescue_window_low_grid,0.07263576388888891,lowest grid stress where frozen-q is extinct and evolving-q persists
+rescue_window_high_grid,0.16560954166666672,highest grid stress where frozen-q is extinct and evolving-q persists
+representative_rescue_stress,0.11912265277777781,stress used for the representative trajectory panels
+ode_solver,LSODA,"solve_ivp method with rtol=1e-08, atol=1e-10"
+integration_horizon,3000.0,ODE horizon used for stress sweep and representative trajectories
+extinction_threshold,0.0001,predator tail-mean threshold used by existing classifier
+tail_fraction,0.25,fraction of terminal trajectory used for tail means and slope diagnostics

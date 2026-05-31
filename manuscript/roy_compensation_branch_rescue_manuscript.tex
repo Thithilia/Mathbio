@@ -19,7 +19,7 @@
 \maketitle
 
 \begin{abstract}
-Indirect evolutionary rescue can occur when adaptive change in one species prevents extinction of another. We analyze this problem in a Roy-style predator--prey model where prey defense evolves and predator mortality stress is imposed externally. Comparing the well-mixed eco-evolutionary ODE with a spatial reaction--diffusion PDE shows that the supported mechanism is a homogeneous compensation branch rather than spatial-pattern-mediated rescue. Along this branch, increasing predator mortality stress is compensated by a decrease in the equilibrium prey defense frequency \(q^*(s)\), which increases predator conversion opportunity and preserves a positive predator equilibrium over an interior stress interval. For the linear defense trade-off ODE, the branch follows from explicit feasibility conditions and is locally stable at the tested stresses by Routh--Hurwitz inequalities. In the spatial PDE, the same homogeneous branch is linearly stable to tested Neumann modes. Targeted finite-amplitude heterogeneous perturbations, including longer-horizon follow-up of basin-changing cases, do not support persistent spatial-pattern-mediated rescue in the tested setup. Controlled nonlinear trade-off extensions recover the linear branch and support compensation for selected concave, convex, and mixed trade-off shapes, while remaining local and parameter-sensitive. The final interpretation is that indirect evolutionary rescue in this tested model is driven by homogeneous reaction-level compensation.
+Indirect evolutionary rescue can occur when adaptive change in one species prevents extinction of another. We analyze this problem in a Roy-style predator--prey model where prey defense evolves and predator mortality stress is imposed externally. Comparing the well-mixed eco-evolutionary ODE with a spatial reaction--diffusion PDE shows that the supported mechanism is a homogeneous compensation branch rather than spatial-pattern-mediated rescue. Along this branch, increasing predator mortality stress is compensated by a decrease in the equilibrium prey defense frequency \(q^*(s)\), which increases predator conversion opportunity and preserves a positive predator equilibrium over an interior stress interval. A frozen-\(q\) counterfactual, initialized at the pre-stress branch state, verifies a finite stress window, approximately \(0.0726\le s\le0.1656\) on the tested grid, in which fixed defense leads to predator extinction while evolving defense preserves predators. For the linear defense trade-off ODE, the branch follows from explicit feasibility conditions and is locally stable at the tested stresses by Routh--Hurwitz inequalities. In the spatial PDE, the same homogeneous branch is linearly stable over the tested Neumann-mode range and a continuous modal scan over the corresponding \(\lambda\)-interval. Targeted finite-amplitude heterogeneous perturbations, including longer-horizon follow-up of basin-changing cases, do not support persistent spatial-pattern-mediated rescue in the tested setup. Controlled nonlinear trade-off extensions recover the linear branch and support compensation for selected concave, convex, and mixed trade-off shapes, while remaining local and parameter-sensitive. The final interpretation is that indirect evolutionary rescue in this tested model is driven by homogeneous reaction-level compensation over the verified counterfactual rescue window.
 \end{abstract}
 
 \begin{center}
@@ -111,22 +111,25 @@ with \(f_\gamma(q)=q^\gamma\). This nonlinear form is used only for controlled e
 
 \section{Methods and numerical protocols}
 
-The analysis combines targeted numerical integration with analytic or semi-analytic calculations. All numerical values reported in this manuscript are taken from CSV outputs in the repository; this manuscript assembly does not introduce new simulations.
+The analysis combines targeted numerical integration with analytic or semi-analytic calculations. All numerical values reported in this manuscript are taken from CSV outputs in the repository. The follow-up evidence added here is limited to ODE no-evolution counterfactual integrations and linear algebraic modal scans; it does not introduce new PDE simulations or model-equation changes.
 
 \paragraph{ODE analysis.}
-ODE trajectories were integrated from specified initial means for representative trajectories and \(q_0\)--\(w_0\) basin maps. Persistent, extinct, and transient labels were assigned from late-time predator density, terminal behavior of \(q(t)\), relative change between late windows, and residual-style steady-state diagnostics. Predator-persistent outcomes have positive predator density with sufficiently small terminal change. Extinct outcomes have predator density near zero. Transient outcomes do not settle clearly into either class within the tested horizon.
+ODE trajectories were integrated from specified initial means for representative trajectories and \(q_0\)--\(w_0\) basin maps. ODE integrations used \texttt{scipy.integrate.solve\_ivp} with the LSODA method unless otherwise noted. For the no-evolution counterfactual, the horizon was \(T=3000\), with 1201 saved time points, relative tolerance \(10^{-8}\), absolute tolerance \(10^{-10}\), extinction threshold \(10^{-4}\), and a terminal tail window equal to the final 25 percent of the trajectory. Persistent, extinct, and transient labels were assigned from late-time predator density, terminal behavior of \(q(t)\), relative change between late windows, and residual-style steady-state diagnostics. Predator-persistent outcomes have positive predator density with sufficiently small terminal change. Extinct outcomes have predator density near zero. Transient outcomes do not settle clearly into either class within the tested horizon.
 
 \paragraph{Compensation branch computation.}
 For the linear trade-off model, the compensation branch was derived analytically from the interior equilibrium equations, giving closed-form \(z^*\), \(w^*\), \(n^*\), and \(q^*(s)\). Numerical equilibria from multiple initial guesses were used as consistency checks against the analytic branch. For nonlinear trade-offs, the branch was parameterized by \(q\) through \(c(q)=r'(q)/a'(q)\) and the corresponding stress map \(s(q)\).
+
+\paragraph{No-evolution counterfactual.}
+To verify that predator persistence depends on prey evolution rather than only on the existence of a positive branch, we compared the full evolving-\(q\) ODE with a frozen-\(q\) counterfactual. Both treatments were initialized at the pre-stress branch state \((n^*,w^*,q^*(0))\), with \(q^*(0)\approx0.6726\). In the counterfactual treatment \(dq/dt=0\), so \(q\) remained fixed at this pre-stress value. Stress was swept across the interior branch interval, and predator persistence/extinction was classified using the same tail-window logic as the ODE analyses. The verified rescue window is the grid interval where frozen-\(q\) trajectories are extinct while evolving-\(q\) trajectories persist.
 
 \paragraph{Local stability.}
 Local stability of the linear branch was evaluated with the analytic reaction Jacobian. For the cubic characteristic polynomial \(\lambda^3+A_1\lambda^2+A_2\lambda+A_3=0\), the Routh--Hurwitz inequalities \(A_1>0\), \(A_2>0\), \(A_3>0\), and \(A_1A_2>A_3\) determined local stability. Finite-difference Jacobians were used for selected nonlinear trade-off extensions where closed-form expressions were not the main object.
 
 \paragraph{PDE spatial stability.}
-Homogeneous ODE equilibria are homogeneous PDE steady states because diffusion vanishes on spatially constant fields. Spatial-mode stability was evaluated from \(J_F(U^*)-\lambda_{ij}D\), where \(J_F(U^*)\) is the reaction Jacobian, \(D=\mathrm{diag}(D_n,D_w,D_q)\), and \(\lambda_{ij}\) are Neumann eigenvalues on the rectangular domain. The zero mode recovers ODE stability; nonzero modes test infinitesimal spatial perturbations.
+Homogeneous ODE equilibria are homogeneous PDE steady states because diffusion vanishes on spatially constant fields. Spatial-mode stability was evaluated from \(J_F(U^*)-\lambda_{ij}D\), where \(J_F(U^*)\) is the reaction Jacobian, \(D=\mathrm{diag}(D_n,D_w,D_q)\), and \(\lambda_{ij}\) are Neumann eigenvalues on the rectangular domain. The zero mode recovers ODE stability; nonzero modes test infinitesimal spatial perturbations. Discrete Neumann modes were evaluated for \(i,j=0,\ldots,64\), and a continuous \(\lambda\)-scan sampled 600 equally spaced values over the corresponding mode-equivalent \(\lambda\)-range.
 
 \paragraph{Non-homogeneous PDE perturbations.}
-Targeted finite-amplitude PDE tests used localized predator patches, localized defense patches, sinusoidal modes, random heterogeneity, and basin-boundary heterogeneity. Each heterogeneous run was compared with a matched homogeneous control at the same stress and baseline mean state. Basin-changing heterogeneous cases were followed to longer horizons to distinguish persistent basin changes from finite-horizon transient labels.
+Targeted finite-amplitude PDE tests used localized predator patches, localized defense patches, sinusoidal modes, random heterogeneity, and basin-boundary heterogeneity. PDE tests used \(64\times64\) grids on \(20\times20\) domains with \(D_n=0.01\), \(D_w=0.01\), \(D_q=0.005\), and explicit timestep \(dt=0.1\), with CFL checks in the simulation helper. Perturbation amplitudes were targeted rather than exhaustive: local predator patches used \(A=0.5\), local defense patches used \(A_q=0.2\), sinusoidal and random heterogeneity used \(A=A_q=0.1\), and basin-boundary heterogeneity used \(A=A_q=0.25\). Random seeds included 20260702 and 20260703 where stochastic heterogeneity was used. Each heterogeneous run was compared with a matched homogeneous control at the same stress and baseline mean state. Basin-changing heterogeneous cases were followed to longer horizons to distinguish persistent basin changes from finite-horizon transient labels.
 
 \paragraph{Nonlinear trade-off extension.}
 The nonlinear extension used the endpoint-preserving shape family \(f_\gamma(q)=q^\gamma\) with \(\gamma\in\{0.5,1,2\}\) for the growth, attack, and conversion trade-offs. This is a controlled local shape grid, not a broad scan over all nonlinear trade-off functions.
@@ -185,6 +188,20 @@ This branch explains rescue as compensation: increasing predator mortality stres
   \label{fig:branch-interval}
 \end{figure}
 
+\paragraph{No-evolution counterfactual.}
+The counterfactual test starts at the pre-stress branch state and compares the full evolving-\(q\) dynamics with a frozen-\(q\) treatment in which \(q=q^*(0)\) is held fixed. On the targeted stress grid, the verified rescue window is approximately
+\[
+s\in[0.0726,0.1656],
+\]
+where frozen-\(q\) trajectories are classified as predator-extinct while evolving-\(q\) trajectories remain predator-persistent. At the representative stress \(s=0.1191\), the evolving-\(q\) trajectory lowers defense and maintains \(w\approx0.6417\), whereas the frozen-\(q\) trajectory loses the predator. This supports the indirect evolutionary rescue interpretation over this verified counterfactual window. Outside this window, especially near the upper branch boundary, the pre-stress initial condition can fall outside the persistent basin even though the analytic branch remains feasible.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.95\linewidth]{figures/roy_evo_spatial/report/fig65_no_evolution_counterfactual.png}
+  \caption{No-evolution counterfactual for the linear ODE. Panel A compares predator density at a representative rescue stress for evolving-\(q\) and frozen-\(q\) treatments. Panel B shows the defense response in the evolving-\(q\) run. Panel C plots final predator density across stress for both treatments. Panel D highlights the finite stress window where frozen-\(q\) trajectories are extinct but evolving-\(q\) trajectories persist. This figure supports indirect evolutionary rescue over the verified window; it does not imply persistence over the full analytic branch interval from the pre-stress initial condition.}
+  \label{fig:no-evolution-counterfactual}
+\end{figure}
+
 \section{Branch feasibility and local stability}
 
 The interior branch exists only under explicit feasibility conditions:
@@ -236,7 +253,7 @@ where \(J_F(U^*)\) is the reaction Jacobian at the homogeneous branch state, \(D
 \]
 The zero mode is the ODE stability problem. Nonzero modes test whether infinitesimal spatial perturbations grow.
 
-For the current diffusion coefficients, all tested nonzero Neumann modes were stable at the target branch stresses. A controlled diffusion-ratio linear grid also found no spatial instability in the tested ratios. Thus the PDE does not destabilize the homogeneous branch through the tested infinitesimal spatial modes.
+For the current diffusion coefficients, all tested nonzero Neumann modes with \(i,j=0,\ldots,64\) were stable at the target branch stresses. A continuous scan of \(\max\Re\mathrm{eig}(J_F(U^*)-\lambda D)\), using 600 equally spaced \(\lambda\) values over the corresponding mode-equivalent range, also found no positive growth. A controlled diffusion-ratio linear grid found no spatial instability in the tested ratios. Thus the PDE does not destabilize the homogeneous branch through the tested infinitesimal spatial modes and modal range. This is still a tested-range result, not an analytic proof over all spatial modes or all diffusion coefficients.
 
 Linear spatial stability is not enough to rule out finite-amplitude heterogeneous effects. Targeted finite-amplitude PDE tests therefore used localized predator patches, localized defense patches, sinusoidal perturbations, smooth random heterogeneity, and basin-boundary heterogeneity. These tests compared heterogeneous fields with matched homogeneous controls. Initial finite-horizon basin-label changes occurred for localized defense perturbations near basin-boundary mean states, but these changes were transient-label effects without persistent spatial patterning. Longer-horizon follow-up showed that the basin-changing cases resolved to the matched homogeneous-control basin, with final spatial coefficients of variation below the persistence threshold.
 
@@ -290,7 +307,7 @@ The nonlinear result suggests that compensation is not only a linear-trade-off a
 
 \section{Biological interpretation}
 
-Higher predator mortality directly reduces predator persistence. In this model, prey defense evolution can compensate because mortality stress reduces predator pressure, and lower predator pressure favors lower prey defense. Lower defense increases predator conversion opportunity through \(b(q)\), which can restore predator growth balance at a positive predator equilibrium. This is indirect evolutionary rescue: the predator is rescued not by predator adaptation, but by prey evolution.
+Higher predator mortality directly reduces predator persistence. In this model, prey defense evolution can compensate because mortality stress reduces predator pressure, and lower predator pressure favors lower prey defense. Lower defense increases predator conversion opportunity through \(b(q)\), which can restore predator growth balance at a positive predator equilibrium. The frozen-\(q\) counterfactual verifies this as indirect evolutionary rescue on the tested stress grid where fixed prey defense leads to predator extinction but evolving prey defense preserves the predator.
 
 The biological interpretation is therefore a compensation story rather than a spatial patterning story. Defended prey are less favorable to predators in the conversion term, so a shift toward lower defense makes prey more exploitable by the predator. Under the tested trade-off values, that evolutionary shift is sufficient to offset part of the imposed predator mortality stress. The predator persists indirectly because the prey population evolves toward a state that improves predator growth balance.
 
@@ -307,7 +324,7 @@ Nonlinear trade-off shapes matter because biological costs of defense need not b
 
 \section{Scope and limitations}
 
-The established result in this parameterization is that the well-mixed eco-evolutionary ODE has an interior compensation branch, that the branch is feasible over an explicit stress interval, and that the branch is locally stable at the tested stresses by Routh--Hurwitz criteria. For the spatial PDE, the supported result is that the same homogeneous branch is linearly stable to tested Neumann modes and that targeted finite-amplitude heterogeneous perturbations do not produce persistent spatial-pattern-mediated rescue.
+The established result in this parameterization is that the well-mixed eco-evolutionary ODE has an interior compensation branch, that the branch is feasible over an explicit stress interval, that the branch is locally stable at the tested stresses by Routh--Hurwitz criteria, and that a frozen-\(q\) counterfactual verifies indirect evolutionary rescue over a finite stress window. For the spatial PDE, the supported result is that the same homogeneous branch is linearly stable over the tested Neumann modes and continuous modal range, and that targeted finite-amplitude heterogeneous perturbations do not produce persistent spatial-pattern-mediated rescue.
 
 The controlled extension supports the presence of compensation branches beyond the linear trade-off form for selected concave, convex, and mixed endpoint-preserving shapes. This does not establish global robustness over all nonlinear trade-offs. The PDE tests are targeted rather than exhaustive. There is no global basin proof, no proof of global stability, no theorem for all heterogeneous initial conditions, and no full bifurcation analysis.
 
@@ -316,11 +333,11 @@ The model is stylized and not calibrated to empirical predator--prey data. Param
 \section{Conclusions}
 
 \begin{enumerate}
-  \item The tested ODE supports indirect evolutionary rescue through prey defense evolution.
+  \item The tested ODE supports indirect evolutionary rescue through prey defense evolution over the verified frozen-\(q\) counterfactual window \(0.0726\le s\le0.1656\) on the stress grid.
   \item The mechanism is a homogeneous compensation branch.
   \item Branch existence follows from explicit feasibility conditions.
   \item The current branch is locally stable by Routh--Hurwitz criteria.
-  \item The spatial PDE branch is linearly stable to tested Neumann spatial modes.
+  \item The spatial PDE branch is linearly stable over the tested Neumann spatial-mode and continuous modal ranges.
   \item Targeted non-homogeneous perturbations do not produce persistent spatial-pattern-mediated rescue.
   \item Controlled nonlinear trade-off tests show that the mechanism extends beyond the linear case but remains parameter-sensitive.
 \end{enumerate}
@@ -329,7 +346,7 @@ The current evidence supports homogeneous reaction-level compensation, not spati
 
 \section*{Data and code availability}
 
-All scripts, CSV outputs, figures, and LaTeX sources are maintained in the project repository. The manuscript is based on the CSV and figure outputs generated by the numbered analysis scripts; no new simulations were run for this submission-readiness pass.
+All scripts, CSV outputs, figures, and LaTeX sources are maintained in the project repository. The manuscript is based on the CSV and figure outputs generated by the numbered analysis scripts. This follow-up adds ODE no-evolution counterfactual outputs and linear modal-scan outputs; it does not add PDE simulations or change model equations.
 
 \bibliographystyle{plainnat}
 \bibliography{manuscript/references}

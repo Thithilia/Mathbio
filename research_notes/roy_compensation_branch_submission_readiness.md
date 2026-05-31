@@ -1,6 +1,6 @@
-# Compensation Branch Submission Readiness
+# Compensation Branch External-Review Package Status
 
-This note records the final submission-package status for the compensation-branch manuscript.
+This note records the external-review package status for the compensation-branch manuscript.
 
 ## Package contents
 
@@ -13,11 +13,13 @@ This note records the final submission-package status for the compensation-branc
 
 ## Current status
 
-The package is structured for external review as a theoretical ecology / mathematical biology manuscript. The main text states the compensation-branch mechanism, feasibility conditions, local stability result, PDE spatial-stability result, non-homogeneous perturbation outcome, and controlled nonlinear extension. Diagnostic detail is moved to the supplement.
+The package is structured for external review as a theoretical ecology / mathematical biology manuscript. The main text states the compensation-branch mechanism, frozen-\(q\) counterfactual rescue window, feasibility conditions, local stability result, PDE spatial-stability result, non-homogeneous perturbation outcome, and controlled nonlinear extension. Diagnostic detail is moved to the supplement.
 
 ## Submission caveats
 
 - The model is stylized and not empirically calibrated.
 - The stability result is local, not global.
 - PDE perturbation tests are targeted, not exhaustive.
+- The no-evolution rescue window is a finite stress-grid and horizon result rather than a full bifurcation analysis.
+- The continuous \(\lambda\)-scan supports the tested modal range rather than an all-mode analytic proof.
 - The nonlinear extension is controlled and local, not a general theorem over all trade-off forms.
