@@ -68,7 +68,7 @@ The spatial PDE uses the same local reaction terms:
 \partial_t w &= D_w\nabla^2w+w[b(q)nz-(m+s)-\mu w],\\
 \partial_t q &= D_q\nabla^2q+\nu q(1-q)[(r_v-r_u)z-(a_v-a_u)w].
 \end{align}
-The PDE tests use zero-flux Neumann boundaries on a rectangular domain of side lengths \(L_x\) and \(L_y\). The \(q\)-diffusion term is used as a phenomenological local-smoothing approximation for defense composition. A derivation from separate defended and undefended prey densities would be a useful extension, but is not needed for the homogeneous compensation-branch calculation because diffusion vanishes on spatially constant states.
+The PDE tests use zero-flux Neumann boundaries on a rectangular domain of side lengths \(L_x\) and \(L_y\). The \(q\)-diffusion term is a phenomenological composition-smoothing closure for the defense-frequency variable. It is not derived here from separate defended and undefended prey density equations, and that modeling choice could affect PDE spatial-stability conclusions. The homogeneous ODE compensation branch and frozen-\(q\) counterfactual do not depend on \(D_q\), because all diffusion terms vanish on spatially constant states.
 
 \begin{table}[htbp]
   \centering
@@ -184,7 +184,7 @@ This branch explains rescue as compensation: increasing predator mortality stres
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig33_compensation_branch_current.png}
-  \caption{Compensation branch and stress-axis summary. Panel A plots analytic \(q^*(s)\) against numerical stable persistent equilibria. Panel B shows normalized \(n^*\) and \(w^*\), which remain effectively fixed along the linear branch. Panel C places the analytic branch interval, the frozen-\(q\) invasion threshold \(s_{\mathrm{fixed}}\), and the verified finite-grid rescue window on a common stress axis. These panels support branch feasibility and analytic/numerical agreement in the tested parameterization; they do not imply global stability or feasibility for all trade-offs.}
+  \caption{Compensation branch and stress-axis summary. Panel A plots analytic \(q^*(s)\) against numerical stable persistent equilibria. Panel B shows normalized \(n^*\) and \(w^*\), which remain effectively fixed along the linear branch. Panel C places the analytic branch interval, the frozen-\(q\) invasion threshold \(s_{\mathrm{fixed}}\), and the verified finite-grid rescue window on a common stress axis.}
   \label{fig:branch-interval}
 \end{figure}
 
@@ -193,12 +193,12 @@ The counterfactual test starts at the pre-stress branch state and compares the f
 \[
 s\in[0.0726,0.1656],
 \]
-where frozen-\(q\) trajectories are classified as predator-extinct while evolving-\(q\) trajectories remain predator-persistent. At the representative stress \(s=0.1191\), the evolving-\(q\) trajectory lowers defense and maintains \(w\approx0.6417\), whereas the frozen-\(q\) trajectory loses the predator. This supports the indirect evolutionary rescue interpretation over this verified counterfactual window. Outside this window, especially near the upper branch boundary, the pre-stress initial condition can fall outside the persistent basin even though the analytic branch remains feasible. Thus the reported rescue interval is a grid-and-horizon result, while the lower frozen-defense failure threshold also has the analytic invasion interpretation above.
+where frozen-\(q\) trajectories are classified as predator-extinct while evolving-\(q\) trajectories remain predator-persistent. At the representative stress \(s=0.1191\), the evolving-\(q\) trajectory lowers defense and maintains \(w\approx0.6417\), whereas the frozen-\(q\) trajectory loses the predator. This supports the indirect evolutionary rescue interpretation over this verified counterfactual window. The window is a reachable-window result from the pre-stress branch initial condition, not the full analytic feasibility interval of the interior branch. Outside this window, especially near the upper branch boundary, the pre-stress initial condition can fall outside the persistent basin even though the analytic branch remains feasible. The supplemental \(q_0\)--\(w_0\) basin map documents this basin dependence.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.95\linewidth]{figures/roy_evo_spatial/report/fig65_no_evolution_counterfactual.png}
-  \caption{No-evolution counterfactual for the linear ODE. Panel A compares predator density at a representative rescue stress for evolving-\(q\) and frozen-\(q\) treatments. Panel B shows the defense response in the evolving-\(q\) run. Panel C plots tail mean predator density across stress for both treatments; values below \(10^{-8}\) are shown at the plotting floor for log-scale visualization. Panel D highlights the finite stress window where frozen-\(q\) trajectories are extinct but evolving-\(q\) trajectories persist. The vertical \(s_{\mathrm{fixed}}\) line marks the analytic frozen-defense predator-invasion threshold. This figure supports indirect evolutionary rescue over the verified window; it does not imply persistence over the full analytic branch interval from the pre-stress initial condition.}
+  \caption{No-evolution counterfactual for the linear ODE. Panel A compares predator density at a representative rescue stress for evolving-\(q\) and frozen-\(q\) treatments. Panel B shows the defense response in the evolving-\(q\) run. Panel C plots tail mean predator density across stress for both treatments; values below \(10^{-8}\) are shown at the plotting floor for log-scale visualization. Panel D highlights the finite stress window where frozen-\(q\) trajectories are extinct but evolving-\(q\) trajectories persist from the pre-stress initial condition.}
   \label{fig:no-evolution-counterfactual}
 \end{figure}
 
@@ -224,6 +224,8 @@ s\in(-0.1131,0.2324).
 \]
 The target stresses used in the mechanism tests lie inside this interval. These conditions make the branch a conditional mathematical statement for the linear trade-off ODE rather than a purely numerical observation.
 
+The endpoints of this analytic interior branch occur when \(q^*(s)\) reaches the trait boundaries \(q=0\) or \(q=1\). They are feasibility or trait-boundary endpoints of the interior formula. We do not classify these endpoints as saddle-node, transcritical, or other bifurcations; a full boundary-equilibrium bifurcation analysis is outside the present scope.
+
 Local stability of the homogeneous branch was evaluated with the analytic Jacobian of the ODE. For a three-dimensional system, the characteristic polynomial can be written
 \[
 \lambda^3+A_1\lambda^2+A_2\lambda+A_3=0.
@@ -237,7 +239,7 @@ For the current parameterization, these inequalities hold at all target stresses
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.92\linewidth]{figures/roy_evo_spatial/report/fig68_routh_hurwitz_margin_eigenvalue.png}
-  \caption{Local stability margins along the compensation branch. Panel A shows the minimum Routh--Hurwitz margin across \(A_1\), \(A_2\), \(A_3\), and \(A_1A_2-A_3\). Panel B shows the maximum real part of the reaction-Jacobian eigenvalues. Positive margins and negative eigenvalue real parts support local stability at the tested stresses; they do not establish global basin attraction or rule out other attractors.}
+  \caption{Local stability margins along the compensation branch. Panel A shows the minimum Routh--Hurwitz margin across \(A_1\), \(A_2\), \(A_3\), and \(A_1A_2-A_3\). Panel B shows the maximum real part of the reaction-Jacobian eigenvalues.}
   \label{fig:rh-margin}
 \end{figure}
 
@@ -262,7 +264,7 @@ The spatial interpretation is therefore specific: in the tested PDE, spatial het
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.98\linewidth]{figures/roy_evo_spatial/report/fig67_pde_spatial_stability_long_horizon_summary.png}
-  \caption{Spatial-mode and finite-amplitude PDE tests. Panel A plots maximum real growth rates for tested discrete Neumann modes, computed from \(J_F(U^*)-\lambda_{ij}D\). Panel B shows the sampled continuous-\(\lambda\) scan over 600 equally spaced values in the mode-equivalent range corresponding to \(i,j=0,\ldots,64\). Panels A and B support tested-range linear spatial stability for the current diffusion coefficients. Panel C summarizes the two followed finite-amplitude heterogeneous cases that changed finite-horizon basin labels; both resolved to their matched homogeneous controls without persistent spatial patterning. These diagnostics do not exhaust all possible modes, diffusion coefficients, or heterogeneous initial conditions.}
+  \caption{Spatial-mode and finite-amplitude PDE tests. Panel A plots maximum real growth rates for tested discrete Neumann modes, computed from \(J_F(U^*)-\lambda_{ij}D\). Panel B shows the sampled continuous-\(\lambda\) scan over 600 equally spaced values in the mode-equivalent range corresponding to \(i,j=0,\ldots,64\). Panel C summarizes the two followed finite-amplitude heterogeneous cases that changed finite-horizon basin labels; both resolved to their matched homogeneous controls without persistent spatial patterning.}
   \label{fig:pde-spatial-nonlinear}
 \end{figure}
 
@@ -288,12 +290,12 @@ The linear branch is recovered when all shape exponents are one.
 
 The controlled nonlinear extension used \(\gamma_r,\gamma_a,\gamma_b\in\{0.5,1,2\}\), representing concave, linear, and convex endpoint-preserving shapes. This grid is small and structured; it is not a global trade-off scan. Within that grid, the generalized formulation recovered the linear branch, and selected concave, convex, and mixed nonlinear shapes supported feasible locally stable compensation branches. The shape-grid summary recorded 11 robust compensation shapes, 11 partial compensation shapes, 4 no-compensation shapes, and 1 unresolved shape. Targeted PDE spatial-mode and non-homogeneous tests for selected stable nonlinear branches did not support persistent spatial-pattern-mediated rescue.
 
-The nonlinear result suggests that compensation is not only a linear-trade-off artifact within this controlled shape grid. It also emphasizes parameter sensitivity: nonlinear shape can change branch feasibility, stability, and stress interval length.
+The nonlinear result suggests that compensation is not only a linear-trade-off artifact within this controlled shape grid. It also emphasizes parameter sensitivity: nonlinear shape can change branch feasibility, stability, and stress interval length. The no-compensation and unresolved nonlinear shapes are therefore informative failure modes, not exceptions to hide: in the existing diagnostics they correspond to missing feasible branches at the target stresses or to branches whose stability/classification was not sufficient to support the compensation claim, as detailed in the supplemental failure-mode table.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.78\linewidth]{figures/roy_evo_spatial/report/fig64_nonlinear_tradeoff_final_decision.png}
-  \caption{Controlled nonlinear trade-off extension summary. The figure shows the structured shape grid faceted by conversion-shape exponent \(\gamma_b\), with growth and attack exponents on the axes. Cell categories match the numerical summary: 11 robust compensation shapes, 11 partial compensation shapes, 4 no-compensation shapes, and 1 unresolved shape. It supports compensation in selected nonlinear shapes while showing that the result remains local and parameter-sensitive; it does not prove the mechanism for all nonlinear trade-off functions.}
+  \caption{Controlled nonlinear trade-off extension summary. The figure shows the structured shape grid faceted by conversion-shape exponent \(\gamma_b\), with growth and attack exponents on the axes. Cell categories match the numerical summary: 11 robust compensation shapes, 11 partial compensation shapes, 4 no-compensation shapes, and 1 unresolved shape.}
   \label{fig:nonlinear-extension}
 \end{figure}
 
@@ -322,6 +324,8 @@ The established result in this parameterization is that the well-mixed eco-evolu
 
 The controlled extension supports the presence of compensation branches beyond the linear trade-off form for selected concave, convex, and mixed endpoint-preserving shapes. This does not establish global robustness over all nonlinear trade-offs. The PDE tests are targeted rather than exhaustive. There is no global basin proof, no proof of global stability, no theorem for all heterogeneous initial conditions, and no full bifurcation analysis.
 
+The branch equilibrium itself does not depend on the evolutionary-rate parameter \(\nu\), because the interior equilibrium condition sets the selection gradient to zero. Finite-time rescue from a specified initial condition can still depend on \(\nu\): if prey defense evolves too slowly, predators may decline before the defense shift restores predator growth balance. This finite-time rate sensitivity is a limitation of the current rescue-window claim and should be studied separately before biological calibration.
+
 The model is stylized and not calibrated to empirical predator--prey data. Parameters are used to test mechanism, not to estimate a particular biological system. The manuscript does not claim that spatial structure generally amplifies or suppresses rescue, and it does not claim that all heterogeneous perturbations decay. The results should therefore be interpreted as a mechanistic case study: they support homogeneous reaction-level compensation in the tested Roy-style model, not a universal claim about spatial evolutionary rescue.
 
 \section{Conclusions}
@@ -336,7 +340,7 @@ The model is stylized and not calibrated to empirical predator--prey data. Param
   \item Controlled nonlinear trade-off tests show that the mechanism extends beyond the linear case but remains parameter-sensitive.
 \end{enumerate}
 
-The results support homogeneous reaction-level compensation, not spatial-pattern-mediated rescue, in the tested model.
+The current evidence supports homogeneous reaction-level compensation, not spatial-pattern-mediated rescue, in the tested model.
 
 \section*{Data and code availability}
 

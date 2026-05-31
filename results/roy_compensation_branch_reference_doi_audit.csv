@@ -1,9 +1,9 @@
-key,entry_type,doi_present,doi,manual_check_required,notes
-YamamichiMiner2015,article,True,10.1111/eva.12295,True,DOI field present; resolver validation still requires manual or network check before journal submission.
-RoyEtAl2026,article,True,10.1038/s42005-025-02434-1,True,DOI field present; resolver validation still requires manual or network check before journal submission.
-SasmalBanerjeeTakeuchi2019,article,True,10.3934/mbe.2019191,True,DOI field present; resolver validation still requires manual or network check before journal submission.
-KasadaYamamichiYoshida2014,article,True,10.1073/pnas.1406357111,True,DOI field present; resolver validation still requires manual or network check before journal submission.
-GomulkiewiczHolt1995,article,True,10.1111/j.1558-5646.1995.tb05971.x,True,DOI field present; resolver validation still requires manual or network check before journal submission.
-BellGonzalez2009,article,True,10.1111/j.1461-0248.2009.01350.x,True,DOI field present; resolver validation still requires manual or network check before journal submission.
-Bell2017,article,True,10.1146/annurev-ecolsys-110316-023011,True,DOI field present; resolver validation still requires manual or network check before journal submission.
-YoshidaEtAl2003,article,True,10.1038/nature01767,True,DOI field present; resolver validation still requires manual or network check before journal submission.
+key,entry_type,doi_present,doi,resolver_status,manual_check_required,notes
+YamamichiMiner2015,article,True,10.1111/eva.12295,doi_field_present_not_resolved_by_script,True,DOI field present; resolver validation should still be checked before journal submission.
+RoyEtAl2026,article,True,10.1038/s42005-025-02434-1,verified_resolves_2026_06_01,False,"Verified against the Nature article page on 2026-06-01: Communications Physics 9, Article 4 (2026), DOI 10.1038/s42005-025-02434-1."
+SasmalBanerjeeTakeuchi2019,article,True,10.3934/mbe.2019191,doi_field_present_not_resolved_by_script,True,DOI field present; resolver validation should still be checked before journal submission.
+KasadaYamamichiYoshida2014,article,True,10.1073/pnas.1406357111,doi_field_present_not_resolved_by_script,True,DOI field present; resolver validation should still be checked before journal submission.
+GomulkiewiczHolt1995,article,True,10.1111/j.1558-5646.1995.tb05971.x,doi_field_present_not_resolved_by_script,True,DOI field present; resolver validation should still be checked before journal submission.
+BellGonzalez2009,article,True,10.1111/j.1461-0248.2009.01350.x,doi_field_present_not_resolved_by_script,True,DOI field present; resolver validation should still be checked before journal submission.
+Bell2017,article,True,10.1146/annurev-ecolsys-110316-023011,doi_field_present_not_resolved_by_script,True,DOI field present; resolver validation should still be checked before journal submission.
+YoshidaEtAl2003,article,True,10.1038/nature01767,doi_field_present_not_resolved_by_script,True,DOI field present; resolver validation should still be checked before journal submission.

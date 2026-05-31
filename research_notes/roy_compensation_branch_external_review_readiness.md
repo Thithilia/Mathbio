@@ -20,6 +20,12 @@
 - Made the nonlinear shape-grid heatmap grayscale-safe with larger R/P/N/U cell letters and explicit legend labels.
 - Added final cleanup fixes for Figure 6 float placement, sampled continuous-\(\lambda\) wording, fixed-\(q\) threshold interpretation, supplement field-map color-scale captions, and supplement float placement.
 - Added `experiments/29_roy_manuscript_audit.py` plus value and DOI audit CSV outputs to check manuscript-reported numerical values and bibliography DOI-field presence against source files.
+- Clarified that \(q\)-diffusion is a phenomenological composition-smoothing closure and that PDE spatial-stability conclusions could depend on this closure, while the homogeneous branch and frozen-\(q\) counterfactual do not depend on \(D_q\).
+- Clarified that the no-evolution rescue window is reachable from the pre-stress branch initial condition and is not the full analytic branch feasibility interval.
+- Added trait-boundary endpoint language for the analytic interior branch and avoided classifying those endpoints as saddle-node or transcritical bifurcations.
+- Added a finite-time evolutionary-rate caveat: the branch equilibrium is independent of \(\nu\), but rescue from an initial condition can fail if prey evolution is too slow.
+- Added a supplemental no-compensation/unresolved nonlinear-shape failure-mode table generated from existing outputs.
+- Verified the Roy et al. DOI `10.1038/s42005-025-02434-1` against the Nature/Communications Physics article page and updated the DOI audit note/status.
 - Reformatted supplement source-map tables in landscape with compact path names for readability.
 - Strengthened the biological interpretation around lower prey defense, predator conversion opportunity, indirect evolutionary rescue, and the stylized nature of the assumptions.
 - Added a Claims and scope section separating established results, controlled extensions, and claims not made.
@@ -35,9 +41,11 @@ The manuscript package now consists of a clean main paper, a supplement, and a s
 - PDE perturbation tests are targeted and do not exhaust all heterogeneous initial conditions.
 - The continuous \(\lambda\)-scan strengthens the tested modal range but is still not an analytic proof for all diffusion coefficients or all spatial settings.
 - The no-evolution rescue window is a finite grid/horizon result, not a complete bifurcation analysis of all frozen-\(q\) and evolving-\(q\) basins.
+- Finite-time rescue can depend on the evolutionary-rate parameter \(\nu\); this manuscript states the caveat but does not add a new \(\nu\)-sensitivity simulation.
+- The \(q\)-diffusion term is a phenomenological closure rather than a derivation from separate defended/undefended prey densities.
 - The repository has not yet been archived as a release with a DOI.
 - The model has no empirical calibration or species-specific parameter fitting.
-- DOI fields are present in the bibliography, but resolver checks still need manual or network validation before journal submission.
+- The Roy et al. DOI was resolver-checked; other references should be rechecked if the bibliography changes before submission.
 
 ## Recommended target article type
 
@@ -59,4 +67,5 @@ mathematical biology / theoretical ecology short article or methods-style theore
 - Decide the target outlet and adapt figure count, figure dimensions, and reference style.
 - Convert diagnostic figures into publication-ready panels if needed.
 - Add only verified literature if the framing is expanded.
+- Decide whether a small \(\nu\)-sensitivity diagnostic is worth adding for the target outlet; it is currently deferred to avoid expanding the evidence package.
 - Replace placeholder author information with the intended author list and affiliations.
