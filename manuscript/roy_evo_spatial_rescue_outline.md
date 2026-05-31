@@ -1,8 +1,12 @@
-# Outline: Eco-Evolutionary Rescue and Spatial Bistability in a Roy-Style Predator–Prey Model
+# Outline: Eco-Evolutionary Rescue and Spatial Bistability in a Roy-Style Predator--Prey Model
 
 ## Final mechanism after verification
 
 The manuscript should now be built around the homogeneous compensation branch. The PDE section should be framed as spatial stability and perturbation testing of that branch. The final story is not spatial-pattern-mediated rescue.
+
+Current consolidated paper-style draft: `manuscript/roy_compensation_branch_rescue_manuscript.tex`.
+
+That draft is the preferred starting point for paper refinement. It consolidates the ODE compensation branch, explicit existence conditions, Routh-Hurwitz local stability, PDE spatial-mode stability, non-homogeneous perturbation follow-up, and controlled nonlinear trade-off extension into one manuscript.
 
 Proposed manuscript structure:
 
