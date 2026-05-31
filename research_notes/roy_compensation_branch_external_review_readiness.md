@@ -18,6 +18,8 @@
 - Replaced the main Routh--Hurwitz figure with a clearer margin/eigenvalue summary and moved the full four-term coefficient plot to the supplement.
 - Split crowded supplement PDE and nonlinear diagnostic mosaics into larger, one-message-per-figure panels with updated figure references and claim-source mapping; regenerated PDE diagnostics with larger fonts, external legends, and clearer colorbars.
 - Made the nonlinear shape-grid heatmap grayscale-safe with larger R/P/N/U cell letters and explicit legend labels.
+- Added final cleanup fixes for Figure 6 float placement, sampled continuous-\(\lambda\) wording, fixed-\(q\) threshold interpretation, supplement field-map color-scale captions, and supplement float placement.
+- Added `experiments/29_roy_manuscript_audit.py` plus value and DOI audit CSV outputs to check manuscript-reported numerical values and bibliography DOI-field presence against source files.
 - Reformatted supplement source-map tables in landscape with compact path names for readability.
 - Strengthened the biological interpretation around lower prey defense, predator conversion opportunity, indirect evolutionary rescue, and the stylized nature of the assumptions.
 - Added a Claims and scope section separating established results, controlled extensions, and claims not made.
@@ -35,6 +37,7 @@ The manuscript package now consists of a clean main paper, a supplement, and a s
 - The no-evolution rescue window is a finite grid/horizon result, not a complete bifurcation analysis of all frozen-\(q\) and evolving-\(q\) basins.
 - The repository has not yet been archived as a release with a DOI.
 - The model has no empirical calibration or species-specific parameter fitting.
+- DOI fields are present in the bibliography, but resolver checks still need manual or network validation before journal submission.
 
 ## Recommended target article type
 
@@ -52,6 +55,7 @@ mathematical biology / theoretical ecology short article or methods-style theore
 ## What to check before actual submission
 
 - Recheck every numerical value and caption against the final CSV outputs.
+- Run `python experiments/29_roy_manuscript_audit.py --profile focused` after any future manuscript or CSV edit.
 - Decide the target outlet and adapt figure count, figure dimensions, and reference style.
 - Convert diagnostic figures into publication-ready panels if needed.
 - Add only verified literature if the framing is expanded.
