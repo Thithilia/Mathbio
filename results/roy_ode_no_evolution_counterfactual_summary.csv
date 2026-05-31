@@ -3,6 +3,8 @@ initial_state,4.833333333;0.6416666667;0.6726147416,"pre-stress branch state n*,
 stress_grid_points,81,stress values swept from s=0 to just below the branch upper endpoint
 branch_interval_low,-0.11313888888888887,lower endpoint for 0<q*(s)<1
 branch_interval_high,0.23244444444444454,upper endpoint for 0<q*(s)<1
+fixed_q_invasion_threshold,0.06960015299997596,analytic prey-only predator invasion threshold for q frozen at q*(s=0)
+fixed_q_threshold_state,0.6726147416;5.947322036;0.7193446311;0.7645848404;0.03964311551,"q0,n0,z0,r(q0),b(q0) used in s_fixed=b(q0)n0z0-m"
 rescue_window_exists,True,True when frozen-q is extinct but evolving-q persists on at least one stress-grid point
 rescue_window_low_grid,0.07263576388888891,lowest grid stress where frozen-q is extinct and evolving-q persists
 rescue_window_high_grid,0.16560954166666672,highest grid stress where frozen-q is extinct and evolving-q persists

@@ -33,8 +33,10 @@ if str(ROOT) not in sys.path:
 
 from src.roy_evo_spatial import (  # noqa: E402
     RoyEvoParams,
+    b_of_q,
     classify_evo_trajectory,
     free_space_evo,
+    r_of_q,
     simulate_ode_evo,
 )
 
@@ -67,7 +69,11 @@ LAMBDA_SCAN_CSV = RESULTS_DIR / "roy_pde_compensation_lambda_scan.csv"
 LAMBDA_SUMMARY_CSV = RESULTS_DIR / "roy_pde_compensation_lambda_scan_summary.csv"
 
 RH_CURRENT_CSV = RESULTS_DIR / "roy_ode_compensation_routh_hurwitz_current.csv"
+BRANCH_CURRENT_CSV = RESULTS_DIR / "roy_ode_compensation_branch_current.csv"
+NONLINEAR_SHAPE_SUMMARY_CSV = RESULTS_DIR / "roy_nonlinear_tradeoff_shape_summary.csv"
 
+FIG33_PATH = FIG_DIR / "fig33_compensation_branch_current.png"
+FIG64_PATH = FIG_DIR / "fig64_nonlinear_tradeoff_final_decision.png"
 FIG65_PATH = FIG_DIR / "fig65_no_evolution_counterfactual.png"
 FIG66_PATH = FIG_DIR / "fig66_pde_continuous_lambda_scan.png"
 
@@ -208,6 +214,23 @@ def branch_state_at(stress: float, params: RoyEvoParams = PARAMS) -> tuple[float
     return float(n), float(w), float(q)
 
 
+def fixed_q_invasion_threshold(q0: float, params: RoyEvoParams = PARAMS) -> dict[str, float]:
+    """Predator invasion threshold at the prey-only equilibrium for fixed q."""
+    r_q = float(r_of_q(q0, params))
+    b_q = float(b_of_q(q0, params))
+    z0 = params.xi / r_q
+    n0 = 1.0 / params.kappa - z0
+    threshold = b_q * n0 * z0 - params.m
+    return {
+        "q0": float(q0),
+        "z0": float(z0),
+        "n0": float(n0),
+        "b_q0": float(b_q),
+        "r_q0": float(r_q),
+        "s_fixed": float(threshold),
+    }
+
+
 def classify_treatment(metrics: dict[str, Any]) -> str:
     if not bool(metrics.get("physical", False)):
         return "nonphysical"
@@ -319,6 +342,7 @@ def find_rescue_window(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 def run_counterfactual() -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     initial_state = np.asarray(branch_state_at(0.0), dtype=float)
+    fixed_threshold = fixed_q_invasion_threshold(float(initial_state[2]))
     rows: list[dict[str, Any]] = []
     for stress in stress_grid():
         for evolve_q in (False, True):
@@ -378,6 +402,16 @@ def run_counterfactual() -> tuple[list[dict[str, Any]], list[dict[str, Any]], li
             "interpretation": "upper endpoint for 0<q*(s)<1",
         },
         {
+            "metric": "fixed_q_invasion_threshold",
+            "value": fixed_threshold["s_fixed"],
+            "interpretation": "analytic prey-only predator invasion threshold for q frozen at q*(s=0)",
+        },
+        {
+            "metric": "fixed_q_threshold_state",
+            "value": ";".join(format_float(fixed_threshold[key], 10) for key in ("q0", "n0", "z0", "r_q0", "b_q0")),
+            "interpretation": "q0,n0,z0,r(q0),b(q0) used in s_fixed=b(q0)n0z0-m",
+        },
+        {
             "metric": "rescue_window_exists",
             "value": rescue["exists"],
             "interpretation": "True when frozen-q is extinct but evolving-q persists on at least one stress-grid point",
@@ -419,7 +453,7 @@ def run_counterfactual() -> tuple[list[dict[str, Any]], list[dict[str, Any]], li
         },
     ]
     write_csv(COUNTERFACTUAL_SUMMARY_CSV, summary_rows, SUMMARY_FIELDS)
-    make_counterfactual_figure(output_rows, timeseries_rows, rescue, representative)
+    make_counterfactual_figure(output_rows, timeseries_rows, rescue, representative, fixed_threshold["s_fixed"])
     return output_rows, timeseries_rows, summary_rows
 
 
@@ -428,6 +462,7 @@ def make_counterfactual_figure(
     timeseries_rows: list[dict[str, Any]],
     rescue: dict[str, Any],
     representative: float,
+    fixed_q_threshold: float,
 ) -> None:
     fig, axes = plt.subplots(2, 2, figsize=(10.5, 7.6))
     ax_w, ax_q, ax_final, ax_window = axes.flatten()
@@ -453,13 +488,16 @@ def make_counterfactual_figure(
     ax_q.set_ylabel("q(t)")
 
     by_treatment = {t: sorted([row for row in sweep_rows if row["treatment"] == t], key=lambda row: float(row["stress"])) for t in colors}
+    plot_floor = 1.0e-8
     for treatment, rows in by_treatment.items():
-        ax_final.plot([row["stress"] for row in rows], [row["final_w"] for row in rows], marker="o", ms=2.8, lw=1.6, color=colors[treatment], label=labels[treatment])
+        tail_means = [max(float(row["tail_mean_w"]), plot_floor) for row in rows]
+        ax_final.plot([row["stress"] for row in rows], tail_means, marker="o", ms=2.8, lw=1.6, color=colors[treatment], label=labels[treatment])
     ax_final.axhline(EXTINCTION_EPSILON, color="#444444", lw=1.0, ls=":", label="extinction threshold")
-    ax_final.set_title("C. Final predator density across stress")
+    ax_final.axvline(fixed_q_threshold, color="#6b4c9a", lw=1.4, ls="-.", label=r"$s_{\mathrm{fixed}}$")
+    ax_final.set_title("C. Tail predator density across stress")
     ax_final.set_xlabel("stress s")
-    ax_final.set_ylabel("final w")
-    ax_final.set_yscale("symlog", linthresh=1.0e-5)
+    ax_final.set_ylabel("tail mean w")
+    ax_final.set_yscale("log")
     ax_final.legend(frameon=False, fontsize=8)
 
     for treatment, rows in by_treatment.items():
@@ -468,6 +506,7 @@ def make_counterfactual_figure(
     if rescue["exists"]:
         ax_window.axvspan(float(rescue["low"]), float(rescue["high"]), color="#f0c419", alpha=0.35, label="verified rescue window")
         ax_window.axvline(representative, color="#111111", lw=1.0, ls="--", label="representative stress")
+    ax_window.axvline(fixed_q_threshold, color="#6b4c9a", lw=1.4, ls="-.", label=r"$s_{\mathrm{fixed}}$")
     ax_window.set_title("D. Frozen-q extinct, evolving-q persistent")
     ax_window.set_xlabel("stress s")
     ax_window.set_yticks([0, 1])
@@ -479,6 +518,121 @@ def make_counterfactual_figure(
     fig.tight_layout(rect=[0, 0, 1, 0.96])
     FIG65_PATH.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(FIG65_PATH, dpi=240, bbox_inches="tight")
+    plt.close(fig)
+
+
+def make_compensation_branch_figure() -> None:
+    rows = read_csv(BRANCH_CURRENT_CSV)
+    interval = branch_interval()
+    stress_values = np.linspace(interval["low"], interval["high"], 300)
+    branch_states = np.asarray([branch_state_at(float(stress)) for stress in stress_values])
+    n_values = branch_states[:, 0]
+    w_values = branch_states[:, 1]
+    q_values = branch_states[:, 2]
+    n_mean = float(np.mean(n_values))
+    w_mean = float(np.mean(w_values))
+
+    fig, axes = plt.subplots(1, 2, figsize=(10.5, 4.2), sharex=True)
+    ax_q, ax_levels = axes
+    ax_q.axvspan(interval["low"], interval["high"], color="#e8eef7", alpha=0.7, label="interior interval")
+    ax_q.plot(stress_values, q_values, color="#1f5f9f", lw=2.2, label=r"analytic $q^*(s)$")
+    numeric_stress = np.asarray([float(row["stress"]) for row in rows])
+    numeric_q = np.asarray([float(row["q_star_numerical"]) for row in rows])
+    ax_q.scatter(numeric_stress, numeric_q, color="#d05a2a", edgecolor="white", linewidth=0.7, s=48, zorder=4, label="numerical stable equilibria")
+    ax_q.scatter([interval["low"], interval["high"]], [1.0, 0.0], marker="D", color="#444444", s=42, zorder=5, label="branch endpoints")
+    ax_q.axvline(0.0, color="#333333", lw=0.9, ls=":")
+    ax_q.set_title(r"A. Defense frequency along branch")
+    ax_q.set_xlabel("stress s")
+    ax_q.set_ylabel(r"$q^*(s)$")
+    ax_q.set_ylim(-0.05, 1.05)
+    ax_q.legend(frameon=False, fontsize=8, loc="upper right")
+
+    ax_levels.axvspan(interval["low"], interval["high"], color="#e8eef7", alpha=0.7)
+    ax_levels.plot(stress_values, n_values / n_mean, color="#2a7f62", lw=2.2, label=r"$n^*/\bar n^*$")
+    ax_levels.plot(stress_values, w_values / w_mean, color="#8a4f9e", lw=2.2, ls="--", label=r"$w^*/\bar w^*$")
+    ax_levels.scatter(numeric_stress, np.asarray([float(row["n_star_numerical"]) for row in rows]) / n_mean, color="#2a7f62", edgecolor="white", linewidth=0.6, s=34, zorder=4)
+    ax_levels.scatter(numeric_stress, np.asarray([float(row["w_star_numerical"]) for row in rows]) / w_mean, color="#8a4f9e", edgecolor="white", linewidth=0.6, s=34, zorder=4)
+    ax_levels.axhline(1.0, color="#333333", lw=0.8, ls=":")
+    ax_levels.axvline(0.0, color="#333333", lw=0.9, ls=":")
+    ax_levels.set_title(r"B. Positive densities remain fixed")
+    ax_levels.set_xlabel("stress s")
+    ax_levels.set_ylabel("normalized equilibrium value")
+    ax_levels.set_ylim(0.96, 1.04)
+    ax_levels.ticklabel_format(useOffset=False, axis="y")
+    ax_levels.text(
+        0.04,
+        0.07,
+        rf"$n^*\approx {n_mean:.4f}$" + "\n" + rf"$w^*\approx {w_mean:.4f}$",
+        transform=ax_levels.transAxes,
+        fontsize=9,
+        bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "edgecolor": "#bbbbbb", "alpha": 0.9},
+    )
+    ax_levels.legend(frameon=False, fontsize=8, loc="upper right")
+
+    fig.suptitle("Linear compensation branch: defense changes while positive densities stay fixed", fontsize=12.5)
+    fig.tight_layout(rect=[0, 0, 1, 0.93])
+    fig.savefig(FIG33_PATH, dpi=240, bbox_inches="tight")
+    plt.close(fig)
+
+
+def make_nonlinear_tradeoff_figure() -> None:
+    rows = read_csv(NONLINEAR_SHAPE_SUMMARY_CSV)
+    gamma_values = [0.5, 1.0, 2.0]
+    class_order = [
+        "robust_compensation_shape",
+        "partial_compensation_shape",
+        "no_compensation_shape",
+        "unresolved_shape",
+    ]
+    class_to_code = {name: idx for idx, name in enumerate(class_order)}
+    colors = ["#2f7d57", "#f0b44c", "#c95b59", "#8b8b8b"]
+    labels = {
+        "robust_compensation_shape": "robust",
+        "partial_compensation_shape": "partial",
+        "no_compensation_shape": "no compensation",
+        "unresolved_shape": "unresolved",
+    }
+    counts = {name: 0 for name in class_order}
+    lookup: dict[tuple[float, float, float], str] = {}
+    for row in rows:
+        key = (float(row["gamma_r"]), float(row["gamma_a"]), float(row["gamma_b"]))
+        shape_class = row["shape_class"]
+        lookup[key] = shape_class
+        counts[shape_class] = counts.get(shape_class, 0) + 1
+
+    from matplotlib.colors import BoundaryNorm, ListedColormap
+    from matplotlib.patches import Patch
+
+    cmap = ListedColormap(colors)
+    norm = BoundaryNorm(np.arange(len(class_order) + 1) - 0.5, cmap.N)
+    fig, axes = plt.subplots(1, 3, figsize=(10.8, 3.9), sharey=True)
+    for ax, gamma_b in zip(axes, gamma_values):
+        matrix = np.full((len(gamma_values), len(gamma_values)), np.nan)
+        for y_idx, gamma_a in enumerate(gamma_values):
+            for x_idx, gamma_r in enumerate(gamma_values):
+                matrix[y_idx, x_idx] = class_to_code[lookup[(gamma_r, gamma_a, gamma_b)]]
+        ax.imshow(matrix, cmap=cmap, norm=norm, origin="lower", aspect="equal")
+        ax.set_title(rf"$\gamma_b={gamma_b:g}$")
+        ax.set_xticks(range(len(gamma_values)))
+        ax.set_xticklabels([f"{value:g}" for value in gamma_values])
+        ax.set_yticks(range(len(gamma_values)))
+        ax.set_yticklabels([f"{value:g}" for value in gamma_values])
+        ax.set_xlabel(r"$\gamma_r$")
+        if ax is axes[0]:
+            ax.set_ylabel(r"$\gamma_a$")
+        for y_idx in range(len(gamma_values)):
+            for x_idx in range(len(gamma_values)):
+                code = int(matrix[y_idx, x_idx])
+                ax.text(x_idx, y_idx, labels[class_order[code]][0].upper(), ha="center", va="center", color="white", fontsize=11, fontweight="bold")
+        ax.set_xlim(-0.5, len(gamma_values) - 0.5)
+        ax.set_ylim(-0.5, len(gamma_values) - 0.5)
+
+    handles = [Patch(facecolor=colors[idx], edgecolor="none", label=f"{labels[name]} ({counts.get(name, 0)})") for idx, name in enumerate(class_order)]
+    fig.legend(handles=handles, loc="lower center", ncol=4, frameon=False, fontsize=8)
+    fig.suptitle("Controlled nonlinear trade-off shape grid", fontsize=13)
+    fig.text(0.5, 0.06, "Cell letters: R robust, P partial, N no compensation, U unresolved", ha="center", fontsize=8)
+    fig.tight_layout(rect=[0, 0.14, 1, 0.92])
+    fig.savefig(FIG64_PATH, dpi=240, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -600,6 +754,8 @@ def run(profile: str) -> None:
     run_counterfactual()
     run_lambda_scan()
     run_rh_margin_export()
+    make_compensation_branch_figure()
+    make_nonlinear_tradeoff_figure()
 
 
 def parse_args() -> argparse.Namespace:
