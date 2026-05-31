@@ -56,14 +56,7 @@ The well-mixed ODE is
 \frac{dw}{dt} &= w[b(q)nz-(m+s)-\mu w],\\
 \frac{dq}{dt} &= \nu q(1-q)[(r_v-r_u)z-(a_v-a_u)w].
 \end{align}
-Here \(s\) is additional predator mortality stress. The current parameterization uses
-\[
-r_u=1,\quad r_v=0.65,\quad a_u=1,\quad a_v=0.35,
-\]
-\[
-b_u=0.08,\quad b_v=0.02,\quad \kappa=0.15,\quad \xi=0.55,\quad
-m=0.1,\quad \mu=0.2,\quad \nu=0.05.
-\]
+Here \(s\) is additional predator mortality stress. Table~\ref{tab:parameters} lists the values used in the reported calculations.
 
 The spatial PDE uses the same local reaction terms:
 \begin{align}
@@ -71,7 +64,27 @@ The spatial PDE uses the same local reaction terms:
 \partial_t w &= D_w\nabla^2w+w[b(q)nz-(m+s)-\mu w],\\
 \partial_t q &= D_q\nabla^2q+\nu q(1-q)[(r_v-r_u)z-(a_v-a_u)w].
 \end{align}
-The PDE tests use zero-flux Neumann boundaries. The current diffusion coefficients are \(D_n=0.01\), \(D_w=0.01\), and \(D_q=0.005\).
+The PDE tests use zero-flux Neumann boundaries.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Parameter values used in the compensation-branch and spatial-stability analyses. These values define the tested mechanistic case study; they are not empirical estimates.}
+  \label{tab:parameters}
+  \begin{tabular}{llll}
+    \toprule
+    Symbol & Value & Symbol & Value \\
+    \midrule
+    \(r_u\) & 1 & \(r_v\) & 0.65 \\
+    \(a_u\) & 1 & \(a_v\) & 0.35 \\
+    \(b_u\) & 0.08 & \(b_v\) & 0.02 \\
+    \(\kappa\) & 0.15 & \(\xi\) & 0.55 \\
+    \(m\) & 0.1 & \(\mu\) & 0.2 \\
+    \(\nu\) & 0.05 & \(D_n\) & 0.01 \\
+    \(D_w\) & 0.01 & \(D_q\) & 0.005 \\
+    \(L_x\) & 20 & \(L_y\) & 20 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 For the controlled nonlinear trade-off extension, endpoint values are preserved but linear interpolation is replaced by shape functions:
 \[
@@ -84,6 +97,18 @@ a(q)=a_u+(a_v-a_u)f_a(q),
 b(q)=b_u+(b_v-b_u)f_b(q),
 \]
 with \(f_\gamma(q)=q^\gamma\). This nonlinear form is used only for controlled extension tests, not to replace the baseline linear model.
+
+\section{Methods and numerical protocols}
+
+The analysis combines targeted numerical integration with analytic or semi-analytic calculations. ODE trajectories were integrated from specified initial means and classified from late-time behavior of \(w(t)\), \(q(t)\), relative change between terminal windows, and residual-style steady-state diagnostics. Predator-persistent outcomes have positive predator density with sufficiently small terminal change; extinct outcomes have predator density near zero; transient outcomes do not settle clearly into either class within the tested horizon. The same classification vocabulary is used for matched PDE spatial means, with additional spatial coefficient-of-variation diagnostics for pattern strength.
+
+The homogeneous compensation branch was computed from the interior equilibrium equations. For the linear trade-off model this gives the closed-form branch \(z^*,w^*,n^*,q^*(s)\). Numerical equilibria from multiple initial guesses were used only as a consistency check against the analytic branch. Local stability was evaluated with the analytic reaction Jacobian. For the cubic characteristic polynomial \(\lambda^3+A_1\lambda^2+A_2\lambda+A_3=0\), the Routh--Hurwitz inequalities \(A_1>0\), \(A_2>0\), \(A_3>0\), and \(A_1A_2>A_3\) determined local stability.
+
+PDE spatial-mode stability was evaluated by treating each homogeneous branch state \(U^*\) as a spatially constant PDE steady state and computing eigenvalues of \(J_F(U^*)-\lambda_{ij}D\) for Neumann modes. The zero mode recovers the ODE stability calculation; nonzero modes test infinitesimal spatial perturbations. Finite-amplitude PDE tests used localized predator patches, localized defense patches, sinusoidal modes, random heterogeneity, and basin-boundary heterogeneity, each compared with a matched homogeneous control. Basin-changing heterogeneous cases were followed to longer horizons to distinguish persistent basin changes from finite-horizon transients.
+
+The nonlinear trade-off extension used the endpoint-preserving shape family \(f_\gamma(q)=q^\gamma\) with \(\gamma\in\{0.5,1,2\}\) for the growth, attack, and conversion trade-offs. This is a controlled local shape grid, not an exhaustive parameter scan. Across all numerical protocols, tail-window and residual checks were used to avoid interpreting unresolved long transients as steady outcomes.
+
+The main text uses a reduced figure set focused on mechanism, stability, spatial perturbation response, and nonlinear extension. Additional diagnostic panels from the underlying analyses are treated as supporting evidence rather than main-text figures.
 
 \section{Homogeneous compensation branch}
 
@@ -128,9 +153,17 @@ This branch explains rescue as compensation: increasing predator mortality stres
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.88\linewidth]{figures/roy_evo_spatial/report/fig33_compensation_branch_current.png}
-  \caption{Analytic compensation branch for the linear trade-off parameterization, compared with numerical stable persistent equilibria. The plotted decline in \(q^*(s)\) shows the compensation mechanism: increasing mortality stress is balanced by lower prey defense, while \(n^*\) and \(w^*\) remain approximately fixed. The allowed conclusion is branch agreement and compensation in the tested parameterization, not global stability.}
-  \label{fig:branch-current}
+  \begin{minipage}{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig33_compensation_branch_current.png}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig40_compensation_stress_interval.png}
+  \end{minipage}
+  \caption{Compensation branch and stress interval. Left: analytic branch for the linear trade-off parameterization, compared with numerical stable persistent equilibria. Right: stress interval where \(0<q^*(s)<1\). Together these panels show that increasing mortality stress is balanced by lower prey defense over the tested branch interval. The allowed conclusion is branch feasibility and analytic/numerical agreement in the tested parameterization, not global stability.}
+  \label{fig:branch-interval}
 \end{figure}
 
 \section{Existence and stress interval}
@@ -157,13 +190,6 @@ Therefore the open stress interval for an interior branch is the interval betwee
 s\in(-0.1131,0.2324).
 \]
 The target stresses used in the mechanism tests lie inside this interval. These conditions make the branch a conditional mathematical statement for the linear trade-off ODE rather than a purely numerical observation.
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.78\linewidth]{figures/roy_evo_spatial/report/fig40_compensation_stress_interval.png}
-  \caption{Interior stress interval for the linear compensation branch. The figure shows where \(0<q^*(s)<1\), which is required for an interior defense frequency. The target stresses fall inside this interval, supporting branch feasibility for the tested stresses.}
-  \label{fig:stress-interval}
-\end{figure}
 
 \section{Local stability of the compensation branch}
 
@@ -202,21 +228,22 @@ For the current diffusion coefficients, all tested nonzero Neumann modes were st
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.88\linewidth]{figures/roy_evo_spatial/report/fig45_pde_mode_growth_rates.png}
-  \caption{Maximum real growth rates for tested Neumann spatial modes around the homogeneous compensation branch. The figure plots the largest real eigenvalue for modal matrices \(J_F(U^*)-\lambda_{ij}D\). Negative nonzero-mode growth rates support linear spatial stability for the tested diffusion coefficients.}
-  \label{fig:pde-modes}
+  \begin{minipage}{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig45_pde_mode_growth_rates.png}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig57_long_horizon_decision.png}
+  \end{minipage}
+  \caption{Spatial-mode and finite-amplitude PDE tests. Left: maximum real growth rates for tested Neumann modes, computed from \(J_F(U^*)-\lambda_{ij}D\). Right: long-horizon follow-up of finite-amplitude heterogeneous basin-changing cases. These diagnostics support linear spatial stability and show that followed finite-horizon basin changes resolved without persistent spatial patterning.}
+  \label{fig:pde-spatial-nonlinear}
 \end{figure}
 
 Linear spatial stability is not enough to rule out finite-amplitude heterogeneous effects. Targeted finite-amplitude PDE tests therefore used localized predator patches, localized defense patches, sinusoidal perturbations, smooth random heterogeneity, and basin-boundary heterogeneity. These tests compared heterogeneous fields with matched homogeneous controls. Initial finite-horizon basin-label changes occurred for localized defense perturbations near basin-boundary mean states, but these changes were transient-label effects without persistent spatial patterning. Longer-horizon follow-up showed that the basin-changing cases resolved to the matched homogeneous-control basin, with final spatial coefficients of variation below the persistence threshold.
 
 The spatial interpretation is therefore specific: in the tested PDE, spatial heterogeneity can create transient excursions near basin boundaries, but it did not generate a persistent spatial-pattern-mediated rescue mechanism.
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.78\linewidth]{figures/roy_evo_spatial/report/fig57_long_horizon_decision.png}
-  \caption{Long-horizon follow-up of the finite-amplitude non-homogeneous basin-changing cases. The figure summarizes whether basin-changing cases resolved to matched homogeneous controls, persisted as different basins, or retained spatial structure. The allowed conclusion is that the followed finite-horizon basin changes resolved without persistent spatial patterning.}
-  \label{fig:long-horizon}
-\end{figure}
 
 \section{Extension to nonlinear trade-off shapes}
 
@@ -246,23 +273,28 @@ The nonlinear result suggests that compensation is not only a linear-trade-off a
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.90\linewidth]{figures/roy_evo_spatial/report/fig59_nonlinear_branch_curves.png}
-  \caption{Selected nonlinear compensation branch curves. The curves plot stress as a function of branch defense frequency for endpoint-preserving trade-off shapes. Recovery of the linear case and feasible selected nonlinear branches support a controlled extension beyond linear trade-offs, while shape-dependent differences show that the result is not general over all trade-off forms.}
-  \label{fig:nonlinear-branch}
-\end{figure}
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.80\linewidth]{figures/roy_evo_spatial/report/fig64_nonlinear_tradeoff_final_decision.png}
-  \caption{Summary of the controlled nonlinear trade-off extension. The panel aggregates branch recovery, shape-grid outcomes, and targeted PDE checks. It supports compensation in selected nonlinear shapes while keeping the interpretation local and parameter-sensitive.}
-  \label{fig:nonlinear-decision}
+  \begin{minipage}{0.53\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig59_nonlinear_branch_curves.png}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.43\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig64_nonlinear_tradeoff_final_decision.png}
+  \end{minipage}
+  \caption{Controlled nonlinear trade-off extension. Left: selected nonlinear branch curves plotting stress as a function of branch defense frequency. Right: summary of branch recovery, shape-grid outcomes, and targeted PDE checks. These panels support compensation in selected nonlinear shapes while showing that the result remains local and parameter-sensitive.}
+  \label{fig:nonlinear-extension}
 \end{figure}
 
 \section{Biological interpretation}
 
 Higher predator mortality directly reduces predator persistence. In this model, prey defense evolution can compensate because mortality stress reduces predator pressure, and lower predator pressure favors lower prey defense. Lower defense increases predator conversion opportunity through \(b(q)\), which can restore predator growth balance at a positive predator equilibrium. This is indirect evolutionary rescue: the predator is rescued not by predator adaptation, but by prey evolution.
 
+The biological interpretation is therefore a compensation story rather than a spatial patterning story. Defended prey are less favorable to predators in the conversion term, so a shift toward lower defense makes prey more exploitable by the predator. Under the tested trade-off values, that evolutionary shift is sufficient to offset part of the imposed predator mortality stress. The predator persists indirectly because the prey population evolves toward a state that improves predator growth balance.
+
 The spatial PDE does not create the rescue mechanism in the tested setup. Instead, the PDE preserves a homogeneous reaction-level branch that is locally stable to tested spatial modes. Spatial heterogeneity can matter transiently near basin boundaries, but the targeted tests did not produce persistent spatial patterning or spatial-pattern-mediated rescue.
+
+Several assumptions are stylized. The defense trait is represented by a single frequency \(q\), trade-offs are low-dimensional functions, diffusion is isotropic and constant, and the environmental stress enters as an added predator mortality term. These choices make the mechanism interpretable but not biologically calibrated. Empirical prediction would require species-specific estimates of defense costs, predator conversion rates, movement scales, mortality stress, and the timescale of prey evolutionary response.
 
 \begin{figure}[htbp]
   \centering
@@ -276,6 +308,12 @@ The spatial PDE does not create the rescue mechanism in the tested setup. Instea
 The linear compensation branch result is exact for the linear trade-off ODE under the stated feasibility conditions, but it is not automatically a theorem for all trade-off forms. The nonlinear trade-off extension is controlled and local, using only a structured exponent grid. The PDE tests are targeted rather than exhaustive. There is no global basin proof, no proof of global stability, no theorem for all heterogeneous initial conditions, and no full bifurcation analysis.
 
 The model is not biologically calibrated, and the parameters are not fitted to empirical data. Parameters are used to test mechanism, not to estimate a particular predator--prey system. The results should therefore be interpreted as a mechanistic case study: they support homogeneous reaction-level compensation in the tested Roy-style model, not a universal claim about spatial evolutionary rescue.
+
+\section{Claims and scope}
+
+The established result in this parameterization is that the well-mixed eco-evolutionary ODE has an interior compensation branch, that the branch is feasible over an explicit stress interval, and that the branch is locally stable at the tested stresses by Routh--Hurwitz criteria. For the spatial PDE, the supported result is that the same homogeneous branch is linearly stable to tested Neumann modes and that targeted finite-amplitude heterogeneous perturbations do not produce persistent spatial-pattern-mediated rescue.
+
+The controlled extension supports the presence of compensation branches beyond the linear trade-off form for selected concave, convex, and mixed endpoint-preserving shapes. This does not establish global robustness over all nonlinear trade-offs. The manuscript does not claim global stability, a complete basin theorem, empirical calibration, spatial-pattern-mediated rescue, or exhaustive coverage of heterogeneous initial conditions.
 
 \section{Conclusion}
 
