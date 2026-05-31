@@ -11,7 +11,7 @@
 }
 
 \title{A Homogeneous Compensation Mechanism for Indirect Evolutionary Rescue in a Roy-Style Predator--Prey Model}
-\author{Mathbio research notes}
+\author{Draft author list to be finalized}
 \date{\today}
 
 \begin{document}
@@ -111,7 +111,7 @@ with \(f_\gamma(q)=q^\gamma\). This nonlinear form is used only for controlled e
 
 \section{Methods and numerical protocols}
 
-The analysis combines targeted numerical integration with analytic or semi-analytic calculations. All numerical values reported in this manuscript are taken from CSV outputs in the repository. The follow-up evidence added here is limited to ODE no-evolution counterfactual integrations and linear algebraic modal scans; it does not introduce new PDE simulations or model-equation changes.
+The analysis combines targeted numerical integration with analytic or semi-analytic calculations. All numerical values reported in this manuscript are taken from CSV outputs in the repository. Additional analyses reported here are limited to ODE no-evolution counterfactual integrations and linear algebraic modal scans; they do not introduce new PDE simulations or model-equation changes.
 
 \paragraph{ODE analysis.}
 ODE trajectories were integrated from specified initial means for representative trajectories and \(q_0\)--\(w_0\) basin maps. ODE integrations used \texttt{scipy.integrate.solve\_ivp} with the LSODA method unless otherwise noted. For the no-evolution counterfactual, the horizon was \(T=3000\), with 1201 saved time points, relative tolerance \(10^{-8}\), absolute tolerance \(10^{-10}\), extinction threshold \(10^{-4}\), and a terminal tail window equal to the final 25 percent of the trajectory. Persistent, extinct, and transient labels were assigned from late-time predator density, terminal behavior of \(q(t)\), relative change between late windows, and residual-style steady-state diagnostics. Predator-persistent outcomes have positive predator density with sufficiently small terminal change. Extinct outcomes have predator density near zero. Transient outcomes do not settle clearly into either class within the tested horizon.
@@ -244,8 +244,8 @@ For the current parameterization, these inequalities hold at all target stresses
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.90\linewidth]{figures/roy_evo_spatial/report/fig42_routh_hurwitz_terms.png}
-  \caption{Routh--Hurwitz coefficient terms along the compensation branch. The plotted quantities are \(A_1\), \(A_2\), \(A_3\), and \(A_1A_2-A_3\). Their positivity supports local stability at the tested stresses; it does not establish global basin attraction or rule out other attractors.}
+  \includegraphics[width=0.92\linewidth]{figures/roy_evo_spatial/report/fig68_routh_hurwitz_margin_eigenvalue.png}
+  \caption{Local stability margins along the compensation branch. Panel A shows the minimum Routh--Hurwitz margin across \(A_1\), \(A_2\), \(A_3\), and \(A_1A_2-A_3\). Panel B shows the maximum real part of the reaction-Jacobian eigenvalues. Positive margins and negative eigenvalue real parts support local stability at the tested stresses; they do not establish global basin attraction or rule out other attractors.}
   \label{fig:rh-terms}
 \end{figure}
 
@@ -269,16 +269,8 @@ The spatial interpretation is therefore specific: in the tested PDE, spatial het
 
 \begin{figure}[htbp]
   \centering
-  \begin{minipage}{0.49\linewidth}
-    \centering
-    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig45_pde_mode_growth_rates.png}
-  \end{minipage}
-  \hfill
-  \begin{minipage}{0.49\linewidth}
-    \centering
-    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig57_long_horizon_decision.png}
-  \end{minipage}
-  \caption{Spatial-mode and finite-amplitude PDE tests. The left panel plots maximum real growth rates for tested Neumann modes, computed from \(J_F(U^*)-\lambda_{ij}D\). The right panel summarizes long-horizon follow-up of finite-amplitude heterogeneous basin-changing cases. These diagnostics support linear spatial stability and show that followed finite-horizon basin changes resolved without persistent spatial patterning; they do not exhaust all possible heterogeneous initial conditions.}
+  \includegraphics[width=0.98\linewidth]{figures/roy_evo_spatial/report/fig67_pde_spatial_stability_long_horizon_summary.png}
+  \caption{Spatial-mode and finite-amplitude PDE tests. Panel A plots maximum real growth rates for tested discrete Neumann modes, computed from \(J_F(U^*)-\lambda_{ij}D\). Panel B shows the continuous \(\lambda\)-scan over 600 equally spaced values in the mode-equivalent range corresponding to \(i,j=0,\ldots,64\). Panels A and B support tested-range linear spatial stability for the current diffusion coefficients. Panel C summarizes long-horizon follow-up of the two finite-amplitude heterogeneous cases that changed finite-horizon basin labels; both resolved to their matched homogeneous controls without persistent spatial patterning. These diagnostics do not exhaust all possible modes, diffusion coefficients, or heterogeneous initial conditions.}
   \label{fig:pde-spatial-nonlinear}
 \end{figure}
 
@@ -354,7 +346,7 @@ The current evidence supports homogeneous reaction-level compensation, not spati
 
 \section*{Data and code availability}
 
-All scripts, CSV outputs, figures, and LaTeX sources are maintained in the project repository at \url{https://github.com/Thithilia/Mathbio}. The manuscript is based on the CSV and figure outputs generated by the numbered analysis scripts. This follow-up adds ODE no-evolution counterfactual outputs and linear modal-scan outputs; it does not add PDE simulations or change model equations. Before formal submission, the repository should be archived and this paragraph should be updated with the final release DOI or commit hash.
+All scripts, CSV outputs, figures, and LaTeX sources are maintained in the repository at \url{https://github.com/Thithilia/Mathbio}. The external-review snapshot for this manuscript package is identified by the tag \texttt{external-review-polish-2026-05-31}. The manuscript is based on the CSV and figure outputs generated by the numbered analysis scripts, including ODE no-evolution counterfactual outputs and linear modal-scan outputs; these analyses do not add PDE simulations or change model equations. No release DOI exists yet; the repository should be archived before journal submission.
 
 \bibliographystyle{plainnat}
 \bibliography{manuscript/references}
