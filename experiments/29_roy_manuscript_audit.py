@@ -305,11 +305,11 @@ def run_doi_audit() -> list[dict[str, Any]]:
     for entry in entries:
         doi_present = bool(entry["doi"])
         if entry["key"] == "RoyEtAl2026" and entry["doi"] == "10.1038/s42005-025-02434-1":
-            resolver_status = "verified_resolves_2026_06_01"
+            resolver_status = "manual_article_record_check"
             manual_check_required = False
             notes = (
-                "Verified against the Nature article page on 2026-06-01: Communications Physics 9, Article 4 (2026), "
-                "DOI 10.1038/s42005-025-02434-1."
+                "Manual article PDF/page record check recorded: Communications Physics 9, Article 4 (2026), "
+                "DOI 10.1038/s42005-025-02434-1. The script checks fields and does not perform live resolver validation."
             )
         elif doi_present:
             resolver_status = "doi_field_present_not_resolved_by_script"

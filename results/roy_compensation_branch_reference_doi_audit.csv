@@ -1,6 +1,6 @@
 key,entry_type,doi_present,doi,resolver_status,manual_check_required,notes
 YamamichiMiner2015,article,True,10.1111/eva.12295,doi_field_present_not_resolved_by_script,True,DOI field present; resolver validation should still be checked before journal submission.
-RoyEtAl2026,article,True,10.1038/s42005-025-02434-1,verified_resolves_2026_06_01,False,"Verified against the Nature article page on 2026-06-01: Communications Physics 9, Article 4 (2026), DOI 10.1038/s42005-025-02434-1."
+RoyEtAl2026,article,True,10.1038/s42005-025-02434-1,manual_article_record_check,False,"Manual article PDF/page record check recorded: Communications Physics 9, Article 4 (2026), DOI 10.1038/s42005-025-02434-1. The script checks fields and does not perform live resolver validation."
 SasmalBanerjeeTakeuchi2019,article,True,10.3934/mbe.2019191,doi_field_present_not_resolved_by_script,True,DOI field present; resolver validation should still be checked before journal submission.
 KasadaYamamichiYoshida2014,article,True,10.1073/pnas.1406357111,doi_field_present_not_resolved_by_script,True,DOI field present; resolver validation should still be checked before journal submission.
 GomulkiewiczHolt1995,article,True,10.1111/j.1558-5646.1995.tb05971.x,doi_field_present_not_resolved_by_script,True,DOI field present; resolver validation should still be checked before journal submission.

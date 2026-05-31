@@ -23,13 +23,15 @@ The script exits nonzero if any numerical check fails.
 
 ## DOI Audit
 
-The same script writes `results/roy_compensation_branch_reference_doi_audit.csv` by parsing `manuscript/references.bib` and recording whether each entry has a DOI field. The Roy et al. DOI `10.1038/s42005-025-02434-1` was checked with network access on 2026-06-01 and resolves to the Nature/Communications Physics article page:
+The same script writes `results/roy_compensation_branch_reference_doi_audit.csv` by parsing `manuscript/references.bib` and recording whether each entry has a DOI field. The Roy et al. DOI and bibliographic fields were checked against the available article PDF / article page record:
 
 - Roy, S., Byrne, H.M., Banerjee, J. et al. "Spatio-temporal eco-evolutionary dynamics of prey-predator systems with defended and undefended prey."
 - Communications Physics volume 9, Article number 4 (2026).
 - DOI: `10.1038/s42005-025-02434-1`.
 
 Other entries still receive DOI-field checks from the script and should be resolver-checked before journal submission if the bibliography changes.
+
+The audit script records this manual article-record check, but it does not perform live DOI resolver validation.
 
 ## Scope
 
