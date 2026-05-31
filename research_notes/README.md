@@ -5,6 +5,9 @@
 Start here:
 
 - `manuscript/roy_compensation_branch_rescue_manuscript.tex`
+- `manuscript/roy_compensation_branch_supplement.tex`
+- `roy_compensation_branch_submission_readiness.md`
+- `roy_compensation_branch_external_review_readiness.md`
 - `roy_nonlinear_tradeoff_compensation_extension.md`
 - `roy_final_synthesis_compensation_branch.md`
 - `roy_compensation_branch_manuscript_plan.md`
@@ -52,6 +55,11 @@ The current final conclusion is that indirect evolutionary rescue in the tested 
 
 The best current mechanism diagnosis is homogeneous reaction-level compensation embedded in the spatial PDE. The controlled nonlinear trade-off extension supports selected nonlinear compensation branches while keeping the conclusion local and shape-dependent. The spatial PDE preserves the homogeneous compensation branch and basin-dependent reaction dynamics, but representative solutions remain nearly homogeneous, tested spatial modes are stable, and targeted non-homogeneous perturbations do not produce persistent spatial-pattern-mediated rescue.
 
-The current consolidated manuscript draft is `manuscript/roy_compensation_branch_rescue_manuscript.tex`.
+The current consolidated manuscript package is:
+
+- main manuscript: `manuscript/roy_compensation_branch_rescue_manuscript.tex`
+- supplement: `manuscript/roy_compensation_branch_supplement.tex`
+- submission checklist: `manuscript/submission_checklist_compensation_branch.md`
+- readiness note: `research_notes/roy_compensation_branch_external_review_readiness.md`
 
 The current next scientific question is to derive sharper analytic conditions for nonlinear trade-off shape regimes rather than broadening PDE scans.

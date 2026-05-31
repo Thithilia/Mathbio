@@ -1,0 +1,204 @@
+\documentclass[11pt]{article}
+
+\usepackage{amsmath,amssymb,graphicx,booktabs,geometry,hyperref,array,longtable}
+
+\geometry{margin=1in}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue
+}
+
+\title{Supplementary Material for ``A Homogeneous Compensation Mechanism for Indirect Evolutionary Rescue in a Roy-Style Predator--Prey Model''}
+\author{Mathbio research notes}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{S1. Numerical classification protocols}
+
+The main manuscript reports consolidated outputs from the numbered analysis scripts rather than new simulations. Classification used the same vocabulary across ODE and PDE outputs:
+\begin{itemize}
+  \item \textbf{Persistent}: predator density remains positive and late-window change/residual diagnostics indicate a steady or effectively settled state.
+  \item \textbf{Extinct}: predator density approaches the extinction threshold and late-window diagnostics do not indicate recovery.
+  \item \textbf{Transient}: the trajectory does not meet persistent or extinct steady criteria within the tested horizon, often because late-window change or residual diagnostics remain non-negligible.
+\end{itemize}
+
+The tail-window logic was used to avoid treating long transients as equilibria. For PDE tests, classification of spatial means was paired with spatial coefficient-of-variation diagnostics for \(n\), \(w\), and \(q\). A basin label was compared with a matched homogeneous control when heterogeneous perturbation effects were evaluated. The classification logic is diagnostic, not a proof of global basin structure.
+
+\section*{S2. Additional ODE basin maps}
+
+The main text focuses on the derived compensation branch and its stability. Additional ODE diagnostics support the basin interpretation and the homogeneous reaction-level mechanism. Figure~\ref{fig:supp-ode-timeseries} shows representative ODE time series and selection/growth diagnostics. Figure~\ref{fig:supp-ode-basin-map} shows the ODE \(q_0\)--\(w_0\) basin map used to relate initial defense and predator density to persistent, extinct, and transient outcomes. Figure~\ref{fig:supp-ode-phase-equilibria} shows selection-growth phase diagnostics and numerical equilibrium stability.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.88\linewidth]{figures/roy_evo_spatial/report/fig28_ode_representative_timeseries.png}
+  \caption{Representative ODE trajectories for predator density, defense frequency, selection-gradient diagnostics, and predator-growth diagnostics. These panels support the homogeneous mechanism interpretation but do not replace the analytic branch derivation.}
+  \label{fig:supp-ode-timeseries}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.82\linewidth]{figures/roy_evo_spatial/report/fig29_ode_basin_map.png}
+  \caption{ODE basin map on the targeted \(q_0\)--\(w_0\) grid. This figure supports basin dependence in the homogeneous reaction system and is not an exhaustive basin-boundary refinement.}
+  \label{fig:supp-ode-basin-map}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{minipage}{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig30_selection_growth_phase.png}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig31_ode_equilibria_stability.png}
+  \end{minipage}
+  \caption{Additional homogeneous mechanism diagnostics. Left: selection-gradient and predator-growth relationships for representative cases. Right: numerical equilibria and stability labels across tested stresses.}
+  \label{fig:supp-ode-phase-equilibria}
+\end{figure}
+
+\section*{S3. PDE non-homogeneous perturbation diagnostics}
+
+The main manuscript reports the conclusion from spatial-mode stability and long-horizon follow-up. The supporting PDE diagnostics are shown here. Figure~\ref{fig:supp-pde-linear} summarizes additional spatial-stability views. Figure~\ref{fig:supp-pde-fields} shows representative non-homogeneous initial and final fields. Figure~\ref{fig:supp-pde-timeseries-cv} shows mean dynamics and spatial coefficient-of-variation diagnostics for the targeted non-homogeneous tests. Figure~\ref{fig:supp-pde-long-horizon} shows the long-horizon follow-up diagnostics for the finite-horizon basin-changing cases.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{minipage}{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig46_pde_spatial_stability_along_branch.png}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig47_pde_diffusion_ratio_stability.png}
+  \end{minipage}
+  \caption{Additional linear PDE spatial-stability diagnostics. These figures support stability for the tested branch states and diffusion-ratio grid, not a theorem over all diffusion coefficients.}
+  \label{fig:supp-pde-linear}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{minipage}{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig49_nonhomogeneous_initial_conditions.png}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig50_nonhomogeneous_final_fields.png}
+  \end{minipage}
+  \caption{Representative non-homogeneous initial and final PDE fields. These diagnostics show the tested perturbation classes and final-field behavior for targeted cases.}
+  \label{fig:supp-pde-fields}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{minipage}{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig51_nonhomogeneous_mean_timeseries.png}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig52_nonhomogeneous_spatial_metrics.png}
+  \end{minipage}
+  \caption{Mean dynamics and spatial coefficient-of-variation diagnostics for targeted finite-amplitude non-homogeneous PDE tests.}
+  \label{fig:supp-pde-timeseries-cv}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{minipage}{0.32\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig54_long_horizon_mean_timeseries.png}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.32\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig55_long_horizon_spatial_metrics.png}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.32\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig56_long_horizon_final_fields.png}
+  \end{minipage}
+  \caption{Long-horizon follow-up diagnostics for finite-horizon basin-changing non-homogeneous cases. These diagnostics support resolution to matched homogeneous controls without persistent spatial patterning for the followed cases.}
+  \label{fig:supp-pde-long-horizon}
+\end{figure}
+
+\section*{S4. Nonlinear trade-off shape-grid details}
+
+The nonlinear extension uses endpoint-preserving shape functions \(f_\gamma(q)=q^\gamma\) with \(\gamma\in\{0.5,1,2\}\). The purpose is to test whether the compensation mechanism survives selected concave, convex, and mixed trade-off shapes, not to scan all possible nonlinear functions. Figure~\ref{fig:supp-nonlinear-branches} shows selected nonlinear branch curves and shape-grid summaries. Figure~\ref{fig:supp-nonlinear-pde} shows selected nonlinear PDE spatial-stability and non-homogeneous perturbation diagnostics.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{minipage}{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig59_nonlinear_branch_curves.png}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig60_nonlinear_shape_grid_summary.png}
+  \end{minipage}
+  \caption{Nonlinear branch curves and shape-grid summary. These figures support selected nonlinear compensation branches within the controlled grid.}
+  \label{fig:supp-nonlinear-branches}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{minipage}{0.32\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig61_nonlinear_selected_ode_basin_maps.png}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.32\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig62_nonlinear_pde_spatial_stability.png}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.32\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/roy_evo_spatial/report/fig63_nonlinear_nonhomogeneous_pde_tests.png}
+  \end{minipage}
+  \caption{Selected nonlinear ODE and PDE diagnostics. These panels are supporting evidence for controlled nonlinear extension and do not establish global nonlinear-trade-off robustness.}
+  \label{fig:supp-nonlinear-pde}
+\end{figure}
+
+\section*{S5. Additional figure list and CSV source mapping}
+
+Table~\ref{tab:claim-source-map} maps the main claims to source CSVs and representative figures. The status column records whether each item is a main result or supporting diagnostic evidence.
+
+\scriptsize
+\begin{longtable}{p{0.23\linewidth}p{0.29\linewidth}p{0.22\linewidth}p{0.11\linewidth}}
+  \caption{Claim-to-source mapping for the manuscript package.}\label{tab:claim-source-map}\\
+  \toprule
+  Claim & Source CSV & Representative figure & Status \\
+  \midrule
+  \endfirsthead
+  \toprule
+  Claim & Source CSV & Representative figure & Status \\
+  \midrule
+  \endhead
+  Linear compensation branch conditions are satisfied in the current parameterization & \texttt{roy\_ode\_compensation}\newline\texttt{\_conditions\_summary.csv} & Fig.~\ref{fig:supp-ode-phase-equilibria}; main branch figure & Main claim \\
+  Routh--Hurwitz stability holds at target stresses & \texttt{roy\_ode\_compensation}\newline\texttt{\_routh\_hurwitz}\newline\texttt{\_summary.csv} & Main Routh--Hurwitz figure & Main claim \\
+  Spatial modes are stable for the current PDE coefficients & \texttt{roy\_pde\_spatial}\newline\texttt{\_nonlinear\_mechanism}\newline\texttt{\_decision.csv} & Main spatial-stability figure; Fig.~\ref{fig:supp-pde-linear} & Main claim \\
+  Long-horizon non-homogeneous basin changes resolve to homogeneous controls & \texttt{roy\_pde\_nonhomogeneous}\newline\texttt{\_long\_horizon}\newline\texttt{\_decision.csv} & Main long-horizon decision panel; Fig.~\ref{fig:supp-pde-long-horizon} & Main claim \\
+  Linear branch is recovered by nonlinear branch formulation & \texttt{roy\_nonlinear\_tradeoff}\newline\texttt{\_branch\_recovery}\newline\texttt{\_linear.csv} & Fig.~\ref{fig:supp-nonlinear-branches} & Supporting \\
+  Nonlinear shape grid includes robust, partial, no-compensation, and unresolved cases & \texttt{roy\_nonlinear\_tradeoff}\newline\texttt{\_shape\_summary.csv};\newline\texttt{roy\_nonlinear\_tradeoff}\newline\texttt{\_compensation\_decision.csv} & Main nonlinear decision figure; Fig.~\ref{fig:supp-nonlinear-branches} & Main claim \\
+  \bottomrule
+\end{longtable}
+\normalsize
+
+\begin{figure}[htbp]
+  \centering
+  \fbox{\parbox{0.86\linewidth}{\centering The main manuscript contains the primary compensation branch and stress-interval figure. This boxed note avoids duplicating that main-text figure in the supplement while keeping the claim-to-source map readable.}}
+  \caption{Pointer to the main compensation branch figure.}
+  \label{fig:supp-main-branch-note}
+\end{figure}
+
+\end{document}
