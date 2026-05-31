@@ -13,7 +13,7 @@ This note records the external-review package status for the compensation-branch
 
 ## Current status
 
-The package is structured for external review as a theoretical ecology / mathematical biology manuscript. The main text states the compensation-branch mechanism, frozen-\(q\) counterfactual rescue window, analytic fixed-\(q\) predator-invasion threshold, feasibility conditions, local stability result, PDE spatial-stability result, non-homogeneous perturbation outcome, and controlled nonlinear extension. Diagnostic detail is moved to the supplement, with source-map tables reformatted for readability.
+The package is structured for external review as a theoretical ecology / mathematical biology manuscript. The main text states the compensation-branch mechanism, frozen-\(q\) counterfactual rescue window, analytic fixed-\(q\) predator-invasion threshold, feasibility conditions, local stability result, PDE spatial-stability result, non-homogeneous perturbation outcome, and controlled nonlinear extension. Diagnostic detail is moved to the supplement, with source-map tables reformatted for readability and crowded diagnostic mosaics split into larger supporting figures. The data/code statement names the external-review version tag `external-review-polish-2026-05-31`.
 
 ## Submission caveats
 
@@ -24,4 +24,4 @@ The package is structured for external review as a theoretical ecology / mathema
 - The analytic fixed-\(q\) threshold explains the lower frozen-defense failure point, but not the full evolving-\(q\) basin geometry.
 - The continuous \(\lambda\)-scan supports the tested modal range rather than an all-mode analytic proof.
 - The nonlinear extension is controlled and local, not a general theorem over all trade-off forms.
-- The data availability statement still needs a final release DOI or commit hash before formal submission.
+- The data availability statement still needs a final archived release DOI before formal submission.
