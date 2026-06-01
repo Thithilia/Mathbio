@@ -26,6 +26,7 @@
 - Added a finite-time evolutionary-rate caveat: the branch equilibrium is independent of \(\nu\), but rescue from an initial condition can fail if prey evolution is too slow.
 - Added a supplemental no-compensation/unresolved nonlinear-shape failure-mode table generated from existing outputs.
 - Verified the Roy et al. DOI `10.1038/s42005-025-02434-1` against the Nature/Communications Physics article page and updated the DOI audit note/status.
+- Added focused ecological-review sensitivity diagnostics for finite-time \(\nu\)-dependence and linear \(D_q\) modal sensitivity without changing the baseline model equations or central claims.
 - Reformatted supplement source-map tables in landscape with compact path names for readability.
 - Strengthened the biological interpretation around lower prey defense, predator conversion opportunity, indirect evolutionary rescue, and the stylized nature of the assumptions.
 - Added a Claims and scope section separating established results, controlled extensions, and claims not made.
@@ -42,7 +43,9 @@ The manuscript package now consists of a clean main paper, a supplement, and a s
 - The continuous \(\lambda\)-scan strengthens the tested modal range but is still not an analytic proof for all diffusion coefficients or all spatial settings.
 - The no-evolution rescue window is a finite grid/horizon result, not a complete bifurcation analysis of all frozen-\(q\) and evolving-\(q\) basins.
 - Finite-time rescue can depend on the evolutionary-rate parameter \(\nu\); this manuscript states the caveat but does not add a new \(\nu\)-sensitivity simulation.
+- The new \(\nu\)-sensitivity diagnostic is small and local; it should not be read as a complete evolutionary-rate rescue boundary.
 - The \(q\)-diffusion term is a phenomenological closure rather than a derivation from separate defended/undefended prey densities.
+- The new \(D_q\)-sensitivity diagnostic is linear modal evidence only; it does not replace finite-amplitude PDE tests under alternative trait-diffusion closures.
 - The repository has not yet been archived as a release with a DOI.
 - The model has no empirical calibration or species-specific parameter fitting.
 - The Roy et al. DOI was resolver-checked; other references should be rechecked if the bibliography changes before submission.
@@ -67,5 +70,5 @@ mathematical biology / theoretical ecology short article or methods-style theore
 - Decide the target outlet and adapt figure count, figure dimensions, and reference style.
 - Convert diagnostic figures into publication-ready panels if needed.
 - Add only verified literature if the framing is expanded.
-- Decide whether a small \(\nu\)-sensitivity diagnostic is worth adding for the target outlet; it is currently deferred to avoid expanding the evidence package.
+- Decide whether the target outlet needs broader \(\nu\), domain-size, or trait-diffusion sensitivity; the current added diagnostics are intentionally focused.
 - Replace placeholder author information with the intended author list and affiliations.

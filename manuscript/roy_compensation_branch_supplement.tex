@@ -289,7 +289,30 @@ The no-compensation and unresolved shape classes identify trade-off geometries w
 \clearpage
 \FloatBarrier
 
-\section*{S6. Additional figure list and CSV source mapping}
+\section*{S6. Ecological-review sensitivity diagnostics}
+
+Figure~\ref{fig:supp-nu-sensitivity} reports a finite-time sensitivity diagnostic for the defense-evolution rate \(\nu\). These runs use the same ODE equations and baseline parameterization except for \(\nu\), start from the pre-stress branch initial state, and test stresses \(s\in\{0.08,0.10,0.1191,0.14,0.16\}\). The diagnostic is not a new rescue-window claim. It shows that finite-time rescue can depend on evolutionary rate even though the branch equilibrium itself is independent of \(\nu\). Because the baseline classifier is tail-based, some deterministic trajectories can be classified as persistent after dropping below the extinction threshold. For ecological interpretation, the sensitivity diagnostic therefore also reports whether \(w(t)\) crossed the extinction threshold. At the representative rescue stress \(s=0.1191\), \(\nu=0.005\) loses predators before adaptation completes, \(\nu=0.01\) recovers mathematically after crossing below the threshold, and \(\nu\ge0.025\) remains predator-persistent without threshold crossing under the tested horizon.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.96\linewidth]{figures/roy_evo_spatial/report/fig69_ode_nu_sensitivity.png}
+  \caption{Finite-time evolutionary-rate sensitivity diagnostic. Panels A and B show \(w(t)\) and \(q(t)\) at \(s=0.1191\); the dotted line marks the extinction threshold. Panel C reports ecological finite-time status: P, persistent without threshold crossing; R, tail-persistent recovery after threshold crossing; E, extinct or boundary crossing; T, transient or unresolved. Panel D shows tail mean predator density across the small stress--\(\nu\) grid.}
+  \label{fig:supp-nu-sensitivity}
+\end{figure}
+
+Figure~\ref{fig:supp-dq-sensitivity} reports a linear modal sensitivity diagnostic for the phenomenological \(q\)-diffusion coefficient. The calculation varies \(D_q\in\{0,0.001,0.005,0.01,0.05\}\), keeps \(D_n=D_w=0.01\), and evaluates the same sampled continuous-\(\lambda\) range used in the main spatial-stability evidence. This is a linear diagnostic only; it does not add PDE simulations or establish finite-amplitude domain robustness.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.90\linewidth]{figures/roy_evo_spatial/report/fig70_pde_dq_modal_sensitivity.png}
+  \caption{Linear modal sensitivity to \(q\)-diffusion. Panel A shows the maximum sampled growth rate for positive \(\lambda\). Panel B reports the number of sampled positive-growth values.}
+  \label{fig:supp-dq-sensitivity}
+\end{figure}
+
+\clearpage
+\FloatBarrier
+
+\section*{S7. Additional figure list and CSV source mapping}
 
 \begin{landscape}
 
@@ -313,6 +336,7 @@ Table~\ref{tab:script-source-map} maps the main analysis scripts to the CSV outp
   Step 27: nonlinear trade-offs & \texttt{nonlinear\_compensation\_decision}; \texttt{nonlinear\_shape\_summary}; \texttt{nonlinear\_branch\_recovery} \\
   Step 28: counterfactual and modal scan & \texttt{no\_evolution\_counterfactual\_summary}; stress-sweep and time-series CSVs; \texttt{pde\_lambda\_scan\_summary}; \texttt{rh\_margins} \\
   Step 29: manuscript audit & \texttt{compensation\_branch\_value\_audit}; \texttt{compensation\_branch\_reference\_doi\_audit}; \texttt{nonlinear\_tradeoff\_failure\_modes} \\
+  Step 30: ecological-review sensitivities & \texttt{ode\_nu\_sensitivity\_summary}; \texttt{pde\_dq\_modal\_sensitivity\_summary} \\
   \bottomrule
 \end{longtable}
 
@@ -332,6 +356,8 @@ Table~\ref{tab:script-source-map} maps the main analysis scripts to the CSV outp
   Routh--Hurwitz stability holds at target stresses & \texttt{routh\_hurwitz\_summary} & Main Routh--Hurwitz figure; Fig.~\ref{fig:supp-rh-terms} & Main claim \\
   Spatial modes are stable for the current PDE coefficients over the tested range & \texttt{pde\_spatial\_nonlinear\_decision}; \texttt{pde\_lambda\_scan\_summary} & Main spatial-stability figure; Fig.~\ref{fig:supp-pde-linear}; Fig.~\ref{fig:supp-pde-lambda} & Main claim \\
   Long-horizon non-homogeneous basin changes resolve to homogeneous controls & \texttt{pde\_long\_horizon\_decision} & Main long-horizon decision panel; Fig.~\ref{fig:supp-pde-long-horizon-timeseries}; Fig.~\ref{fig:supp-pde-long-horizon-metrics}; Fig.~\ref{fig:supp-pde-long-horizon-fields} & Main claim \\
+  Finite-time rescue can depend on \(\nu\) & \texttt{ode\_nu\_sensitivity\_summary} & Fig.~\ref{fig:supp-nu-sensitivity} & Supporting diagnostic \\
+  Linear \(q\)-diffusion sensitivity shows no positive sampled modal growth in the tested set & \texttt{pde\_dq\_modal\_sensitivity\_summary} & Fig.~\ref{fig:supp-dq-sensitivity} & Supporting diagnostic \\
   Linear branch is recovered by nonlinear branch formulation & \texttt{nonlinear\_branch\_recovery} & Fig.~\ref{fig:supp-nonlinear-branches} & Supporting \\
   Nonlinear shape grid includes robust, partial, no-compensation, and unresolved cases & \texttt{nonlinear\_shape\_summary}; \texttt{nonlinear\_tradeoff\_failure\_modes}; \texttt{compensation\_branch\_value\_audit} & Main nonlinear heatmap; Table~\ref{tab:nonlinear-failure-modes}; Fig.~\ref{fig:supp-nonlinear-branches} & Main claim \\
   \bottomrule
