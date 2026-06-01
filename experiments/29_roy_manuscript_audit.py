@@ -31,6 +31,7 @@ COUNTERFACTUAL_SUMMARY_CSV = RESULTS_DIR / "roy_ode_no_evolution_counterfactual_
 INTERVAL_CURRENT_CSV = RESULTS_DIR / "roy_ode_compensation_interval_current.csv"
 NONLINEAR_SHAPE_SUMMARY_CSV = RESULTS_DIR / "roy_nonlinear_tradeoff_shape_summary.csv"
 LAMBDA_SUMMARY_CSV = RESULTS_DIR / "roy_pde_compensation_lambda_scan_summary.csv"
+MODAL_RH_SUMMARY_CSV = RESULTS_DIR / "roy_pde_compensation_modal_routh_hurwitz_summary.csv"
 SPATIAL_MODES_CSV = RESULTS_DIR / "roy_pde_compensation_spatial_modes_current.csv"
 REFERENCES_BIB = MANUSCRIPT_DIR / "references.bib"
 
@@ -77,6 +78,7 @@ def run_value_audit() -> list[dict[str, Any]]:
     interval = interval_rows[0]
     shape_counts = Counter(row["shape_class"] for row in read_csv(NONLINEAR_SHAPE_SUMMARY_CSV))
     lambda_rows = read_csv(LAMBDA_SUMMARY_CSV)
+    modal_rh_rows = read_csv(MODAL_RH_SUMMARY_CSV) if MODAL_RH_SUMMARY_CSV.exists() else []
     mode_rows = read_csv(SPATIAL_MODES_CSV)
 
     rows: list[dict[str, Any]] = []
@@ -206,6 +208,46 @@ def run_value_audit() -> list[dict[str, Any]]:
             "Discrete Neumann mode range reported in manuscript.",
         )
     )
+    if modal_rh_rows:
+        modal_lambda_points = {int(float(row["lambda_points"])) for row in modal_rh_rows}
+        modal_mode_ranges = {row["mode_range_i_j"] for row in modal_rh_rows}
+        all_modal_rh_stable = all(str(row["all_lambda_rh_stable"]).strip().lower() == "true" for row in modal_rh_rows)
+        all_modal_eig_stable = all(str(row["all_lambda_eigenvalue_stable"]).strip().lower() == "true" for row in modal_rh_rows)
+        modal_disagreements = sum(int(float(row["rh_eigenvalue_disagreement_count"])) for row in modal_rh_rows)
+        min_modal_margin = min(float(row["min_modal_rh_margin"]) for row in modal_rh_rows)
+        rows.append(
+            audit_row(
+                "modal_routh_hurwitz_lambda_points",
+                ";".join(str(value) for value in sorted(modal_lambda_points)),
+                "2001",
+                "exact",
+                modal_lambda_points == {2001},
+                "results/roy_pde_compensation_modal_routh_hurwitz_summary.csv",
+                "Dense modal Routh-Hurwitz lambda grid size reported in supplement.",
+            )
+        )
+        rows.append(
+            audit_row(
+                "modal_routh_hurwitz_mode_range",
+                ";".join(sorted(modal_mode_ranges)),
+                "0..64",
+                "exact",
+                modal_mode_ranges == {"0..64"},
+                "results/roy_pde_compensation_modal_routh_hurwitz_summary.csv",
+                "Mode-equivalent lambda range used by dense modal Routh-Hurwitz diagnostic.",
+            )
+        )
+        rows.append(
+            audit_row(
+                "modal_routh_hurwitz_stability",
+                f"all_rh={all_modal_rh_stable};all_eig={all_modal_eig_stable};disagreements={modal_disagreements};min_margin={min_modal_margin:.6g}",
+                "all stable, zero RH/eigen disagreements, positive margin",
+                "logical",
+                all_modal_rh_stable and all_modal_eig_stable and modal_disagreements == 0 and min_modal_margin > 0.0,
+                "results/roy_pde_compensation_modal_routh_hurwitz_summary.csv",
+                "Dense sampled modal Routh-Hurwitz diagnostic reported as sampled evidence, not proof.",
+            )
+        )
     write_csv(
         VALUE_AUDIT_CSV,
         rows,

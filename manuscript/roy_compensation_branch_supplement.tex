@@ -167,7 +167,7 @@ The main text focuses on the derived homogeneous compensation branch and its sta
 
 \section*{S4. PDE non-homogeneous perturbation diagnostics}
 
-The main manuscript reports the conclusion from spatial-mode stability and long-horizon basin-resolution analysis. The supporting PDE diagnostics are shown here. Figure~\ref{fig:supp-pde-linear} summarizes additional spatial-stability views. Figure~\ref{fig:supp-pde-lambda} shows the sampled continuous-\(\lambda\) scan over the mode-equivalent range \(i,j=0,\ldots,64\), sampled at 600 equally spaced \(\lambda\) values. Figures~\ref{fig:supp-pde-initial-fields} and~\ref{fig:supp-pde-final-fields} show representative non-homogeneous initial and final fields. Figures~\ref{fig:supp-pde-timeseries} and~\ref{fig:supp-pde-cv} show mean dynamics and spatial coefficient-of-variation diagnostics for the targeted non-homogeneous tests. Figures~\ref{fig:supp-pde-long-horizon-timeseries}--\ref{fig:supp-pde-long-horizon-fields} show the long-horizon diagnostics for the finite-horizon basin-changing cases.
+The main manuscript reports the conclusion from spatial-mode stability and long-horizon basin-resolution analysis. The supporting PDE diagnostics are shown here. Figure~\ref{fig:supp-pde-linear} summarizes additional spatial-stability views. Figure~\ref{fig:supp-pde-lambda} shows the sampled continuous-\(\lambda\) scan over the mode-equivalent range \(i,j=0,\ldots,64\), sampled at 600 equally spaced \(\lambda\) values. Figure~\ref{fig:supp-pde-modal-rh} adds a denser semi-analytic modal Routh--Hurwitz diagnostic over the same \(\lambda\)-range. This diagnostic computes the cubic coefficients of \(J_F(U^*)-\lambda D\) over a sampled grid; it is stronger than reporting eigenvalues alone but remains sampled evidence rather than a proof for every \(\lambda\). Figures~\ref{fig:supp-pde-initial-fields} and~\ref{fig:supp-pde-final-fields} show representative non-homogeneous initial and final fields. Figures~\ref{fig:supp-pde-timeseries} and~\ref{fig:supp-pde-cv} show mean dynamics and spatial coefficient-of-variation diagnostics for the targeted non-homogeneous tests. Figures~\ref{fig:supp-pde-long-horizon-timeseries}--\ref{fig:supp-pde-long-horizon-fields} show the long-horizon diagnostics for the finite-horizon basin-changing cases.
 
 The PDE solvers used for the saved diagnostics apply \(q\)-clipping by default after explicit updates. The bounds audit in \texttt{results/roy\_pde\_q\_bounds\_audit.csv} therefore checks saved post-update field snapshots rather than raw pre-clipping trial values. All audited saved fields have \(q\in[0,1]\) within tolerance. Table~\ref{tab:q-bounds-audit} summarizes the audit by diagnostic group.
 
@@ -184,6 +184,23 @@ The PDE solvers used for the saved diagnostics apply \(q\)-clipping by default a
     Non-homogeneous PDE fields & 5 & 0 & 0.3142 \\
     Long-horizon non-homogeneous fields & 2 & \(2.78\times10^{-12}\) & 0.2142 \\
     Nonlinear trade-off PDE fields & 12 & 0 & 0.6615 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \caption{Dense sampled modal Routh--Hurwitz summary for \(J_F(U^*)-\lambda D\). The \(\lambda\)-grid uses 2001 equally spaced values over the same mode-equivalent range as the main continuous-\(\lambda\) scan.}
+  \label{tab:modal-rh-summary}
+  \small
+  \begin{tabular}{rrrrr}
+    \toprule
+    Stress \(s\) & Min modal RH margin & Max modal growth & Stable samples & RH/eigen disagreements \\
+    \midrule
+    0.117656 & \(3.57\times10^{-3}\) & \(-2.36\times10^{-2}\) & 2001/2001 & 0 \\
+    0.158438 & \(2.71\times10^{-3}\) & \(-1.59\times10^{-2}\) & 2001/2001 & 0 \\
+    0.164868 & \(2.53\times10^{-3}\) & \(-1.47\times10^{-2}\) & 2001/2001 & 0 \\
+    0.175000 & \(2.23\times10^{-3}\) & \(-1.27\times10^{-2}\) & 2001/2001 & 0 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -210,6 +227,15 @@ The PDE solvers used for the saved diagnostics apply \(q\)-clipping by default a
   \includegraphics[width=0.78\linewidth]{figures/roy_evo_spatial/report/fig66_pde_continuous_lambda_scan.png}
   \caption{Sampled continuous-\(\lambda\) scan for \(J_F(U^*)-\lambda D\) over 600 equally spaced \(\lambda\) values in the mode-equivalent range corresponding to \(i,j=0,\ldots,64\).}
   \label{fig:supp-pde-lambda}
+\end{figure}
+
+\clearpage
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.88\linewidth]{figures/roy_evo_spatial/report/fig72_pde_modal_routh_hurwitz_margins.png}
+  \caption{Dense sampled modal Routh--Hurwitz margins for \(J_F(U^*)-\lambda D\). The calculation samples 2001 \(\lambda\) values over the mode-equivalent range corresponding to \(i,j=0,\ldots,64\). Positive margins and negative maximum real eigenvalues support sampled modal stability over this range.}
+  \label{fig:supp-pde-modal-rh}
 \end{figure}
 
 \clearpage
@@ -271,6 +297,8 @@ The PDE solvers used for the saved diagnostics apply \(q\)-clipping by default a
 The nonlinear extension uses endpoint-preserving shape functions \(f_\gamma(q)=q^\gamma\) with \(\gamma\in\{0.5,1,2\}\). The purpose is to test whether the compensation mechanism survives selected concave, convex, and mixed trade-off shapes, not to scan all possible nonlinear functions. Figure~\ref{fig:supp-nonlinear-branches} shows selected nonlinear branch curves and shape-grid summaries. Figures~\ref{fig:supp-nonlinear-ode-basin}--\ref{fig:supp-nonlinear-pde-heterogeneity} show selected nonlinear ODE basin maps, PDE spatial-stability diagnostics, and non-homogeneous PDE diagnostics.
 
 The no-compensation and unresolved shape classes identify trade-off geometries where the existing diagnostics did not support the compensation mechanism. Table~\ref{tab:nonlinear-failure-modes} lists these cases from \texttt{results/roy\_nonlinear\_tradeoff\_failure\_modes.csv}. Four shapes had no feasible branch at the four target stresses. One shape had branches at three target stresses but no target stress was classified as stable in the existing diagnostics. These failure modes show dependence on trade-off geometry; they are not expanded into a broader nonlinear scan here.
+
+The nonlinear mechanism can fail at several distinct steps. First, the selection-gradient geometry is controlled by \(c(q)=r'(q)/a'(q)\); if this ratio is not positive or gives nonpositive \(z(q)\), \(w(q)\), or \(n(q)\), an interior compensation state is infeasible. Second, even when candidate states are feasible, the stress map \(s(q)=b(q)n(q)z(q)-m-\mu w(q)\) must overlap the rescue stresses being tested. Third, conversion curvature in \(b(q)\) controls whether a lower-defense shift produces enough predator-growth compensation as stress increases. Fourth, local stability can fail even when a feasible candidate branch exists. The controlled shape grid therefore separates absence of compensation into feasibility, stress-overlap, conversion-response, and stability/classification limitations rather than treating all failures as the same mechanism.
 
 \begin{table}[htbp]
   \centering
@@ -386,6 +414,7 @@ Table~\ref{tab:script-source-map} maps the main analysis scripts to the CSV outp
   Step 29: manuscript audit & \texttt{compensation\_branch\_value\_audit}; \texttt{compensation\_branch\_reference\_doi\_audit}; \texttt{nonlinear\_tradeoff\_failure\_modes} \\
   Step 30: ecological-review sensitivities & \texttt{ode\_nu\_sensitivity\_summary}; \texttt{pde\_dq\_modal\_sensitivity\_summary} \\
   Step 31: mathematical and classification tightening & \texttt{ode\_compensation\_dense\_stability\_scan}; \texttt{pde\_q\_bounds\_audit} \\
+  Step 32: spatial and nonlinear robustness clarification & \texttt{pde\_compensation\_modal\_routh\_hurwitz\_scan}; \texttt{pde\_compensation\_modal\_routh\_hurwitz\_summary} \\
   \bottomrule
 \end{longtable}
 
@@ -405,6 +434,7 @@ Table~\ref{tab:script-source-map} maps the main analysis scripts to the CSV outp
   Linear compensation branch conditions are satisfied in the current parameterization & \texttt{compensation\_conditions\_summary}; \texttt{compensation\_branch\_value\_audit} & Main branch figure; Fig.~\ref{fig:supp-ode-phase-equilibria} & Main claim \\
   Routh--Hurwitz stability holds on the dense sampled open branch interval & \texttt{routh\_hurwitz\_summary}; \texttt{ode\_compensation\_dense\_stability\_scan} & Main Routh--Hurwitz figure; Fig.~\ref{fig:supp-rh-terms}; Fig.~\ref{fig:supp-dense-branch-stability} & Main claim \\
   Spatial modes are stable for the current PDE coefficients over the tested range & \texttt{pde\_spatial\_nonlinear\_decision}; \texttt{pde\_lambda\_scan\_summary} & Main spatial-stability figure; Fig.~\ref{fig:supp-pde-linear}; Fig.~\ref{fig:supp-pde-lambda} & Main claim \\
+  Modal Routh--Hurwitz margins are positive over the dense sampled \(\lambda\)-grid for the target branch stresses & \texttt{pde\_compensation\_modal\_routh\_hurwitz\_summary}; modal RH scan CSV & Fig.~\ref{fig:supp-pde-modal-rh}; Table~\ref{tab:modal-rh-summary} & Supporting diagnostic \\
   Saved PDE diagnostic fields keep \(q\) within the unit interval after the solver update/clipping step & \texttt{pde\_q\_bounds\_audit} & Table~\ref{tab:q-bounds-audit} & Supporting diagnostic \\
   Long-horizon non-homogeneous basin changes resolve to homogeneous controls & \texttt{pde\_long\_horizon\_decision} & Main long-horizon decision panel; Fig.~\ref{fig:supp-pde-long-horizon-timeseries}; Fig.~\ref{fig:supp-pde-long-horizon-metrics}; Fig.~\ref{fig:supp-pde-long-horizon-fields} & Main claim \\
   Finite-time rescue can depend on \(\nu\) & \texttt{ode\_nu\_sensitivity\_summary} & Fig.~\ref{fig:supp-nu-sensitivity} & Supporting diagnostic \\
@@ -423,5 +453,27 @@ Table~\ref{tab:script-source-map} maps the main analysis scripts to the CSV outp
   \caption{Pointer to the main compensation branch figure.}
   \label{fig:supp-main-branch-note}
 \end{figure}
+
+\clearpage
+
+\section*{S8. Reproducibility checklist and archival TODO}
+
+The manuscript package was built in a local Windows/PowerShell environment with Python and \LaTeX{} tools available on the system path. The analyses are script-driven and write CSV outputs before figures and PDFs are rebuilt. The exact Python package versions should be captured from the final submission environment using \texttt{python -m pip freeze} or an equivalent lockfile before archival; this supplement records the command sequence but does not claim a frozen computational environment.
+
+\paragraph{Command sequence for the main manuscript package.}
+The following commands regenerate the current review-facing outputs used by this manuscript package:
+\begin{verbatim}
+python experiments/28_roy_counterfactual_and_spatial_evidence.py --profile focused
+python experiments/30_roy_ecological_review_sensitivities.py --profile focused
+python experiments/31_roy_mathematical_classification_tightening.py --profile focused
+python experiments/32_roy_spatial_nonlinear_robustness_clarification.py --profile focused
+python experiments/29_roy_manuscript_audit.py --profile focused
+latexmk -pdf -outdir=manuscript -interaction=nonstopmode -halt-on-error manuscript/roy_compensation_branch_rescue_manuscript.tex
+latexmk -pdf -outdir=manuscript -interaction=nonstopmode -halt-on-error manuscript/roy_compensation_branch_supplement.tex
+git diff --check
+\end{verbatim}
+
+\paragraph{Archival TODO.}
+Before journal submission, create an archival release on Zenodo or OSF containing the repository snapshot, generated CSV outputs, figure files, PDFs, and a machine-readable environment record. The archive should document the git commit hash, the script command sequence above, and the fact that the targeted PDE perturbation outputs are diagnostics rather than exhaustive spatial scans.
 
 \end{document}
