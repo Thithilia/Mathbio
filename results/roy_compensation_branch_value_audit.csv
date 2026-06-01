@@ -14,3 +14,6 @@ nonlinear_count_unresolved_shape,1,1,exact,PASS,results/roy_nonlinear_tradeoff_s
 lambda_scan_points,600,600,exact,PASS,results/roy_pde_compensation_lambda_scan_summary.csv,Sampled continuous-lambda scan point count.
 lambda_scan_mode_range,0..64,0..64,exact,PASS,results/roy_pde_compensation_lambda_scan_summary.csv,Mode-equivalent lambda range used by sampled continuous-lambda scan.
 discrete_neumann_mode_range,m=0..64;n=0..64,m=0..64;n=0..64,exact,PASS,results/roy_pde_compensation_spatial_modes_current.csv,Discrete Neumann mode range reported in manuscript.
+modal_routh_hurwitz_lambda_points,2001,2001,exact,PASS,results/roy_pde_compensation_modal_routh_hurwitz_summary.csv,Dense modal Routh-Hurwitz lambda grid size reported in supplement.
+modal_routh_hurwitz_mode_range,0..64,0..64,exact,PASS,results/roy_pde_compensation_modal_routh_hurwitz_summary.csv,Mode-equivalent lambda range used by dense modal Routh-Hurwitz diagnostic.
+modal_routh_hurwitz_stability,all_rh=True;all_eig=True;disagreements=0;min_margin=0.00222815,"all stable, zero RH/eigen disagreements, positive margin",logical,PASS,results/roy_pde_compensation_modal_routh_hurwitz_summary.csv,"Dense sampled modal Routh-Hurwitz diagnostic reported as sampled evidence, not proof."
