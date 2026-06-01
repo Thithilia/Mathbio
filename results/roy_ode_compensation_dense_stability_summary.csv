@@ -1,0 +1,7 @@
+metric,value,interpretation
+dense_grid_points,1001,stress values sampled across the open interior branch interval
+dense_stress_low,-0.11313887888888888,"first sampled stress, excluding the q=1 endpoint by a small epsilon"
+dense_stress_high,0.23244443444444454,"last sampled stress, excluding the q=0 endpoint by a small epsilon"
+all_dense_points_rh_stable,True,True if all dense branch samples satisfy RH inequalities and eigenvalue stability
+minimum_dense_rh_margin,4.6520831639495323e-10,"smallest value among A1, A2, A3, and A1A2-A3 across the dense scan"
+maximum_dense_eigenvalue_real_part,-1.2499999755605785e-09,largest real eigenvalue part across the dense scan

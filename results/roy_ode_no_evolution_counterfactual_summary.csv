@@ -5,9 +5,17 @@ branch_interval_low,-0.11313888888888887,lower endpoint for 0<q*(s)<1
 branch_interval_high,0.23244444444444454,upper endpoint for 0<q*(s)<1
 fixed_q_invasion_threshold,0.06960015299997596,analytic prey-only predator invasion threshold for q frozen at q*(s=0)
 fixed_q_threshold_state,0.6726147416;5.947322036;0.7193446311;0.7645848404;0.03964311551,"q0,n0,z0,r(q0),b(q0) used in s_fixed=b(q0)n0z0-m"
-rescue_window_exists,True,True when frozen-q is extinct but evolving-q persists on at least one stress-grid point
-rescue_window_low_grid,0.07263576388888891,lowest grid stress where frozen-q is extinct and evolving-q persists
-rescue_window_high_grid,0.16560954166666672,highest grid stress where frozen-q is extinct and evolving-q persists
+rescue_window_exists,True,legacy alias for deterministic_tail_based_rescue_window_exists
+rescue_window_low_grid,0.07263576388888891,legacy alias for deterministic_tail_based_rescue_window_low_grid
+rescue_window_high_grid,0.16560954166666672,legacy alias for deterministic_tail_based_rescue_window_high_grid
+deterministic_tail_based_rescue_window_exists,True,True when frozen-q is extinct and evolving-q is tail-persistent by the baseline deterministic classifier on at least one stress-grid point
+deterministic_tail_based_rescue_window_low_grid,0.07263576388888891,lowest grid stress where frozen-q is extinct and evolving-q is tail-persistent by the baseline deterministic classifier
+deterministic_tail_based_rescue_window_high_grid,0.16560954166666672,highest grid stress where frozen-q is extinct and evolving-q is tail-persistent by the baseline deterministic classifier
+deterministic_tail_based_rescue_window_count_grid,32,number of stress-grid points in the deterministic-tail-based rescue window
+threshold_safe_rescue_window_exists,True,True when frozen-q is extinct and evolving-q is persistent without crossing below the extinction threshold on at least one stress-grid point
+threshold_safe_rescue_window_low_grid,0.07263576388888891,lowest grid stress where frozen-q is extinct and evolving-q is persistent without crossing below the extinction threshold
+threshold_safe_rescue_window_high_grid,0.15108238888888895,highest grid stress where frozen-q is extinct and evolving-q is persistent without crossing below the extinction threshold
+threshold_safe_rescue_window_count_grid,28,number of stress-grid points in the threshold-safe rescue window
 representative_rescue_stress,0.11912265277777781,stress used for the representative trajectory panels
 ode_solver,LSODA,"solve_ivp method with rtol=1e-08, atol=1e-10"
 integration_horizon,3000.0,ODE horizon used for stress sweep and representative trajectories

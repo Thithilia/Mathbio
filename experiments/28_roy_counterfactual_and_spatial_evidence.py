@@ -130,6 +130,10 @@ SWEEP_FIELDS = [
     "n_eval",
     "classification",
     "persistent_predator",
+    "min_w",
+    "threshold_crossed",
+    "threshold_safe_persistent",
+    "finite_time_status",
     "tail_mean_w",
     "tail_min_w",
     "tail_slope_w",
@@ -281,6 +285,17 @@ def classify_treatment(metrics: dict[str, Any]) -> str:
     return "transient_or_unresolved"
 
 
+def finite_time_status(classification: str, persistent_predator: bool, threshold_crossed: bool) -> str:
+    """Status for ecological interpretation alongside the tail-based classifier."""
+    if classification == "persistent" or persistent_predator:
+        if threshold_crossed:
+            return "recovered_after_threshold_crossing"
+        return "persistent_above_threshold"
+    if classification in {"extinct", "nonphysical"}:
+        return "extinct_or_boundary_crossing"
+    return "transient_or_unresolved"
+
+
 def simulate_counterfactual(stress: float, evolve_q: bool, initial_state: np.ndarray) -> dict[str, Any]:
     treatment = "evolving_q" if evolve_q else "frozen_q"
     trajectory = simulate_ode_evo(
@@ -302,6 +317,10 @@ def simulate_counterfactual(stress: float, evolve_q: bool, initial_state: np.nda
     )
     classification = classify_treatment(metrics)
     final = trajectory.y[:, -1]
+    min_w = float(metrics["min_w"])
+    threshold_crossed = bool(min_w <= EXTINCTION_EPSILON)
+    persistent_predator = bool(trajectory.success and metrics["physical"] and metrics["persistent_predator"])
+    threshold_safe_persistent = bool(persistent_predator and not threshold_crossed)
     return {
         "stress": float(stress),
         "treatment": treatment,
@@ -316,7 +335,11 @@ def simulate_counterfactual(stress: float, evolve_q: bool, initial_state: np.nda
         "T": ODE_T,
         "n_eval": ODE_N_EVAL,
         "classification": classification,
-        "persistent_predator": bool(trajectory.success and metrics["physical"] and metrics["persistent_predator"]),
+        "persistent_predator": persistent_predator,
+        "min_w": min_w,
+        "threshold_crossed": threshold_crossed,
+        "threshold_safe_persistent": threshold_safe_persistent,
+        "finite_time_status": finite_time_status(classification, persistent_predator, threshold_crossed),
         "tail_mean_w": metrics["tail_mean_w"],
         "tail_min_w": metrics["tail_min_w"],
         "tail_slope_w": metrics["tail_slope_w"],
@@ -340,7 +363,7 @@ def stress_grid() -> np.ndarray:
     return np.linspace(0.0, high, STRESS_GRID_POINTS)
 
 
-def find_rescue_window(rows: list[dict[str, Any]]) -> dict[str, Any]:
+def find_rescue_window(rows: list[dict[str, Any]], evolving_persistence_field: str = "persistent_predator") -> dict[str, Any]:
     by_stress: dict[float, dict[str, dict[str, Any]]] = {}
     for row in rows:
         by_stress.setdefault(float(row["stress"]), {})[str(row["treatment"])] = row
@@ -351,7 +374,7 @@ def find_rescue_window(rows: list[dict[str, Any]]) -> dict[str, Any]:
         if not frozen or not evolving:
             continue
         frozen_extinct = str(frozen["classification"]) == "extinct"
-        evolving_persistent = bool(evolving["persistent_predator"])
+        evolving_persistent = bool(evolving[evolving_persistence_field])
         if frozen_extinct and evolving_persistent:
             rescue_stresses.append(stress)
     if not rescue_stresses:
@@ -374,6 +397,31 @@ def find_rescue_window(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def rescue_window_metrics(prefix: str, rescue: dict[str, Any], label: str) -> list[dict[str, Any]]:
+    return [
+        {
+            "metric": f"{prefix}_rescue_window_exists",
+            "value": rescue["exists"],
+            "interpretation": f"True when frozen-q is extinct and evolving-q is {label} on at least one stress-grid point",
+        },
+        {
+            "metric": f"{prefix}_rescue_window_low_grid",
+            "value": rescue["low"],
+            "interpretation": f"lowest grid stress where frozen-q is extinct and evolving-q is {label}",
+        },
+        {
+            "metric": f"{prefix}_rescue_window_high_grid",
+            "value": rescue["high"],
+            "interpretation": f"highest grid stress where frozen-q is extinct and evolving-q is {label}",
+        },
+        {
+            "metric": f"{prefix}_rescue_window_count_grid",
+            "value": rescue["count"],
+            "interpretation": f"number of stress-grid points in the {prefix.replace('_', '-')} rescue window",
+        },
+    ]
+
+
 def run_counterfactual() -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     initial_state = np.asarray(branch_state_at(0.0), dtype=float)
     fixed_threshold = fixed_q_invasion_threshold(float(initial_state[2]))
@@ -381,9 +429,10 @@ def run_counterfactual() -> tuple[list[dict[str, Any]], list[dict[str, Any]], li
     for stress in stress_grid():
         for evolve_q in (False, True):
             rows.append(simulate_counterfactual(float(stress), evolve_q, initial_state))
-    rescue = find_rescue_window(rows)
+    deterministic_rescue = find_rescue_window(rows, "persistent_predator")
+    threshold_safe_rescue = find_rescue_window(rows, "threshold_safe_persistent")
 
-    representative = float(rescue["representative"])
+    representative = float(deterministic_rescue["representative"])
     if not np.isfinite(representative):
         # Still produce a diagnostic timeseries if no rescue window is found.
         representative = 0.5 * branch_interval()["high"]
@@ -447,19 +496,21 @@ def run_counterfactual() -> tuple[list[dict[str, Any]], list[dict[str, Any]], li
         },
         {
             "metric": "rescue_window_exists",
-            "value": rescue["exists"],
-            "interpretation": "True when frozen-q is extinct but evolving-q persists on at least one stress-grid point",
+            "value": deterministic_rescue["exists"],
+            "interpretation": "legacy alias for deterministic_tail_based_rescue_window_exists",
         },
         {
             "metric": "rescue_window_low_grid",
-            "value": rescue["low"],
-            "interpretation": "lowest grid stress where frozen-q is extinct and evolving-q persists",
+            "value": deterministic_rescue["low"],
+            "interpretation": "legacy alias for deterministic_tail_based_rescue_window_low_grid",
         },
         {
             "metric": "rescue_window_high_grid",
-            "value": rescue["high"],
-            "interpretation": "highest grid stress where frozen-q is extinct and evolving-q persists",
+            "value": deterministic_rescue["high"],
+            "interpretation": "legacy alias for deterministic_tail_based_rescue_window_high_grid",
         },
+        *rescue_window_metrics("deterministic_tail_based", deterministic_rescue, "tail-persistent by the baseline deterministic classifier"),
+        *rescue_window_metrics("threshold_safe", threshold_safe_rescue, "persistent without crossing below the extinction threshold"),
         {
             "metric": "representative_rescue_stress",
             "value": representative,
@@ -487,14 +538,22 @@ def run_counterfactual() -> tuple[list[dict[str, Any]], list[dict[str, Any]], li
         },
     ]
     write_csv(COUNTERFACTUAL_SUMMARY_CSV, summary_rows, SUMMARY_FIELDS)
-    make_counterfactual_figure(output_rows, timeseries_rows, rescue, representative, fixed_threshold["s_fixed"])
+    make_counterfactual_figure(
+        output_rows,
+        timeseries_rows,
+        deterministic_rescue,
+        threshold_safe_rescue,
+        representative,
+        fixed_threshold["s_fixed"],
+    )
     return output_rows, timeseries_rows, summary_rows
 
 
 def make_counterfactual_figure(
     sweep_rows: list[dict[str, Any]],
     timeseries_rows: list[dict[str, Any]],
-    rescue: dict[str, Any],
+    deterministic_rescue: dict[str, Any],
+    threshold_safe_rescue: dict[str, Any],
     representative: float,
     fixed_q_threshold: float,
 ) -> None:
@@ -564,13 +623,29 @@ def make_counterfactual_figure(
     for treatment, rows in by_treatment.items():
         persistent = [1.0 if row["persistent_predator"] else 0.0 for row in rows]
         ax_window.step([row["stress"] for row in rows], persistent, where="mid", color=colors[treatment], label=labels[treatment], lw=2.0)
-    if rescue["exists"]:
-        ax_window.axvspan(float(rescue["low"]), float(rescue["high"]), color="#f0c419", alpha=0.35, label="verified rescue window")
+    if deterministic_rescue["exists"]:
+        ax_window.axvspan(
+            float(deterministic_rescue["low"]),
+            float(deterministic_rescue["high"]),
+            color="#f0c419",
+            alpha=0.30,
+            label="tail-based rescue window",
+        )
+        if threshold_safe_rescue["exists"]:
+            ax_window.axvspan(
+                float(threshold_safe_rescue["low"]),
+                float(threshold_safe_rescue["high"]),
+                ymin=0.02,
+                ymax=0.14,
+                color="#2a9d8f",
+                alpha=0.40,
+                label="threshold-safe window",
+            )
         ax_window.axvline(representative, color="#111111", lw=1.0, ls="--", label="representative stress")
         ax_window.text(
-            0.5 * (float(rescue["low"]) + float(rescue["high"])),
+            0.5 * (float(deterministic_rescue["low"]) + float(deterministic_rescue["high"])),
             0.55,
-            "verified\nrescue window",
+            "tail-based\nrescue window",
             ha="center",
             va="center",
             fontsize=8,
