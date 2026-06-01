@@ -43,11 +43,11 @@ We first formulate the ODE and PDE models. We then derive the homogeneous compen
 
 \section{Model}
 
-The model is a reduced Roy-style free-space eco-evolutionary formulation adapted from defended and undefended prey--predator reaction--diffusion models with free space and aposematic defense trade-offs \citep{SasmalBanerjeeTakeuchi2019,RoyEtAl2026}. Let \(n\) be prey density, \(w\) predator density, \(q\) prey defense frequency, and
+The model is a reduced Roy-style free-space eco-evolutionary formulation adapted from defended and undefended prey--predator reaction--diffusion models with free space and aposematic defense trade-offs \citep{SasmalBanerjeeTakeuchi2019,RoyEtAl2026}. Let \(n(t)\) denote prey density, \(w(t)\) predator density, \(q(t)\in[0,1]\) defended-prey frequency, and
 \[
 z=\kappa^{-1}-n-w
 \]
-be free space. The variable \(s\) denotes added predator mortality stress. For the linear trade-off model,
+the free-space variable. The variable \(s\) denotes externally imposed predator-mortality stress. For the linear trade-off model,
 \[
 r(q)=r_u(1-q)+r_vq,
 \quad
@@ -55,7 +55,7 @@ a(q)=a_u(1-q)+a_vq,
 \quad
 b(q)=b_u(1-q)+b_vq.
 \]
-Here \(r(q)\) is the prey growth trade-off, \(a(q)\) is the attack or palatability trade-off, and \(b(q)\) is the predator conversion trade-off. The well-mixed ODE is
+Here \(r(q)\) is the prey growth trade-off, \(a(q)\) is the attack or palatability trade-off, and \(b(q)\) is the predator conversion trade-off. Subscripts \(u\) and \(v\) denote undefended and defended endpoint values, respectively. With these variables, the well-mixed ODE is
 \begin{align}
 \frac{dn}{dt} &= n[r(q)z-\xi-a(q)w],\\
 \frac{dw}{dt} &= w[b(q)nz-(m+s)-\mu w],\\
@@ -63,13 +63,13 @@ Here \(r(q)\) is the prey growth trade-off, \(a(q)\) is the attack or palatabili
 \end{align}
 Table~\ref{tab:parameters} lists the values used in the reported calculations.
 
-The spatial PDE uses the same local reaction terms:
+The spatial PDE uses the same local reaction terms and diffusion coefficients \(D_n\), \(D_w\), and \(D_q\) for prey density, predator density, and defense-frequency smoothing:
 \begin{align}
 \partial_t n &= D_n\nabla^2n+n[r(q)z-\xi-a(q)w],\\
 \partial_t w &= D_w\nabla^2w+w[b(q)nz-(m+s)-\mu w],\\
 \partial_t q &= D_q\nabla^2q+\nu q(1-q)[(r_v-r_u)z-(a_v-a_u)w].
 \end{align}
-The PDE tests use zero-flux Neumann boundaries on a rectangular domain of side lengths \(L_x\) and \(L_y\). The \(q\)-diffusion term is a phenomenological composition-smoothing closure for the defense-frequency variable. It is not derived here from separate defended and undefended prey density equations, and that modeling choice could affect PDE spatial-stability conclusions. Because \(q\) is a frequency variable, the numerical implementation enforces admissibility by clipping \(q\) to \([0,1]\) after explicit PDE updates. This clipping is a numerical admissibility constraint, not a proof that the phenomenological PDE closure preserves \(q\in[0,1]\) without enforcement. Finite-amplitude PDE conclusions should therefore be interpreted under this implementation. The homogeneous ODE compensation branch and frozen-\(q\) counterfactual do not depend on \(D_q\), because all diffusion terms vanish on spatially constant states.
+The PDE tests use a rectangular spatial domain \([0,L_x]\times[0,L_y]\) with zero-flux Neumann boundary conditions. The \(q\)-diffusion term is a phenomenological composition-smoothing closure for the defense-frequency variable. It is not derived here from separate defended and undefended prey density equations, and that modeling choice could affect PDE spatial-stability conclusions. Because \(q\) is a frequency variable, the numerical implementation enforces admissibility by clipping \(q\) to \([0,1]\) after explicit PDE updates. This clipping is a numerical admissibility constraint, not a proof that the phenomenological PDE closure preserves \(q\in[0,1]\) without enforcement. Finite-amplitude PDE conclusions should therefore be interpreted under this implementation. The homogeneous ODE compensation branch and frozen-\(q\) counterfactual do not depend on \(D_q\), because all diffusion terms vanish on spatially constant states.
 
 \begin{table}[htbp]
   \centering
@@ -108,7 +108,7 @@ a(q)=a_u+(a_v-a_u)f_a(q),
 \quad
 b(q)=b_u+(b_v-b_u)f_b(q),
 \]
-with \(f_\gamma(q)=q^\gamma\). This nonlinear form is used only for controlled extension tests, not to replace the baseline linear model.
+with \(f_\gamma(q)=q^\gamma\), an endpoint-preserving shape function used to vary trade-off curvature. This nonlinear form is used only for controlled extension tests, not to replace the baseline linear model.
 
 \section{Methods and numerical protocols}
 
@@ -175,6 +175,7 @@ Define
 \[
 \Delta r=r_v-r_u,\quad \Delta a=a_v-a_u,\quad \Delta b=b_v-b_u.
 \]
+These endpoint differences measure how defended and undefended endpoint values differ in growth, palatability, and conversion.
 For an interior equilibrium with \(n>0\), \(w>0\), and \(0<q<1\), the nontrivial equilibrium conditions are
 \[
 r(q)z-\xi-a(q)w=0,
@@ -193,6 +194,7 @@ then the selection-gradient condition gives
 \[
 w^*=cz^*.
 \]
+The ratio \(c\) is therefore fixed by trade-off geometry through the selection-gradient equation; it is not an additional fitted parameter.
 Because the trade-offs are linear, \(r(q)-ca(q)=r_u-ca_u\), so the prey-balance equation gives
 \[
 z^*=\frac{\xi}{r_u-ca_u},
@@ -268,7 +270,7 @@ The target stresses used in the mechanism tests lie inside this interval. These 
 
 The endpoints of this analytic interior branch occur when \(q^*(s)\) reaches the trait boundaries \(q=0\) or \(q=1\). They are feasibility or trait-boundary endpoints of the interior formula. We do not classify these endpoints as saddle-node, transcritical, or other bifurcations; a full boundary-equilibrium bifurcation analysis is outside the present scope.
 
-Local stability of the homogeneous branch was evaluated with the analytic Jacobian of the ODE. For a three-dimensional system, the characteristic polynomial can be written
+Local stability of the homogeneous branch was evaluated with the analytic Jacobian of the ODE reaction system. The coefficients \(A_1\), \(A_2\), and \(A_3\) below are the coefficients of the characteristic polynomial of this reaction Jacobian evaluated at the branch equilibrium. For the three-dimensional system, the characteristic polynomial can be written
 \[
 \lambda^3+A_1\lambda^2+A_2\lambda+A_3=0.
 \]
@@ -287,11 +289,11 @@ For the current parameterization, these inequalities hold at all target stresses
 
 \section{Spatial PDE stability and finite-amplitude heterogeneity}
 
-A homogeneous ODE equilibrium is also a homogeneous PDE steady state because diffusion terms vanish for spatially constant fields. For Neumann spatial modes on a rectangular domain, perturbations evolve according to
+A homogeneous ODE equilibrium is also a homogeneous PDE steady state because diffusion terms vanish for spatially constant fields. Let \(U^*=(n^*,w^*,q^*)\) denote a branch equilibrium, \(J_F(U^*)\) the ODE reaction Jacobian evaluated at that state, \(D=\mathrm{diag}(D_n,D_w,D_q)\) the diffusion matrix, and \(\lambda_{ij}\) the Neumann eigenvalue for spatial mode \((i,j)\). For Neumann spatial modes on a rectangular domain, perturbations evolve according to
 \[
 J_F(U^*)-\lambda_{ij}D,
 \]
-where \(J_F(U^*)\) is the reaction Jacobian at the homogeneous branch state, \(D=\mathrm{diag}(D_n,D_w,D_q)\), and
+where
 \[
 \lambda_{ij}=\left(\frac{i\pi}{L_x}\right)^2+\left(\frac{j\pi}{L_y}\right)^2.
 \]
@@ -314,7 +316,7 @@ The spatial interpretation is therefore specific: in the tested PDE, spatial het
 
 \section{Nonlinear trade-off extension}
 
-For nonlinear trade-offs, the branch is most naturally parameterized by \(q\). When derivatives are defined and \(a'(q)\ne0\), the selection-gradient condition gives
+For nonlinear trade-offs, the branch is most naturally parameterized by \(q\). The extension uses the endpoint-preserving shape function \(f_\gamma(q)=q^\gamma\) to vary trade-off curvature while keeping the same endpoint values. When derivatives are defined and \(a'(q)\ne0\), the selection-gradient condition gives
 \[
 c(q)=\frac{r'(q)}{a'(q)}.
 \]
