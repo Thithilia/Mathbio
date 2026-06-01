@@ -71,6 +71,28 @@ The spatial PDE uses the same local reaction terms and diffusion coefficients \(
 \end{align}
 The PDE tests use a rectangular spatial domain \([0,L_x]\times[0,L_y]\) with zero-flux Neumann boundary conditions. The \(q\)-diffusion term is a phenomenological composition-smoothing closure for the defense-frequency variable. It is not derived here from separate defended and undefended prey density equations, and that modeling choice could affect PDE spatial-stability conclusions. Because \(q\) is a frequency variable, the numerical implementation enforces admissibility by clipping \(q\) to \([0,1]\) after explicit PDE updates. This clipping is a numerical admissibility constraint, not a proof that the phenomenological PDE closure preserves \(q\in[0,1]\) without enforcement. Finite-amplitude PDE conclusions should therefore be interpreted under this implementation. The homogeneous ODE compensation branch and frozen-\(q\) counterfactual do not depend on \(D_q\), because all diffusion terms vanish on spatially constant states.
 
+\subsection*{Relation to Roy-style defended-prey models}
+
+Roy- and Sasmal-style defended-prey free-space models study interactions among free space, defended prey, undefended prey, predators, and spatial pattern formation in reaction--diffusion systems \citep{SasmalBanerjeeTakeuchi2019,RoyEtAl2026}. The present manuscript builds on that model family but asks a different mechanism question: whether spatial structure mediates indirect evolutionary rescue when predator mortality stress is imposed externally. The formulation here is therefore a reduced Roy-style formulation, not an algebraically equivalent reduction of the full Roy PDE.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Relationship between Roy-style defended-prey variables and the reduced formulation used here. The mapping is conceptual: \(q\) summarizes prey composition, and \(q\)-diffusion is a phenomenological closure rather than an algebraic derivation from separate defended and undefended prey PDEs.}
+  \label{tab:roy-style-mapping}
+  \footnotesize
+  \setlength{\tabcolsep}{3pt}
+  \begin{tabular}{p{0.15\linewidth}p{0.15\linewidth}p{0.26\linewidth}p{0.34\linewidth}}
+    \toprule
+    Full Roy-style variables & Reduced variables & Biological meaning & Retained or collapsed role \\
+    \midrule
+    \(u,v\) & \(n,q\) & Undefended and defended prey; total prey density and defended-prey frequency & Total prey density is retained as \(n\); prey composition is summarized by \(q\); separate \(u\) and \(v\) density fields are collapsed \\
+    \(w\) & \(w\) & Predator density & Predator density is retained, with externally imposed mortality stress \(s\) used to test rescue \\
+    \(z\) & \(z=\kappa^{-1}-n-w\) & Free space & Free-space limitation is retained through the algebraic constraint used in prey growth and interaction terms \\
+    Spatial diffusion of \(u,v,w\) & Diffusion of \(n,w,q\) & Spatial movement or smoothing & \(n\) and \(w\) diffusion are retained phenomenologically; \(q\)-diffusion represents defense-frequency composition smoothing, not a derived full-\(u,v\) closure \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
 \begin{table}[htbp]
   \centering
   \caption{Parameter values used in the compensation-branch and spatial-stability analyses. These values define the tested mechanistic case study; they are not empirical estimates.}
@@ -352,6 +374,9 @@ Higher predator mortality directly reduces predator persistence. In this model, 
 The supported biological interpretation is that the homogeneous compensation branch is a reaction-level explanatory mechanism rather than a pattern-mediated one. Defended prey are less favorable to predators in the conversion term, so a shift toward lower defense makes prey more exploitable by the predator. Under the tested trade-off values, that evolutionary shift is sufficient to offset part of the imposed predator mortality stress. The predator persists indirectly because the prey population evolves toward a state that improves predator growth balance in this deterministic parameterized model.
 
 We found no evidence that the tested PDE creates persistent spatial-pattern-mediated rescue. Instead, the PDE preserves the homogeneous compensation branch, which is locally stable to tested spatial modes. Spatial stability matters biologically because it means small spatial variation around the homogeneous rescue state is damped rather than amplified under the current diffusion coefficients. The targeted non-homogeneous tests likewise did not show evidence of persistent spatial patterns, while still allowing transient heterogeneity near basin boundaries.
+
+\paragraph{Why pattern formation in Roy et al. does not imply pattern-mediated rescue here.}
+Roy-style defended-prey free-space models establish that spatial pattern formation can occur in selected defended-prey predator--prey regimes \citep{SasmalBanerjeeTakeuchi2019,RoyEtAl2026}. The present manuscript builds on that literature but asks a different mechanism question: whether spatial structure mediates indirect evolutionary rescue after imposed predator mortality stress in a reduced Roy-style formulation. In the tested reduced stress model, the evidence supports homogeneous compensation, and targeted spatial diagnostics did not provide evidence for persistent pattern-mediated rescue. This conclusion should not be read as a contradiction of Roy-style spatial pattern formation; it is a statement about the rescue mechanism in the tested reduced formulation, which is not an algebraically equivalent reduction of the full Roy PDE.
 
 Nonlinear trade-off shapes matter because biological costs of defense need not be linear. The controlled shape grid shows that compensation can persist under selected concave, convex, and mixed endpoint-preserving trade-offs, but it also shows that branch feasibility and stability are shape-dependent. Several assumptions remain stylized: the defense trait is represented by a single frequency \(q\), trade-offs are low-dimensional functions, \(q\)-diffusion is phenomenological, diffusion is isotropic and constant, and environmental stress enters as an added predator mortality term. These choices make the mechanism interpretable but not biologically calibrated. Empirical prediction would require species-specific estimates of defense costs, predator conversion rates, movement scales, mortality stress, and the timescale of prey evolutionary response.
 
