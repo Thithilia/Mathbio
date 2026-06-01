@@ -29,6 +29,8 @@ The main manuscript reports consolidated outputs from the numbered analysis scri
 
 The tail-window logic was used to avoid treating long transients as equilibria. For PDE tests, classification of spatial means was paired with spatial coefficient-of-variation diagnostics for \(n\), \(w\), and \(q\). A basin label was compared with a matched homogeneous control when heterogeneous perturbation effects were evaluated. The classification logic is diagnostic, not a proof of global basin structure.
 
+For the no-evolution counterfactual and evolutionary-rate sensitivity diagnostics, the supplement distinguishes two persistence notions. \emph{Deterministic tail-based persistence} is the baseline mathematical classification from the terminal tail window. \emph{Threshold-safe persistence} additionally requires that \(w(t)\) never cross below the extinction threshold during the tested horizon. This distinction matters because a deterministic ODE trajectory can recover after a very small predator density, whereas an ecological population may be effectively lost after crossing an extinction threshold.
+
 \section*{S2. Mathematical appendix: ODE Jacobian and Routh--Hurwitz margins}
 
 Write
@@ -103,9 +105,36 @@ Table~\ref{tab:rh-margins} reports the Routh--Hurwitz terms and the minimum marg
   \label{fig:supp-rh-terms}
 \end{figure}
 
+The dense branch-stability scan in \texttt{results/roy\_ode\_compensation\_dense\_stability\_scan.csv} evaluates 1001 stress values across the open interior branch interval, excluding the trait-boundary endpoints by \(10^{-8}\). All sampled points satisfy the Routh--Hurwitz inequalities and eigenvalue stability; the minimum margin is small because it approaches zero near the trait-boundary endpoints.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Dense local-stability scan summary for the open linear compensation branch.}
+  \label{tab:dense-stability-summary}
+  \small
+  \begin{tabular}{ll}
+    \toprule
+    Metric & Value \\
+    \midrule
+    Dense grid points & 1001 \\
+    Stress interval sampled & \((-0.113138879,\,0.232444434)\) \\
+    All dense points RH/eigenvalue stable & True \\
+    Minimum dense RH margin & \(4.65\times10^{-10}\) \\
+    Maximum dense eigenvalue real part & \(-1.25\times10^{-9}\) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.90\linewidth]{figures/roy_evo_spatial/report/fig71_ode_dense_branch_stability.png}
+  \caption{Dense local-stability scan across the open compensation branch. Margins approach zero near the trait-boundary endpoints, so this is evidence for sampled open-interval local stability, not endpoint stability.}
+  \label{fig:supp-dense-branch-stability}
+\end{figure}
+
 \section*{S3. Additional ODE basin maps}
 
-The main text focuses on the derived compensation branch and its stability. Additional ODE diagnostics support the basin interpretation and the homogeneous reaction-level mechanism. Figure~\ref{fig:supp-ode-timeseries} shows representative ODE time series and selection/growth diagnostics. Figure~\ref{fig:supp-ode-basin-map} shows the ODE \(q_0\)--\(w_0\) basin map used to relate initial defense and predator density to persistent, extinct, and transient outcomes. Figure~\ref{fig:supp-ode-phase-equilibria} shows selection-growth phase diagnostics and numerical equilibrium stability.
+The main text focuses on the derived homogeneous compensation branch and its stability. Additional ODE diagnostics support the basin interpretation and mechanism. Figure~\ref{fig:supp-ode-timeseries} shows representative ODE time series and selection/growth diagnostics. Figure~\ref{fig:supp-ode-basin-map} shows the ODE \(q_0\)--\(w_0\) basin map used to relate initial defense and predator density to persistent, extinct, and transient outcomes. Figure~\ref{fig:supp-ode-phase-equilibria} shows selection-growth phase diagnostics and numerical equilibrium stability.
 
 \begin{figure}[htbp]
   \centering
@@ -139,6 +168,25 @@ The main text focuses on the derived compensation branch and its stability. Addi
 \section*{S4. PDE non-homogeneous perturbation diagnostics}
 
 The main manuscript reports the conclusion from spatial-mode stability and long-horizon basin-resolution analysis. The supporting PDE diagnostics are shown here. Figure~\ref{fig:supp-pde-linear} summarizes additional spatial-stability views. Figure~\ref{fig:supp-pde-lambda} shows the sampled continuous-\(\lambda\) scan over the mode-equivalent range \(i,j=0,\ldots,64\), sampled at 600 equally spaced \(\lambda\) values. Figures~\ref{fig:supp-pde-initial-fields} and~\ref{fig:supp-pde-final-fields} show representative non-homogeneous initial and final fields. Figures~\ref{fig:supp-pde-timeseries} and~\ref{fig:supp-pde-cv} show mean dynamics and spatial coefficient-of-variation diagnostics for the targeted non-homogeneous tests. Figures~\ref{fig:supp-pde-long-horizon-timeseries}--\ref{fig:supp-pde-long-horizon-fields} show the long-horizon diagnostics for the finite-horizon basin-changing cases.
+
+The PDE solvers used for the saved diagnostics apply \(q\)-clipping by default after explicit updates. The bounds audit in \texttt{results/roy\_pde\_q\_bounds\_audit.csv} therefore checks saved post-update field snapshots rather than raw pre-clipping trial values. All audited saved fields have \(q\in[0,1]\) within tolerance. Table~\ref{tab:q-bounds-audit} summarizes the audit by diagnostic group.
+
+\begin{table}[htbp]
+  \centering
+  \caption{\(q\)-bounds audit for saved PDE diagnostic field files.}
+  \label{tab:q-bounds-audit}
+  \small
+  \begin{tabular}{lrrr}
+    \toprule
+    Diagnostic group & Files & min \(q\) & max \(q\) \\
+    \midrule
+    Representative PDE fields & 3 & \(8.17\times10^{-7}\) & 0.9000 \\
+    Non-homogeneous PDE fields & 5 & 0 & 0.3142 \\
+    Long-horizon non-homogeneous fields & 2 & \(2.78\times10^{-12}\) & 0.2142 \\
+    Nonlinear trade-off PDE fields & 12 & 0 & 0.6615 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 \begin{figure}[htbp]
   \centering
@@ -337,6 +385,7 @@ Table~\ref{tab:script-source-map} maps the main analysis scripts to the CSV outp
   Step 28: counterfactual and modal scan & \texttt{no\_evolution\_counterfactual\_summary}; stress-sweep and time-series CSVs; \texttt{pde\_lambda\_scan\_summary}; \texttt{rh\_margins} \\
   Step 29: manuscript audit & \texttt{compensation\_branch\_value\_audit}; \texttt{compensation\_branch\_reference\_doi\_audit}; \texttt{nonlinear\_tradeoff\_failure\_modes} \\
   Step 30: ecological-review sensitivities & \texttt{ode\_nu\_sensitivity\_summary}; \texttt{pde\_dq\_modal\_sensitivity\_summary} \\
+  Step 31: mathematical and classification tightening & \texttt{ode\_compensation\_dense\_stability\_scan}; \texttt{pde\_q\_bounds\_audit} \\
   \bottomrule
 \end{longtable}
 
@@ -352,9 +401,11 @@ Table~\ref{tab:script-source-map} maps the main analysis scripts to the CSV outp
   \midrule
   \endhead
   Frozen-\(q\) counterfactual verifies indirect rescue over a finite stress window & \texttt{no\_evolution\_counterfactual\_summary}; stress-sweep CSV & Main no-evolution figure & Main claim \\
+  Threshold-safe persistence gives a narrower ecological rescue window than the deterministic tail-based classifier & \texttt{no\_evolution\_counterfactual\_summary}; stress-sweep CSV & Main no-evolution figure & Main claim qualifier \\
   Linear compensation branch conditions are satisfied in the current parameterization & \texttt{compensation\_conditions\_summary}; \texttt{compensation\_branch\_value\_audit} & Main branch figure; Fig.~\ref{fig:supp-ode-phase-equilibria} & Main claim \\
-  Routh--Hurwitz stability holds at target stresses & \texttt{routh\_hurwitz\_summary} & Main Routh--Hurwitz figure; Fig.~\ref{fig:supp-rh-terms} & Main claim \\
+  Routh--Hurwitz stability holds on the dense sampled open branch interval & \texttt{routh\_hurwitz\_summary}; \texttt{ode\_compensation\_dense\_stability\_scan} & Main Routh--Hurwitz figure; Fig.~\ref{fig:supp-rh-terms}; Fig.~\ref{fig:supp-dense-branch-stability} & Main claim \\
   Spatial modes are stable for the current PDE coefficients over the tested range & \texttt{pde\_spatial\_nonlinear\_decision}; \texttt{pde\_lambda\_scan\_summary} & Main spatial-stability figure; Fig.~\ref{fig:supp-pde-linear}; Fig.~\ref{fig:supp-pde-lambda} & Main claim \\
+  Saved PDE diagnostic fields keep \(q\) within the unit interval after the solver update/clipping step & \texttt{pde\_q\_bounds\_audit} & Table~\ref{tab:q-bounds-audit} & Supporting diagnostic \\
   Long-horizon non-homogeneous basin changes resolve to homogeneous controls & \texttt{pde\_long\_horizon\_decision} & Main long-horizon decision panel; Fig.~\ref{fig:supp-pde-long-horizon-timeseries}; Fig.~\ref{fig:supp-pde-long-horizon-metrics}; Fig.~\ref{fig:supp-pde-long-horizon-fields} & Main claim \\
   Finite-time rescue can depend on \(\nu\) & \texttt{ode\_nu\_sensitivity\_summary} & Fig.~\ref{fig:supp-nu-sensitivity} & Supporting diagnostic \\
   Linear \(q\)-diffusion sensitivity shows no positive sampled modal growth in the tested set & \texttt{pde\_dq\_modal\_sensitivity\_summary} & Fig.~\ref{fig:supp-dq-sensitivity} & Supporting diagnostic \\

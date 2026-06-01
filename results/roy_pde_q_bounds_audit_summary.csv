@@ -1,0 +1,7 @@
+metric,value,interpretation
+pde_field_files_audited,22,saved NPZ field files with q arrays included in the bounds audit
+pde_field_files_with_q_in_bounds,22,"files with min_q>=-tol and max_q<=1+tol, tol=1e-10"
+global_min_q_saved_fields,0.0,minimum q value across saved PDE field snapshots
+global_max_q_saved_fields,0.900033558171273,maximum q value across saved PDE field snapshots
+source_group_file_counts,long_horizon_nonhomogeneous_fields:2; nonhomogeneous_pde_fields:5; nonlinear_tradeoff_pde_fields:12; representative_pde_fields:3,number of audited field files by diagnostic group
+pde_solver_clip_q_default,True,RoyEvoPDEConfig defaults to clip_q=True; saved fields report post-clipping q values
