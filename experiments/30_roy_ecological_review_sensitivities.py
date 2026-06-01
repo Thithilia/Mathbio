@@ -89,6 +89,8 @@ NU_SUMMARY_FIELDS = [
     "stress",
     "classification",
     "persistent_predator",
+    "threshold_crossed",
+    "finite_time_status",
     "tail_mean_w",
     "min_w",
     "final_w",
@@ -180,6 +182,17 @@ def classify_nu_run(metrics: dict[str, Any], solver_success: bool) -> str:
     return "transient_or_unresolved"
 
 
+def finite_time_status_from_threshold(classification: str, threshold_crossed: bool) -> str:
+    """Ecological status that distinguishes tail recovery from threshold-safe persistence."""
+    if classification.startswith("extinct") or classification == "nonphysical":
+        return "extinct_or_boundary_crossing"
+    if classification == "persistent":
+        if threshold_crossed:
+            return "recovered_after_threshold_crossing"
+        return "persistent_above_threshold"
+    return "transient_or_unresolved"
+
+
 def run_nu_sensitivity() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     y0 = initial_state()
     summary_rows: list[dict[str, Any]] = []
@@ -207,15 +220,21 @@ def run_nu_sensitivity() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
             n, w, q = trajectory.y
             z = free_space_evo(n, w, params)
             classification = classify_nu_run(metrics, trajectory.success)
+            threshold_crossed = bool(float(metrics["min_w"]) <= EXTINCTION_EPSILON)
+            finite_time_status = finite_time_status_from_threshold(classification, threshold_crossed)
             notes = "finite_time_nu_sensitivity_from_pre_stress_branch_state"
             if classification == "extinct_numerical_boundary_crossing":
                 notes = "predator_lost_before_adaptation_solver_crossed_boundary"
+            elif finite_time_status == "recovered_after_threshold_crossing":
+                notes = "tail_persistent_but_crossed_extinction_threshold"
             summary_rows.append(
                 {
                     "nu": nu,
                     "stress": stress,
                     "classification": classification,
                     "persistent_predator": bool(trajectory.success and metrics["physical"] and metrics["persistent_predator"]),
+                    "threshold_crossed": threshold_crossed,
+                    "finite_time_status": finite_time_status,
                     "tail_mean_w": metrics["tail_mean_w"],
                     "min_w": metrics["min_w"],
                     "final_w": float(w[-1]),
@@ -308,13 +327,15 @@ def run_dq_modal_sensitivity() -> tuple[list[dict[str, Any]], list[dict[str, Any
     return scan_rows, summary_rows
 
 
-def class_code(classification: str) -> int:
-    if classification == "persistent":
+def finite_time_status_code(status: str) -> int:
+    if status == "persistent_above_threshold":
         return 0
-    if classification.startswith("extinct"):
+    if status == "recovered_after_threshold_crossing":
         return 1
-    if "transient" in classification:
+    if status == "extinct_or_boundary_crossing":
         return 2
+    if status == "transient_or_unresolved":
+        return 3
     return 3
 
 
@@ -335,6 +356,7 @@ def make_nu_figure(summary_rows: list[dict[str, Any]], timeseries_rows: list[dic
         ax_q.plot([float(row["time"]) for row in subset], [float(row["q"]) for row in subset], color=color, lw=1.8)
 
     ax_w.set_title(r"A. Predator density at $s=0.1191$", loc="left", fontweight="bold")
+    ax_w.axhline(EXTINCTION_EPSILON, color="#111111", lw=1.0, ls=":", label=r"$w=10^{-4}$")
     ax_w.set_xlabel("time")
     ax_w.set_ylabel(r"$w(t)$")
     ax_w.grid(alpha=0.22)
@@ -351,31 +373,31 @@ def make_nu_figure(summary_rows: list[dict[str, Any]], timeseries_rows: list[dic
     for row in summary_rows:
         i = NU_VALUES.index(float(row["nu"]))
         j = stress_values.index(float(row["stress"]))
-        class_matrix[i, j] = class_code(str(row["classification"]))
+        class_matrix[i, j] = finite_time_status_code(str(row["finite_time_status"]))
         tail_matrix[i, j] = max(float(row["tail_mean_w"]), 1.0e-10)
 
-    class_cmap = ListedColormap(["#2f6fbb", "#d9d9d9", "#fdae61", "#ffffff"])
+    class_cmap = ListedColormap(["#2f6fbb", "#8c6bb1", "#d9d9d9", "#fdae61"])
     norm = BoundaryNorm(np.arange(5) - 0.5, class_cmap.N)
     ax_class.imshow(class_matrix, origin="lower", aspect="auto", cmap=class_cmap, norm=norm)
-    ax_class.set_title(r"C. Classification over stress and $\nu$", loc="left", fontweight="bold")
+    ax_class.set_title(r"C. Finite-time status over stress and $\nu$", loc="left", fontweight="bold")
     ax_class.set_xlabel("stress s")
     ax_class.set_ylabel(r"$\nu$")
     ax_class.set_xticks(range(len(stress_values)))
     ax_class.set_xticklabels([f"{value:g}" for value in stress_values])
     ax_class.set_yticks(range(len(NU_VALUES)))
     ax_class.set_yticklabels([f"{value:g}" for value in NU_VALUES])
-    letters = {0: "P", 1: "E", 2: "T", 3: "U"}
+    letters = {0: "P", 1: "R", 2: "E", 3: "T"}
     for i in range(len(NU_VALUES)):
         for j in range(len(stress_values)):
             code = int(class_matrix[i, j])
             ax_class.text(j, i, letters[code], ha="center", va="center", fontsize=12, fontweight="bold")
     handles = [
-        Patch(facecolor="#2f6fbb", edgecolor="#222222", label="P persistent"),
-        Patch(facecolor="#d9d9d9", edgecolor="#222222", label="E extinct"),
-        Patch(facecolor="#fdae61", edgecolor="#222222", label="T transient"),
-        Patch(facecolor="#ffffff", edgecolor="#222222", label="U unresolved"),
+        Patch(facecolor="#2f6fbb", edgecolor="#222222", label="P persistent above threshold"),
+        Patch(facecolor="#8c6bb1", edgecolor="#222222", label="R recovered after threshold crossing"),
+        Patch(facecolor="#d9d9d9", edgecolor="#222222", label="E extinct/boundary crossing"),
+        Patch(facecolor="#fdae61", edgecolor="#222222", label="T transient/unresolved"),
     ]
-    ax_class.legend(handles=handles, frameon=False, fontsize=8, loc="upper right", bbox_to_anchor=(1.02, -0.16), ncol=2)
+    ax_class.legend(handles=handles, frameon=False, fontsize=7.5, loc="upper right", bbox_to_anchor=(1.02, -0.16), ncol=1)
 
     image = ax_tail.imshow(tail_matrix, origin="lower", aspect="auto", cmap="magma", norm=LogNorm(vmin=1.0e-4, vmax=max(0.7, float(np.nanmax(tail_matrix)))))
     ax_tail.set_title(r"D. Tail mean predator density", loc="left", fontweight="bold")
@@ -440,8 +462,12 @@ def main() -> None:
     nu_summary, _nu_timeseries = run_nu_sensitivity()
     _dq_scan, dq_summary = run_dq_modal_sensitivity()
     persistent_count = sum(1 for row in nu_summary if str(row["classification"]) == "persistent")
+    threshold_crossed_count = sum(1 for row in nu_summary if bool(row["threshold_crossed"]))
     dq_unstable = sum(1 for row in dq_summary if not bool(row["positive_lambda_stable"]))
-    print(f"Wrote {NU_SUMMARY_CSV.relative_to(ROOT)} with {len(nu_summary)} rows ({persistent_count} persistent classifications).")
+    print(
+        f"Wrote {NU_SUMMARY_CSV.relative_to(ROOT)} with {len(nu_summary)} rows "
+        f"({persistent_count} tail-persistent classifications; {threshold_crossed_count} threshold crossings)."
+    )
     print(f"Wrote {NU_TIMESERIES_CSV.relative_to(ROOT)}.")
     print(f"Wrote {D_Q_SUMMARY_CSV.relative_to(ROOT)} with {len(dq_summary)} rows ({dq_unstable} unstable rows).")
     print(f"Wrote {D_Q_SCAN_CSV.relative_to(ROOT)}.")

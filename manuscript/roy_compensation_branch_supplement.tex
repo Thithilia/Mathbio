@@ -291,12 +291,12 @@ The no-compensation and unresolved shape classes identify trade-off geometries w
 
 \section*{S6. Ecological-review sensitivity diagnostics}
 
-Figure~\ref{fig:supp-nu-sensitivity} reports a finite-time sensitivity diagnostic for the defense-evolution rate \(\nu\). These runs use the same ODE equations and baseline parameterization except for \(\nu\), start from the pre-stress branch initial state, and test stresses \(s\in\{0.08,0.10,0.1191,0.14,0.16\}\). The diagnostic is not a new rescue-window claim. It shows that finite-time rescue can depend on evolutionary rate even though the branch equilibrium itself is independent of \(\nu\). In particular, the slowest tested case loses predators at the representative rescue stress before adaptation completes, while the baseline \(\nu=0.05\) remains predator-persistent.
+Figure~\ref{fig:supp-nu-sensitivity} reports a finite-time sensitivity diagnostic for the defense-evolution rate \(\nu\). These runs use the same ODE equations and baseline parameterization except for \(\nu\), start from the pre-stress branch initial state, and test stresses \(s\in\{0.08,0.10,0.1191,0.14,0.16\}\). The diagnostic is not a new rescue-window claim. It shows that finite-time rescue can depend on evolutionary rate even though the branch equilibrium itself is independent of \(\nu\). Because the baseline classifier is tail-based, some deterministic trajectories can be classified as persistent after dropping below the extinction threshold. For ecological interpretation, the sensitivity diagnostic therefore also reports whether \(w(t)\) crossed the extinction threshold. At the representative rescue stress \(s=0.1191\), \(\nu=0.005\) loses predators before adaptation completes, \(\nu=0.01\) recovers mathematically after crossing below the threshold, and \(\nu\ge0.025\) remains predator-persistent without threshold crossing under the tested horizon.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.96\linewidth]{figures/roy_evo_spatial/report/fig69_ode_nu_sensitivity.png}
-  \caption{Finite-time evolutionary-rate sensitivity diagnostic. Panels A and B show \(w(t)\) and \(q(t)\) at \(s=0.1191\); Panels C and D summarize classifications and tail mean predator density across the small stress--\(\nu\) grid.}
+  \caption{Finite-time evolutionary-rate sensitivity diagnostic. Panels A and B show \(w(t)\) and \(q(t)\) at \(s=0.1191\); the dotted line marks the extinction threshold. Panel C reports ecological finite-time status: P, persistent without threshold crossing; R, tail-persistent recovery after threshold crossing; E, extinct or boundary crossing; T, transient or unresolved. Panel D shows tail mean predator density across the small stress--\(\nu\) grid.}
   \label{fig:supp-nu-sensitivity}
 \end{figure}
 
