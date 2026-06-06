@@ -1,5 +1,14 @@
 # External Review Readiness Note
 
+## Strict review framing update
+
+- Retitled the manuscript around a homogeneous compensation branch in a reduced free-space predator--prey model, rather than a broad Roy/Sasmal-equivalence mechanism claim.
+- Reframed novelty as mechanism separation within a reduced deterministic model: indirect evolutionary rescue is established by Yamamichi and Miner, while this manuscript isolates and tests a model-specific homogeneous compensation branch.
+- Added verified follow-up and neighboring citations for community evolutionary rescue, predator mortality/extinction-threshold responses, direct prey-genotype-frequency predator rescue, spatial eco-evolutionary feedbacks, and prey trait variation contributions to predator growth rates.
+- Clarified near the equations that \(z\) is free space, the admissible state space is \(n\ge0\), \(w\ge0\), \(z\ge0\), \(0\le q\le1\), and \(b(q)\) is predator energetic gain/conversion opportunity rather than a direct prey-selection term.
+- Clarified that the extinction threshold is a deterministic diagnostic/quasi-extinction convention and not an empirical extinction probability.
+- Aligned the repository README with the homogeneous-compensation, frozen-\(q\), threshold-safe, and sampled-spatial-diagnostic framing.
+
 ## Main improvements
 
 - Added a Methods / Numerical protocols section that separates ODE integration, branch computation, stability checks, PDE spatial-mode tests, finite-amplitude PDE perturbations, nonlinear trade-off shape-grid design, and classification logic.
@@ -8,7 +17,7 @@
 - Added a separate supplement with numerical protocol details, diagnostic figures, and a claim-to-source CSV mapping.
 - Added a frozen-\(q\) no-evolution counterfactual for the linear ODE. The manuscript now states indirect evolutionary rescue only over the verified grid window where frozen-\(q\) trajectories are extinct and evolving-\(q\) trajectories persist.
 - Added the analytic frozen-\(q\) predator-invasion threshold \(s_{\mathrm{fixed}}\approx0.0696\), saved it to the counterfactual summary CSV, and marked it in the counterfactual figure.
-- Added Roy-style/free-space/aposematic-prey source-model citations and clarified that \(q\)-diffusion is a phenomenological composition-smoothing term.
+- Added Roy/Sasmal free-space/aposematic-prey source-model citations and clarified that \(q\)-diffusion is a phenomenological composition-smoothing term.
 - Added full ODE Jacobian entries and a Routh--Hurwitz margin table to the supplement.
 - Added a continuous \(\lambda\)-scan for \(J_F(U^*)-\lambda D\) over the tested Neumann-mode range, strengthening the spatial-stability evidence without claiming all modes are analytically stable.
 - Polished the main compensation-branch figure to remove axis-offset ambiguity and replaced the nonlinear trade-off summary with a faceted shape-grid heatmap matching the 11/11/4/1 class counts.
@@ -75,3 +84,12 @@ mathematical biology / theoretical ecology short article or methods-style theore
 - Decide whether the target outlet needs broader \(\nu\), domain-size, or trait-diffusion sensitivity; the current added diagnostics are intentionally focused.
 - Replace placeholder author information with the intended author list and affiliations.
 - Remove all draft author-list placeholder text before submission.
+
+## Remaining pre-submission packaging tasks
+
+- Archive the exact repository snapshot with a DOI through Zenodo, OSF, or an equivalent service.
+- Record the exact final manuscript commit hash in the manuscript or archive metadata.
+- Freeze and archive the computational environment, for example with `python -m pip freeze` plus any LaTeX environment notes needed for reproducibility.
+- Remove the draft author placeholder and add final authors, affiliations, acknowledgements, and any required conflict/funding statements.
+- Perform a final DOI/reference resolver check after the bibliography is frozen.
+- Ensure the archive includes CSV outputs, scripts, figures, PDFs, LaTeX sources, and source-mapping tables used by the manuscript and supplement.
