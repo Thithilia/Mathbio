@@ -4,15 +4,16 @@
 
 This note records the review-facing reproducibility additions for the compensation-branch manuscript package. It is a reproducibility note, not a new model analysis.
 
-## Environment Note
+## Snapshot and Environment Note
 
-The current package was generated in a local Windows/PowerShell environment with Python and LaTeX tools on the system path. Before journal submission or archival release, capture the final environment with a command such as `python -m pip freeze` and include the resulting file with the archived repository snapshot.
+The pre-external-review manuscript snapshot is identified by tag `external-review-2026-06-06`; the exact snapshot commit is the tag target recorded in Git metadata. The current package was generated in a local Windows/PowerShell environment with Python and LaTeX tools on the system path. Python package versions were captured with `python -m pip freeze` in `environment/requirements-2026-06-06.txt`. The LaTeX PDFs were built with the local LaTeX installation. This is an environment freeze file, not a containerized reproducibility package.
 
 ## Regeneration Commands
 
 Run the following from the repository root:
 
 ```powershell
+python -m pip freeze > environment/requirements-2026-06-06.txt
 python experiments/28_roy_counterfactual_and_spatial_evidence.py --profile focused
 python experiments/30_roy_ecological_review_sensitivities.py --profile focused
 python experiments/31_roy_mathematical_classification_tightening.py --profile focused
@@ -39,7 +40,7 @@ Before submission, prepare a Zenodo or OSF archive containing:
 - generated CSV outputs under `results/`;
 - manuscript figures under `figures/roy_evo_spatial/report/`;
 - main manuscript and supplement PDFs;
-- a captured Python environment file;
+- `environment/requirements-2026-06-06.txt`;
 - a short README identifying the exact regeneration command sequence.
 
 The archive should state that the PDE spatial evidence is targeted and sampled, not a global proof over all domains, diffusion closures, or finite-amplitude heterogeneous initial conditions.

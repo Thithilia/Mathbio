@@ -43,7 +43,7 @@
 
 ## Current manuscript status
 
-The manuscript package now consists of a clean main paper, a supplement, and a submission checklist. The main paper is structured as a theoretical ecology / mathematical biology article rather than a project report. The supplement carries diagnostic ODE/PDE figures, nonlinear trade-off diagnostics, full Jacobian entries, Routh--Hurwitz margins, and the CSV source map needed for review traceability. The data/code statement contains a repository URL and the external-review version tag `external-review-polish-2026-05-31`; a DOI is still needed before journal submission.
+The manuscript package now consists of a clean main paper, a supplement, and a submission checklist. The main paper is structured as a theoretical ecology / mathematical biology article rather than a project report. The supplement carries diagnostic ODE/PDE figures, nonlinear trade-off diagnostics, full Jacobian entries, Routh--Hurwitz margins, and the CSV source map needed for review traceability. The data/code statement contains a repository URL and the external-review snapshot tag `external-review-2026-06-06`; the exact snapshot commit is the tag target recorded in Git metadata. A DOI is still needed before journal submission.
 
 ## Remaining weaknesses
 
@@ -88,8 +88,8 @@ mathematical biology / theoretical ecology short article or methods-style theore
 ## Remaining pre-submission packaging tasks
 
 - Archive the exact repository snapshot with a DOI through Zenodo, OSF, or an equivalent service.
-- Record the exact final manuscript commit hash in the manuscript or archive metadata.
-- Freeze and archive the computational environment, for example with `python -m pip freeze` plus any LaTeX environment notes needed for reproducibility.
+- Record the exact final manuscript tag target commit hash in the archive metadata.
+- Archive the frozen Python environment file `environment/requirements-2026-06-06.txt` plus any LaTeX environment notes needed for reproducibility.
 - Remove the draft author placeholder and add final authors, affiliations, acknowledgements, and any required conflict/funding statements.
 - Perform a final DOI/reference resolver check after the bibliography is frozen.
 - Ensure the archive includes CSV outputs, scripts, figures, PDFs, LaTeX sources, and source-mapping tables used by the manuscript and supplement.
