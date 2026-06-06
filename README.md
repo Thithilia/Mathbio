@@ -20,11 +20,14 @@ tested reduced setup. This does not claim that the reduced model is equivalent t
 the full Roy/Sasmal defended-prey PDE, and it is not evidence against spatial
 pattern formation in those fuller systems.
 
-Reproducibility packaging is still pending before journal submission: archive an
-exact repository snapshot with a DOI, record the exact manuscript commit hash,
-freeze the computational environment, remove the draft author placeholder,
-perform a final DOI/reference check, and ensure CSV outputs, scripts, figures,
-and source mappings are included in the archive.
+The pre-external-review snapshot is identified by tag
+`external-review-2026-06-06`; the exact snapshot commit is the tag target. The
+Python environment was frozen with `python -m pip freeze` in
+`environment/requirements-2026-06-06.txt`. The manuscript PDFs were built with
+the local LaTeX installation, not a containerized build image. No archival DOI
+exists yet. Final journal submission should archive the tagged repository
+snapshot together with scripts, CSV outputs, figures, LaTeX sources, PDFs, source
+mappings, and the environment freeze file.
 
 ## Legacy project materials
 
